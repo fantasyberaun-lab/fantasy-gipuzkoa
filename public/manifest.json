@@ -1,0 +1,21 @@
+{
+  "name": "Fantasy Campeonatos de Gipuzkoa",
+  "short_name": "Fantasy Gipuzkoa",
+  "description": "Fantasy de ajedrez basado en los Campeonatos de Gipuzkoa Individual",
+  "start_url": "/plantilla",
+  "display": "standalone",
+  "background_color": "#EDEAE3",
+  "theme_color": "#2F6F4E",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
