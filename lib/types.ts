@@ -48,3 +48,8 @@ export interface JugadorLiga extends Jugador {
   propietario: string | null; // nombre del equipo que lo tiene fichado, o null si está libre
   esMiEquipo?: boolean; // true si el propietario eres tú
 }
+
+export interface OfertaPendiente {
+  jugadorId: string;
+  importe: number;
+}

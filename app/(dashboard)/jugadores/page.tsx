@@ -1,20 +1,26 @@
 "use client";
 
 import { useState } from "react";
-import { mockJugadoresLiga } from "@/lib/mockData";
+import { useGameState, calcularClausula } from "@/components/GameStateProvider";
 
 export default function JugadoresPage() {
-  // TODO: sustituir mockJugadoresLiga por la consulta real a Supabase
-  // (todos los players + su squad_slot actual, si lo tienen, + suma de
-  // puntos de la temporada). "Hacer oferta" y "Pagar cláusula" deberían
-  // ser llamadas a Supabase que crean una fila en market_offers o
-  // ejecutan la transacción de clausulazo, en vez de solo cambiar estado
-  // local como aquí.
+  // TODO: sustituir jugadoresLiga (dentro de GameStateProvider) por la
+  // consulta real a Supabase (todos los players + su squad_slot actual,
+  // si lo tienen, + suma de puntos de la temporada). "Hacer oferta" y
+  // "Pagar cláusula" deberían pasar a ser llamadas a Supabase que crean
+  // una fila en market_offers o ejecutan la transacción de clausulazo
+  // (tabla clause_releases), en vez de solo tocar el estado compartido
+  // en memoria como ahora.
+
+  const { jugadoresLiga, ofertas, pagarClausula, hacerOferta } = useGameState();
 
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [montoOferta, setMontoOferta] = useState("");
+  const [mensajePorJugador, setMensajePorJugador] = useState<
+    Record<string, { tipo: "ok" | "error"; texto: string }>
+  >({});
 
-  const jugadoresOrdenados = [...mockJugadoresLiga].sort(
+  const jugadoresOrdenados = [...jugadoresLiga].sort(
     (a, b) => b.puntosTotales - a.puntosTotales
   );
 
@@ -23,13 +29,42 @@ export default function JugadoresPage() {
     setMontoOferta("");
   };
 
-  const calcularClausula = (valorMercado: number) => Math.ceil(valorMercado * 1.5);
+  const mostrarMensaje = (
+    jugadorId: string,
+    tipo: "ok" | "error",
+    texto: string
+  ) => {
+    setMensajePorJugador((prev) => ({ ...prev, [jugadorId]: { tipo, texto } }));
+  };
+
+  const onPagarClausula = (jugadorId: string) => {
+    const resultado = pagarClausula(jugadorId);
+    if (resultado.ok) {
+      mostrarMensaje(jugadorId, "ok", "Cláusula pagada. El jugador ya está en tu plantilla.");
+      setSeleccionadoId(null);
+    } else {
+      mostrarMensaje(jugadorId, "error", resultado.mensaje);
+    }
+  };
+
+  const onHacerOferta = (jugadorId: string) => {
+    const importe = Number(montoOferta);
+    const resultado = hacerOferta(jugadorId, importe);
+    if (resultado.ok) {
+      mostrarMensaje(jugadorId, "ok", `Oferta de ${importe} M enviada al manager.`);
+      setMontoOferta("");
+    } else {
+      mostrarMensaje(jugadorId, "error", resultado.mensaje);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-2">
       {jugadoresOrdenados.map((jugador) => {
         const estaSeleccionado = seleccionadoId === jugador.id;
         const esFichable = jugador.propietario !== null && !jugador.esMiEquipo;
+        const ofertaActual = ofertas.find((o) => o.jugadorId === jugador.id);
+        const mensaje = mensajePorJugador[jugador.id];
 
         return (
           <div
@@ -59,6 +94,9 @@ export default function JugadoresPage() {
                     : jugador.propietario
                       ? `Fichado por ${jugador.propietario}`
                       : "Libre"}
+                  {ofertaActual && !jugador.esMiEquipo
+                    ? ` · Oferta enviada: ${ofertaActual.importe} M`
+                    : ""}
                 </p>
               </div>
               <span className="text-sm font-semibold">{jugador.puntosTotales} pts</span>
@@ -74,7 +112,7 @@ export default function JugadoresPage() {
 
                 {!jugador.esMiEquipo && jugador.propietario === null && (
                   <p className="text-sm text-neutral-500">
-                    Está libre — Espera a q salga en la pestaña de mercado.
+                    Está libre — Espera a que salga en la pestaña de mercado.
                   </p>
                 )}
 
@@ -95,15 +133,31 @@ export default function JugadoresPage() {
 
                     <div className="flex gap-2">
                       <button
+                        onClick={() => onHacerOferta(jugador.id)}
                         disabled={!montoOferta}
                         className="flex-1 rounded-lg border border-neutral-300 py-2 text-sm font-medium disabled:opacity-40 dark:border-neutral-700"
                       >
                         Hacer oferta
                       </button>
-                      <button className="flex-1 rounded-lg bg-neutral-900 py-2 text-sm font-medium text-white dark:bg-white dark:text-neutral-900">
+                      <button
+                        onClick={() => onPagarClausula(jugador.id)}
+                        className="flex-1 rounded-lg bg-neutral-900 py-2 text-sm font-medium text-white dark:bg-white dark:text-neutral-900"
+                      >
                         Pagar cláusula ({calcularClausula(jugador.valorMercado)} M)
                       </button>
                     </div>
+
+                    {mensaje && (
+                      <p
+                        className={`text-xs ${
+                          mensaje.tipo === "ok"
+                            ? "text-positive"
+                            : "text-negative"
+                        }`}
+                      >
+                        {mensaje.texto}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

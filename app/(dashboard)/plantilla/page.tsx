@@ -1,10 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import PlayerCard from "@/components/PlayerCard";
 import SaldoCard from "@/components/SaldoCard";
-import { mockPlantilla, mockEquipo } from "@/lib/mockData";
-import type { PlantillaSlot } from "@/lib/types";
+import { useGameState } from "@/components/GameStateProvider";
 
 const MAX_TERCERA = 2;
 const MAX_TITULARES = 6;
@@ -60,28 +58,13 @@ function ContadorSlots({
 }
 
 export default function PlantillaPage() {
-  // TODO: sustituir mockPlantilla/mockEquipo por la consulta real a Supabase
-  // (tablas squad_slots + players + teams + results de la jornada actual).
-  // Cuando se conecte de verdad, "vender" será una llamada a Supabase que
-  // borra la fila de squad_slots y actualiza el saldo del equipo, en vez
-  // de solo tocar el estado local como aquí.
+  // TODO: cuando se conecte Supabase de verdad, GameStateProvider dejará de
+  // guardar esto en memoria del navegador y pasará a leer/escribir en las
+  // tablas (squad_slots + players + teams + results de la jornada actual).
+  // Esta página no debería necesitar cambios: seguirá usando useGameState().
 
-  const [squad, setSquad] = useState<PlantillaSlot[]>(mockPlantilla);
-  const [saldo, setSaldo] = useState<number>(mockEquipo.saldo);
-  const [titulares, setTitulares] = useState<Record<string, boolean>>({});
-
-  const toggleTitular = (id: string) => {
-    setTitulares((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const venderJugador = (id: string, valorMercado: number) => {
-    setSquad((prev) => prev.filter((slot) => slot.jugador.id !== id));
-    setSaldo((prev) => prev + valorMercado);
-    setTitulares((prev) => {
-      const { [id]: _eliminado, ...resto } = prev;
-      return resto;
-    });
-  };
+  const { squad, equipo, titulares, toggleTitular, venderJugador } =
+    useGameState();
 
   const jugadoresTerceraTitulares = squad.filter(
     (slot) => slot.jugador.categoria === 3 && titulares[slot.jugador.id]
@@ -96,7 +79,7 @@ export default function PlantillaPage() {
   return (
     <div>
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <SaldoCard saldo={saldo} />
+        <SaldoCard saldo={equipo.saldo} />
         <ContadorSlots
           label="Titulares de Tercera"
           actual={jugadoresTerceraTitulares}
