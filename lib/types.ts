@@ -42,3 +42,9 @@ export interface EquipoManager {
   nombreEquipo: string;
   saldo: number; // presupuesto disponible para fichajes, en millones
 }
+
+export interface JugadorLiga extends Jugador {
+  puntosTotales: number; // puntos acumulados en toda la liga
+  propietario: string | null; // nombre del equipo que lo tiene fichado, o null si está libre
+  esMiEquipo?: boolean; // true si el propietario eres tú
+}
