@@ -1,5 +1,6 @@
 import type {
   ClasificacionEntry,
+  EquipoManager,
   MercadoListing,
   PlantillaSlot,
 } from "./types";
@@ -7,6 +8,11 @@ import type {
 // Datos ficticios solo para desarrollar la interfaz mientras no hay
 // conexión real a Supabase. Sustituir por llamadas a la base de datos
 // (ver lib/supabase/client.ts) en cuanto exista el esquema.
+
+export const mockEquipo: EquipoManager = {
+  nombreEquipo: "Ostadar taldea",
+  saldo: 18,
+};
 
 export const mockPlantilla: PlantillaSlot[] = [
   {

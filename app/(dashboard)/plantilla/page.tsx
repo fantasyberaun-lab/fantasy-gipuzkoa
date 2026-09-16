@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import PlayerCard from "@/components/PlayerCard";
-import { mockPlantilla } from "@/lib/mockData";
+import SaldoCard from "@/components/SaldoCard";
+import { mockPlantilla, mockEquipo } from "@/lib/mockData";
+import type { PlantillaSlot } from "@/lib/types";
 
 const MAX_TERCERA = 2;
 const MAX_TITULARES = 6;
@@ -58,28 +60,43 @@ function ContadorSlots({
 }
 
 export default function PlantillaPage() {
-  // TODO: sustituir mockPlantilla por la consulta real a Supabase
-  // (tabla squad_slots + players + results de la jornada actual).
+  // TODO: sustituir mockPlantilla/mockEquipo por la consulta real a Supabase
+  // (tablas squad_slots + players + teams + results de la jornada actual).
+  // Cuando se conecte de verdad, "vender" será una llamada a Supabase que
+  // borra la fila de squad_slots y actualiza el saldo del equipo, en vez
+  // de solo tocar el estado local como aquí.
 
+  const [squad, setSquad] = useState<PlantillaSlot[]>(mockPlantilla);
+  const [saldo, setSaldo] = useState<number>(mockEquipo.saldo);
   const [titulares, setTitulares] = useState<Record<string, boolean>>({});
 
   const toggleTitular = (id: string) => {
     setTitulares((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const jugadoresTerceraTitulares = mockPlantilla.filter(
+  const venderJugador = (id: string, valorMercado: number) => {
+    setSquad((prev) => prev.filter((slot) => slot.jugador.id !== id));
+    setSaldo((prev) => prev + valorMercado);
+    setTitulares((prev) => {
+      const { [id]: _eliminado, ...resto } = prev;
+      return resto;
+    });
+  };
+
+  const jugadoresTerceraTitulares = squad.filter(
     (slot) => slot.jugador.categoria === 3 && titulares[slot.jugador.id]
   ).length;
 
-  const titularesSeleccionados = mockPlantilla.filter(
+  const titularesSeleccionados = squad.filter(
     (slot) => titulares[slot.jugador.id]
   ).length;
 
-  const totalPlantilla = mockPlantilla.length;
+  const totalPlantilla = squad.length;
 
   return (
     <div>
-      <div className="mb-4 grid gap-3 sm:grid-cols-3">
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <SaldoCard saldo={saldo} />
         <ContadorSlots
           label="Titulares de Tercera"
           actual={jugadoresTerceraTitulares}
@@ -101,12 +118,13 @@ export default function PlantillaPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {mockPlantilla.map((slot) => (
+        {squad.map((slot) => (
           <PlayerCard
             key={slot.jugador.id}
             {...slot}
             esTitular={!!titulares[slot.jugador.id]}
             onToggleTitular={() => toggleTitular(slot.jugador.id)}
+            onVender={() => venderJugador(slot.jugador.id, slot.jugador.valorMercado)}
           />
         ))}
       </div>

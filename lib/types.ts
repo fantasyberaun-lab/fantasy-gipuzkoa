@@ -37,3 +37,8 @@ export interface ClasificacionEntry {
   puntos: number;
   esMiEquipo?: boolean;
 }
+
+export interface EquipoManager {
+  nombreEquipo: string;
+  saldo: number; // presupuesto disponible para fichajes, en millones
+}
