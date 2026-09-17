@@ -1,7 +1,6 @@
 "use client";
 
 import PlayerCard from "@/components/PlayerCard";
-import SaldoCard from "@/components/SaldoCard";
 import { useGameState } from "@/components/GameStateProvider";
 
 const MAX_TERCERA = 2;
@@ -63,8 +62,7 @@ export default function PlantillaPage() {
   // tablas (squad_slots + players + teams + results de la jornada actual).
   // Esta página no debería necesitar cambios: seguirá usando useGameState().
 
-  const { squad, equipo, titulares, toggleTitular, venderJugador } =
-    useGameState();
+  const { squad, titulares, toggleTitular, venderJugador } = useGameState();
 
   const jugadoresTerceraTitulares = squad.filter(
     (slot) => slot.jugador.categoria === 3 && titulares[slot.jugador.id]
@@ -78,8 +76,7 @@ export default function PlantillaPage() {
 
   return (
     <div>
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <SaldoCard saldo={equipo.saldo} />
+      <div className="mb-4 grid gap-3 sm:grid-cols-3">
         <ContadorSlots
           label="Titulares de Tercera"
           actual={jugadoresTerceraTitulares}
