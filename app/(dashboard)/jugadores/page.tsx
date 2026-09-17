@@ -2,16 +2,17 @@
 
 import { useMemo, useState } from "react";
 import { mockJugadoresLiga } from "@/lib/mockData";
+import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 
 type Orden = "puntos" | "nombre" | "categoria";
 
 export default function JugadoresPage() {
   // TODO: sustituir mockJugadoresLiga por la consulta real a Supabase
   // (todos los players + su squad_slot actual, si lo tienen, + suma de
-  // puntos de la temporada). "Hacer oferta" y "Pagar cláusula" deberían
-  // ser llamadas a Supabase que crean una fila en market_offers o
-  // ejecutan la transacción de clausulazo, en vez de solo cambiar estado
-  // local como aquí.
+  // puntos de la temporada + el historial por jornada). "Hacer oferta" y
+  // "Pagar cláusula" deberían ser llamadas a Supabase que crean una fila
+  // en market_offers o ejecutan la transacción de clausulazo, en vez de
+  // solo cambiar estado local como aquí.
 
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [montoOferta, setMontoOferta] = useState("");
@@ -127,7 +128,9 @@ export default function JugadoresPage() {
               </button>
 
               {estaSeleccionado && (
-                <div className="border-t border-neutral-200 p-3 dark:border-neutral-800">
+                <div className="flex flex-col gap-4 border-t border-neutral-200 p-3 dark:border-neutral-800">
+                  <HistorialPuntosChart historial={jugador.historialPuntos} />
+
                   {jugador.esMiEquipo && (
                     <p className="text-sm text-neutral-500">
                       Ya lo tienes en tu plantilla.

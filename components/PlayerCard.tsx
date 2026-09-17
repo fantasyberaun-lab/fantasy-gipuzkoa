@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { PlantillaSlot } from "@/lib/types";
+import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 
 function iniciales(nombre: string) {
   return nombre
@@ -29,11 +30,13 @@ export default function PlayerCard({
   puntosJornada,
   valorMercadoDelta,
   resultadosRecientes,
+  historialPuntos,
   esTitular,
   onToggleTitular,
   onVender,
 }: Props) {
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
+  const [mostrarHistorial, setMostrarHistorial] = useState(false);
 
   const deltaColor =
     valorMercadoDelta > 0
@@ -110,6 +113,28 @@ export default function PlayerCard({
             Vender
           </button>
         </div>
+
+        <button
+          onClick={() => setMostrarHistorial((prev) => !prev)}
+          className="mt-2 flex w-full items-center justify-center gap-1 py-1 text-xs font-medium text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300"
+        >
+          {mostrarHistorial ? "Ocultar" : "Puntos por jornada"}
+          <svg
+            className={`h-3 w-3 transition-transform ${mostrarHistorial ? "rotate-180" : ""}`}
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {mostrarHistorial && (
+          <div className="mt-2 border-t border-neutral-200 pt-3 dark:border-neutral-800">
+            <HistorialPuntosChart historial={historialPuntos} />
+          </div>
+        )}
       </div>
 
       {mostrarConfirmacion && (

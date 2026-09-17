@@ -1,8 +1,20 @@
+"use client";
+
+import { useState } from "react";
 import { mockMercado } from "@/lib/mockData";
+import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 
 export default function MercadoPage() {
   // TODO: sustituir mockMercado por la consulta real (tabla market_listings
-  // + bids), y conectar el botón "Fichar" con la mutación correspondiente.
+  // + bids + historial de puntos por ronda), y conectar el botón "Fichar"
+  // con la mutación correspondiente.
+
+  const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
+
+  const toggleSeleccion = (id: string) => {
+    setSeleccionadoId((prev) => (prev === id ? null : id));
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -12,29 +24,49 @@ export default function MercadoPage() {
         </span>
       </div>
 
-      {mockMercado.map(({ jugador, rival, numeroPujas }) => (
-        <div
-          key={jugador.id}
-          className="flex items-center justify-between rounded-2xl border border-neutral-200 p-4 dark:border-neutral-800"
-        >
-          <div>
-            <p className="font-medium">{jugador.nombre}</p>
-            <p className="text-sm text-neutral-500">
-              {jugador.categoria}ª cat. · Elo {jugador.elo}
-              {rival ? ` · Rival: ${rival.nombre} (${rival.elo})` : ""}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right text-sm">
-              <p className="font-semibold">{jugador.valorMercado} M</p>
-              <p className="text-neutral-500">{numeroPujas} pujas</p>
-            </div>
-            <button className="rounded-lg border border-neutral-300 px-4 py-2 text-sm dark:border-neutral-700">
-              Fichar
+      {mockMercado.map(({ jugador, rival, numeroPujas, historialPuntos }) => {
+        const estaSeleccionado = seleccionadoId === jugador.id;
+
+        return (
+          <div
+            key={jugador.id}
+            className="rounded-2xl border border-neutral-200 dark:border-neutral-800"
+          >
+            <button
+              onClick={() => toggleSeleccion(jugador.id)}
+              className="flex w-full items-center justify-between p-4 text-left"
+            >
+              <div>
+                <p className="font-medium">{jugador.nombre}</p>
+                <p className="text-sm text-neutral-500">
+                  {jugador.categoria}ª cat. · Elo {jugador.elo}
+                  {rival ? ` · Rival: ${rival.nombre} (${rival.elo})` : ""}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right text-sm">
+                  <p className="font-semibold">{jugador.valorMercado} M</p>
+                  <p className="text-neutral-500">{numeroPujas} pujas</p>
+                </div>
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  className="rounded-lg border border-neutral-300 px-4 py-2 text-sm dark:border-neutral-700"
+                >
+                  Fichar
+                </span>
+              </div>
             </button>
+
+            {estaSeleccionado && (
+              <div className="border-t border-neutral-200 p-4 dark:border-neutral-800">
+                <HistorialPuntosChart historial={historialPuntos} />
+              </div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

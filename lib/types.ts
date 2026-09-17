@@ -17,18 +17,25 @@ export interface Jugador {
 
 export type ResultadoPartida = "victoria" | "tablas" | "derrota";
 
+export interface PuntosJornada {
+  jornada: number;
+  puntos: number;
+}
+
 export interface PlantillaSlot {
   jugador: Jugador;
   puntosJornada: number;
   valorMercadoDelta: number; // variación (+1M, -2M, ...) de la última jornada
   resultadosRecientes: ResultadoPartida[]; // para las bolitas de forma
   esJugadorDeLaJornada?: boolean;
+  historialPuntos: PuntosJornada[];
 }
 
 export interface MercadoListing {
   jugador: Jugador;
   rival?: Pick<Jugador, "nombre" | "elo">;
   numeroPujas: number;
+  historialPuntos: PuntosJornada[];
 }
 
 export interface ClasificacionEntry {
@@ -47,6 +54,7 @@ export interface JugadorLiga extends Jugador {
   puntosTotales: number; // puntos acumulados en toda la liga
   propietario: string | null; // nombre del equipo que lo tiene fichado, o null si está libre
   esMiEquipo?: boolean; // true si el propietario eres tú
+  historialPuntos: PuntosJornada[]; // puntos jornada a jornada de la temporada
 }
 
 export interface OfertaPendiente {

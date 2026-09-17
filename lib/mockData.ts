@@ -29,6 +29,15 @@ export const mockPlantilla: PlantillaSlot[] = [
     puntosJornada: 7,
     valorMercadoDelta: 2,
     resultadosRecientes: ["victoria", "victoria", "victoria"],
+    historialPuntos: [
+      { jornada: 1, puntos: 4 },
+      { jornada: 2, puntos: 7 },
+      { jornada: 3, puntos: 0 },
+      { jornada: 4, puntos: 5 },
+      { jornada: 5, puntos: 9 },
+      { jornada: 6, puntos: 3 },
+      { jornada: 7, puntos: 7 },
+    ],
   },
   {
     jugador: {
@@ -43,6 +52,15 @@ export const mockPlantilla: PlantillaSlot[] = [
     puntosJornada: 4,
     valorMercadoDelta: 1,
     resultadosRecientes: ["victoria", "victoria", "victoria", "tablas"],
+    historialPuntos: [
+      { jornada: 1, puntos: 3 },
+      { jornada: 2, puntos: 5 },
+      { jornada: 3, puntos: 5 },
+      { jornada: 4, puntos: 0 },
+      { jornada: 5, puntos: 7 },
+      { jornada: 6, puntos: 4 },
+      { jornada: 7, puntos: 3 },
+    ],
   },
 ];
 
@@ -51,7 +69,7 @@ export const mockMercado: MercadoListing[] = [
     jugador: {
       id: "10",
       nombre: "Peio Urrutia",
-      club: "",
+      club: "Arrasate-Arlutz B",
       categoria: 1,
       elo: 2210,
       valorMercado: 47,
@@ -59,6 +77,15 @@ export const mockMercado: MercadoListing[] = [
     },
     rival: { nombre: "Nagore Etxarri", elo: 1990 },
     numeroPujas: 6,
+    historialPuntos: [
+      { jornada: 1, puntos: 7 },
+      { jornada: 2, puntos: 9 },
+      { jornada: 3, puntos: 5 },
+      { jornada: 4, puntos: 7 },
+      { jornada: 5, puntos: 9 },
+      { jornada: 6, puntos: 5 },
+      { jornada: 7, puntos: 9 },
+    ],
   },
 ];
 
@@ -82,6 +109,15 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     puntosTotales: 156,
     propietario: "Ostadar taldea",
     esMiEquipo: true,
+    historialPuntos: [
+      { jornada: 1, puntos: 4 },
+      { jornada: 2, puntos: 7 },
+      { jornada: 3, puntos: 0 },
+      { jornada: 4, puntos: 5 },
+      { jornada: 5, puntos: 9 },
+      { jornada: 6, puntos: 3 },
+      { jornada: 7, puntos: 7 },
+    ],
   },
   {
     id: "2",
@@ -94,6 +130,15 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     puntosTotales: 141,
     propietario: "Ostadar taldea",
     esMiEquipo: true,
+    historialPuntos: [
+      { jornada: 1, puntos: 3 },
+      { jornada: 2, puntos: 5 },
+      { jornada: 3, puntos: 5 },
+      { jornada: 4, puntos: 0 },
+      { jornada: 5, puntos: 7 },
+      { jornada: 6, puntos: 4 },
+      { jornada: 7, puntos: 3 },
+    ],
   },
   {
     id: "10",
@@ -105,6 +150,15 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 198,
     propietario: null,
+    historialPuntos: [
+      { jornada: 1, puntos: 7 },
+      { jornada: 2, puntos: 9 },
+      { jornada: 3, puntos: 5 },
+      { jornada: 4, puntos: 7 },
+      { jornada: 5, puntos: 9 },
+      { jornada: 6, puntos: 5 },
+      { jornada: 7, puntos: 9 },
+    ],
   },
   {
     id: "11",
@@ -116,6 +170,15 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 133,
     propietario: "Haizea BT",
+    historialPuntos: [
+      { jornada: 1, puntos: 3 },
+      { jornada: 2, puntos: 4 },
+      { jornada: 3, puntos: 5 },
+      { jornada: 4, puntos: 0 },
+      { jornada: 5, puntos: 5 },
+      { jornada: 6, puntos: 3 },
+      { jornada: 7, puntos: 5 },
+    ],
   },
   {
     id: "12",
@@ -127,6 +190,15 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 98,
     propietario: "Zurriola FC",
+    historialPuntos: [
+      { jornada: 1, puntos: 2 },
+      { jornada: 2, puntos: 3 },
+      { jornada: 3, puntos: 0 },
+      { jornada: 4, puntos: 5 },
+      { jornada: 5, puntos: 0 },
+      { jornada: 6, puntos: 4 },
+      { jornada: 7, puntos: 0 },
+    ],
   },
   {
     id: "13",
@@ -138,5 +210,14 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 62,
     propietario: null,
+    historialPuntos: [
+      { jornada: 1, puntos: 0 },
+      { jornada: 2, puntos: 3 },
+      { jornada: 3, puntos: 5 },
+      { jornada: 4, puntos: 0 },
+      { jornada: 5, puntos: 3 },
+      { jornada: 6, puntos: 4 },
+      { jornada: 7, puntos: 5 },
+    ],
   },
 ];
