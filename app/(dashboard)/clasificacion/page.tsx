@@ -1,32 +1,200 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { useGameState, calcularClausula } from "@/components/GameStateProvider";
 import { mockClasificacion } from "@/lib/mockData";
 
+type Orden = "total" | number;
+
 export default function ClasificacionPage() {
-  // TODO: sustituir mockClasificacion por la vista/consulta real
-  // (suma de puntos por equipo y jornada).
+  // TODO: sustituir mockClasificacion por la consulta real (suma de puntos
+  // por equipo y jornada). Las plantillas rivales ya salen de
+  // jugadoresLiga vía useGameState(), no hace falta tocar nada aquí
+  // cuando eso se conecte a Supabase de verdad.
+
+  const { jugadoresLiga, equipo, hacerOferta, pagarClausula } = useGameState();
+
+  const [orden, setOrden] = useState<Orden>("total");
+  const [equipoAbierto, setEquipoAbierto] = useState<string | null>(null);
+  const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
+  const [montoOferta, setMontoOferta] = useState("");
+  const [mensaje, setMensaje] = useState<string | null>(null);
+
+  const numeroRondas = mockClasificacion[0]?.historialPuntos.length ?? 0;
+
+  const puntosParaOrden = (entry: (typeof mockClasificacion)[number]) => {
+    if (orden === "total") return entry.puntos;
+    return entry.historialPuntos.find((h) => h.jornada === orden)?.puntos ?? 0;
+  };
+
+  const clasificacionOrdenada = useMemo(() => {
+    return [...mockClasificacion].sort((a, b) => puntosParaOrden(b) - puntosParaOrden(a));
+  }, [orden]);
+
+  const cerrarPanel = () => {
+    setEquipoAbierto(null);
+    setSeleccionadoId(null);
+    setMontoOferta("");
+    setMensaje(null);
+  };
+
+  const toggleJugador = (id: string) => {
+    setSeleccionadoId((prev) => (prev === id ? null : id));
+    setMontoOferta("");
+    setMensaje(null);
+  };
+
+  const plantillaAbierta = equipoAbierto
+    ? jugadoresLiga.filter((j) => j.propietario === equipoAbierto)
+    : [];
+
+  const enviarOferta = (jugadorId: string) => {
+    const importe = Number(montoOferta);
+    const resultado = hacerOferta(jugadorId, importe);
+    setMensaje(resultado.ok ? "Oferta enviada." : resultado.mensaje);
+  };
+
+  const ejecutarClausula = (jugadorId: string) => {
+    const resultado = pagarClausula(jugadorId);
+    setMensaje(resultado.ok ? "Cláusula pagada — el jugador ya es tuyo." : resultado.mensaje);
+  };
+
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-lg font-semibold">Clasificación general</h2>
-        <span className="text-sm text-neutral-500">Jornada 9</span>
+        <select
+          value={orden}
+          onChange={(e) =>
+            setOrden(e.target.value === "total" ? "total" : Number(e.target.value))
+          }
+          className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+        >
+          <option value="total">Puntos totales</option>
+          {Array.from({ length: numeroRondas }).map((_, i) => (
+            <option key={i + 1} value={i + 1}>
+              Ronda {i + 1}
+            </option>
+          ))}
+        </select>
       </div>
 
       <ol className="divide-y divide-neutral-200 dark:divide-neutral-800">
-        {mockClasificacion.map((entry) => (
+        {clasificacionOrdenada.map((entry, i) => (
           <li
-            key={entry.posicion}
+            key={entry.nombreEquipo}
             className={`flex items-center justify-between py-3 ${
-              entry.esMiEquipo ? "rounded-lg bg-accent/10 px-3" : ""
+              entry.esMiEquipo ? "rounded-lg bg-accent/10 px-3" : "px-3"
             }`}
           >
             <span>
-              {entry.posicion}. {entry.nombreEquipo}
+              {i + 1}. {entry.nombreEquipo}
             </span>
-            <span className="font-medium">
-              {entry.puntos} pts <span className="text-neutral-500">este año</span>
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="font-medium">
+                {puntosParaOrden(entry)} pts{" "}
+                <span className="text-neutral-500">
+                  {orden === "total" ? "este año" : `ronda ${orden}`}
+                </span>
+              </span>
+              {!entry.esMiEquipo && (
+                <button
+                  onClick={() => setEquipoAbierto(entry.nombreEquipo)}
+                  className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium dark:border-neutral-700"
+                >
+                  Plantilla
+                </button>
+              )}
+            </div>
           </li>
         ))}
       </ol>
+
+      {equipoAbierto && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+          <div className="absolute inset-0 bg-black/40" onClick={cerrarPanel} />
+          <div className="relative w-full max-w-sm rounded-t-2xl bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-xl dark:bg-neutral-900 sm:rounded-2xl sm:pb-5">
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-neutral-300 dark:bg-neutral-700 sm:hidden" />
+
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-base font-semibold">{equipoAbierto}</p>
+              <button
+                onClick={cerrarPanel}
+                className="text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300"
+              >
+                Cerrar
+              </button>
+            </div>
+
+            <div className="flex max-h-[65vh] flex-col gap-2 overflow-y-auto">
+              {plantillaAbierta.map((jugador) => {
+                const estaSeleccionado = seleccionadoId === jugador.id;
+
+                return (
+                  <div
+                    key={jugador.id}
+                    className="rounded-lg border border-neutral-200 dark:border-neutral-800"
+                  >
+                    <button
+                      onClick={() => toggleJugador(jugador.id)}
+                      className="flex w-full items-center justify-between px-3 py-2 text-left"
+                    >
+                      <div>
+                        <p className="text-sm font-medium">{jugador.nombre}</p>
+                        <p className="text-xs text-neutral-500">
+                          {jugador.club} · {jugador.categoria}ª cat. · Elo {jugador.elo}
+                        </p>
+                      </div>
+                      <span className="text-sm font-medium">{jugador.valorMercado} M</span>
+                    </button>
+
+                    {estaSeleccionado && (
+                      <div className="flex flex-col gap-2 border-t border-neutral-200 p-3 dark:border-neutral-800">
+                        <div>
+                          <label className="text-xs font-medium text-neutral-500">
+                            Importe de la oferta (M)
+                          </label>
+                          <input
+                            type="number"
+                            value={montoOferta}
+                            onChange={(e) => setMontoOferta(e.target.value)}
+                            placeholder={`${jugador.valorMercado}`}
+                            className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+                          />
+                        </div>
+
+                        <div className="flex gap-2">
+                          <button
+                            disabled={!montoOferta}
+                            onClick={() => enviarOferta(jugador.id)}
+                            className="flex-1 rounded-lg border border-neutral-300 py-2 text-sm font-medium disabled:opacity-40 dark:border-neutral-700"
+                          >
+                            Hacer oferta
+                          </button>
+                          <button
+                            onClick={() => ejecutarClausula(jugador.id)}
+                            className="flex-1 rounded-lg bg-neutral-900 py-2 text-sm font-medium text-white dark:bg-white dark:text-neutral-900"
+                          >
+                            Pagar cláusula ({calcularClausula(jugador.valorMercado)} M)
+                          </button>
+                        </div>
+
+                        {mensaje && (
+                          <p className="text-xs text-neutral-500">{mensaje}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <p className="mt-3 text-xs text-neutral-400">
+              Tu saldo: {equipo.saldo} M
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

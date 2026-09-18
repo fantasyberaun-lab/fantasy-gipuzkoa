@@ -43,6 +43,7 @@ export interface ClasificacionEntry {
   nombreEquipo: string;
   puntos: number;
   esMiEquipo?: boolean;
+  historialPuntos: PuntosJornada[]; // puntos del equipo/manager, ronda a ronda
 }
 
 export interface EquipoManager {
