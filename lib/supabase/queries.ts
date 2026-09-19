@@ -135,6 +135,35 @@ export async function fetchJugadoresLiga(
   }));
 }
 
+export async function fetchMercado(supabase: Supabase): Promise<JugadorLiga[]> {
+  // Jugadores libres = misma vista player_status que usa la pestaña
+  // Jugadores, filtrada a los que no tienen equipo. No hace falta una
+  // tabla de listings poblada a mano: en cuanto un jugador se queda sin
+  // propietario (porque nadie lo ha fichado o alguien lo ha vendido),
+  // aparece aquí automáticamente.
+  const { data, error } = await supabase
+    .from("player_status")
+    .select("*")
+    .is("propietario_team_id", null)
+    .order("valor_mercado", { ascending: false });
+
+  if (error || !data) return [];
+
+  return data.map((p: any) => ({
+    id: p.id,
+    nombre: p.nombre,
+    club: p.club ?? "",
+    categoria: p.categoria,
+    elo: p.elo,
+    valorMercado: Number(p.valor_mercado),
+    activo: p.activo,
+    puntosTotales: p.puntos_totales,
+    propietario: null,
+    esMiEquipo: false,
+    historialPuntos: (p.historial_puntos ?? []) as PuntosJornada[],
+  }));
+}
+
 export async function fetchMisOfertas(
   supabase: Supabase,
   equipoId: string
@@ -219,6 +248,18 @@ export async function pagarClausulaDB(
   playerId: string
 ): Promise<ResultadoAccion> {
   const { data, error } = await supabase.rpc("pagar_clausula", {
+    p_player_id: playerId,
+  });
+
+  if (error) return { ok: false, mensaje: error.message };
+  return data as ResultadoAccion;
+}
+
+export async function ficharJugadorDB(
+  supabase: Supabase,
+  playerId: string
+): Promise<ResultadoAccion> {
+  const { data, error } = await supabase.rpc("fichar_jugador", {
     p_player_id: playerId,
   });
 

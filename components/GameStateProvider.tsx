@@ -23,9 +23,11 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import {
   fetchJugadoresLiga,
+  fetchMercado,
   fetchMiEquipo,
   fetchMiPlantilla,
   fetchMisOfertas,
+  ficharJugadorDB,
   hacerOfertaDB,
   pagarClausulaDB,
   toggleTitularDB,
@@ -53,11 +55,13 @@ interface GameState {
   squad: PlantillaSlot[];
   titulares: Record<string, boolean>;
   jugadoresLiga: JugadorLiga[];
+  mercado: JugadorLiga[];
   ofertas: OfertaPendiente[];
   toggleTitular: (id: string) => Promise<void>;
   venderJugador: (id: string, valorMercado: number) => Promise<ResultadoAccion>;
   pagarClausula: (jugadorId: string) => Promise<ResultadoAccion>;
   hacerOferta: (jugadorId: string, importe: number) => Promise<ResultadoAccion>;
+  ficharJugador: (jugadorId: string) => Promise<ResultadoAccion>;
 }
 
 const GameStateContext = createContext<GameState | null>(null);
@@ -71,6 +75,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const [squad, setSquad] = useState<PlantillaSlot[]>([]);
   const [titulares, setTitulares] = useState<Record<string, boolean>>({});
   const [jugadoresLiga, setJugadoresLiga] = useState<JugadorLiga[]>([]);
+  const [mercado, setMercado] = useState<JugadorLiga[]>([]);
   const [ofertas, setOfertas] = useState<OfertaPendiente[]>([]);
 
   async function cargarTodo() {
@@ -97,10 +102,11 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     setTieneEquipo(true);
     setEquipo(miEquipo);
 
-    const [plantilla, ligaJugadores, misOfertas] = await Promise.all([
+    const [plantilla, ligaJugadores, misOfertas, jugadoresMercado] = await Promise.all([
       fetchMiPlantilla(supabase, miEquipo.id),
       fetchJugadoresLiga(supabase, miEquipo.id),
       fetchMisOfertas(supabase, miEquipo.id),
+      fetchMercado(supabase),
     ]);
 
     setSquad(plantilla.map(({ titular: _titular, ...resto }) => resto));
@@ -109,6 +115,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     );
     setJugadoresLiga(ligaJugadores);
     setOfertas(misOfertas);
+    setMercado(jugadoresMercado);
     setCargando(false);
   }
 
@@ -165,6 +172,13 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     return resultado;
   }
 
+  async function ficharJugador(jugadorId: string): Promise<ResultadoAccion> {
+    if (!equipo.id) return { ok: false, mensaje: "No tienes equipo todavía." };
+    const resultado = await ficharJugadorDB(supabase, jugadorId);
+    if (resultado.ok) await cargarTodo();
+    return resultado;
+  }
+
   return (
     <GameStateContext.Provider
       value={{
@@ -174,11 +188,13 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         squad,
         titulares,
         jugadoresLiga,
+        mercado,
         ofertas,
         toggleTitular,
         venderJugador,
         pagarClausula,
         hacerOferta,
+        ficharJugador,
       }}
     >
       {children}
