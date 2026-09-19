@@ -5,7 +5,7 @@ import { useGameState } from "@/components/GameStateProvider";
 import { createClient } from "@/lib/supabase/client";
 
 export default function EquipoHeader() {
-  const { equipo } = useGameState();
+  const { equipo, cargando } = useGameState();
   const router = useRouter();
   const supabase = createClient();
 
@@ -18,11 +18,12 @@ export default function EquipoHeader() {
   return (
     <div className="flex items-center gap-4">
       <div>
-        {/* TODO: sustituir por el nombre real del equipo del usuario logueado, cuando haya autenticación */}
         <p className="text-xs uppercase tracking-wide text-neutral-500">
           Tu equipo
         </p>
-        <h1 className="text-2xl font-semibold">{equipo.nombreEquipo}</h1>
+        <h1 className="text-2xl font-semibold">
+          {cargando ? "Cargando…" : equipo.nombreEquipo}
+        </h1>
         <button
           onClick={cerrarSesion}
           className="mt-1 text-xs text-neutral-500 underline underline-offset-2 hover:text-neutral-800 dark:hover:text-neutral-300"
@@ -36,7 +37,7 @@ export default function EquipoHeader() {
           Saldo
         </p>
         <p className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-          {equipo.saldo} M
+          {cargando ? "…" : `${equipo.saldo} M`}
         </p>
       </div>
     </div>

@@ -19,6 +19,7 @@ export default function ClasificacionPage() {
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [montoOferta, setMontoOferta] = useState("");
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
 
   const numeroRondas = mockClasificacion[0]?.historialPuntos.length ?? 0;
 
@@ -48,14 +49,18 @@ export default function ClasificacionPage() {
     ? jugadoresLiga.filter((j) => j.propietario === equipoAbierto)
     : [];
 
-  const enviarOferta = (jugadorId: string) => {
+  const enviarOferta = async (jugadorId: string) => {
     const importe = Number(montoOferta);
-    const resultado = hacerOferta(jugadorId, importe);
+    setEnviando(true);
+    const resultado = await hacerOferta(jugadorId, importe);
+    setEnviando(false);
     setMensaje(resultado.ok ? "Oferta enviada." : resultado.mensaje);
   };
 
-  const ejecutarClausula = (jugadorId: string) => {
-    const resultado = pagarClausula(jugadorId);
+  const ejecutarClausula = async (jugadorId: string) => {
+    setEnviando(true);
+    const resultado = await pagarClausula(jugadorId);
+    setEnviando(false);
     setMensaje(resultado.ok ? "Cláusula pagada — el jugador ya es tuyo." : resultado.mensaje);
   };
 
@@ -165,15 +170,16 @@ export default function ClasificacionPage() {
 
                         <div className="flex gap-2">
                           <button
-                            disabled={!montoOferta}
+                            disabled={!montoOferta || enviando}
                             onClick={() => enviarOferta(jugador.id)}
                             className="flex-1 rounded-lg border border-neutral-300 py-2 text-sm font-medium disabled:opacity-40 dark:border-neutral-700"
                           >
                             Hacer oferta
                           </button>
                           <button
+                            disabled={enviando}
                             onClick={() => ejecutarClausula(jugador.id)}
-                            className="flex-1 rounded-lg bg-neutral-900 py-2 text-sm font-medium text-white dark:bg-white dark:text-neutral-900"
+                            className="flex-1 rounded-lg bg-neutral-900 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
                           >
                             Pagar cláusula ({calcularClausula(jugador.valorMercado)} M)
                           </button>

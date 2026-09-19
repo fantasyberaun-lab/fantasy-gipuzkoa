@@ -47,6 +47,7 @@ export interface ClasificacionEntry {
 }
 
 export interface EquipoManager {
+  id: string;
   nombreEquipo: string;
   saldo: number; // presupuesto disponible para fichajes, en millones
 }
