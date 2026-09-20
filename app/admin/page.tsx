@@ -7,6 +7,7 @@ import {
   crearJugadorDB,
   eliminarJugadorDB,
   fetchTodosLosJugadores,
+  recalcularValoresInicialesDB,
   type JugadorAdmin,
 } from "@/lib/supabase/adminQueries";
 import type { Categoria } from "@/lib/types";
@@ -28,11 +29,14 @@ export default function AdminJugadoresPage() {
   >({});
   const [guardandoId, setGuardandoId] = useState<string | null>(null);
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [recalculando, setRecalculando] = useState(false);
 
   const [nuevoNombre, setNuevoNombre] = useState("");
   const [nuevoClub, setNuevoClub] = useState("");
   const [nuevaCategoria, setNuevaCategoria] = useState<Categoria>(1);
   const [nuevoElo, setNuevoElo] = useState("");
+  const [nuevoAnio, setNuevoAnio] = useState("");
   const [creando, setCreando] = useState(false);
 
   async function cargar() {
@@ -119,7 +123,7 @@ export default function AdminJugadoresPage() {
       club: nuevoClub.trim(),
       categoria: nuevaCategoria,
       elo,
-      valorMercado: Math.max(5, Math.round(elo / 45) || 5),
+      anioNacimiento: nuevoAnio.trim() ? Number(nuevoAnio) : null,
     });
     setCreando(false);
 
@@ -131,10 +135,43 @@ export default function AdminJugadoresPage() {
     setNuevoNombre("");
     setNuevoClub("");
     setNuevoElo("");
+    setNuevoAnio("");
     await cargar();
   }
 
   const totalConCambios = Object.keys(cambiosPendientes).length;
+
+  async function recalcularValores() {
+    setAviso(null);
+    setMensaje(null);
+
+    if (totalConCambios > 0) {
+      setMensaje(
+        "Guarda antes los cambios pendientes de las filas (el recálculo usa lo que hay guardado)."
+      );
+      return;
+    }
+
+    if (
+      !confirm(
+        "Se recalculará el valor de mercado de TODOS los jugadores con la fórmula (Elo y año de nacimiento). Los valores que hayas puesto a mano se perderán. ¿Continuar?"
+      )
+    ) {
+      return;
+    }
+
+    setRecalculando(true);
+    const resultado = await recalcularValoresInicialesDB(supabase);
+    setRecalculando(false);
+
+    if (!resultado.ok) {
+      setMensaje(resultado.mensaje);
+      return;
+    }
+
+    setAviso(`Valores recalculados para ${resultado.actualizados} jugadores.`);
+    await cargar();
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -176,6 +213,13 @@ export default function AdminJugadoresPage() {
             onChange={(e) => setNuevoElo(e.target.value)}
             className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
           />
+          <input
+            type="number"
+            placeholder="Año nac."
+            value={nuevoAnio}
+            onChange={(e) => setNuevoAnio(e.target.value)}
+            className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+          />
           <button
             type="submit"
             disabled={creando || !nuevoNombre.trim() || !nuevoClub.trim()}
@@ -199,19 +243,36 @@ export default function AdminJugadoresPage() {
         </p>
       </div>
 
+      <div className="flex flex-col gap-2 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs text-neutral-500">
+          El valor inicial se calcula con el Elo y el año de nacimiento. Tras
+          cambiar Elos o años, recalcula los valores (solo antes de que haya
+          resultados).
+        </p>
+        <button
+          onClick={recalcularValores}
+          disabled={recalculando}
+          className="whitespace-nowrap rounded-lg border border-neutral-300 px-3 py-2 text-sm font-medium disabled:opacity-50 dark:border-neutral-700"
+        >
+          {recalculando ? "Recalculando..." : "Recalcular valores iniciales"}
+        </button>
+      </div>
+
       {mensaje && <p className="text-sm text-negative">{mensaje}</p>}
+      {aviso && <p className="text-sm text-positive">{aviso}</p>}
 
       {cargando ? (
         <p className="text-sm text-neutral-500">Cargando jugadores…</p>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-neutral-200 dark:border-neutral-800">
-          <table className="w-full min-w-[720px] text-sm">
+          <table className="w-full min-w-[800px] text-sm">
             <thead className="bg-neutral-50 text-left text-xs uppercase text-neutral-500 dark:bg-neutral-900">
               <tr>
                 <th className="px-3 py-2 font-medium">Nombre</th>
                 <th className="px-3 py-2 font-medium">Club</th>
                 <th className="px-3 py-2 font-medium">Cat.</th>
                 <th className="px-3 py-2 font-medium">Elo</th>
+                <th className="px-3 py-2 font-medium">Año nac.</th>
                 <th className="px-3 py-2 font-medium">Valor (M)</th>
                 <th className="px-3 py-2 font-medium">Activo</th>
                 <th className="px-3 py-2 font-medium"></th>
@@ -270,6 +331,20 @@ export default function AdminJugadoresPage() {
                         value={valorActual(jugador, "elo")}
                         onChange={(e) =>
                           editarCampo(jugador.id, "elo", Number(e.target.value))
+                        }
+                        className="w-20 rounded border border-transparent bg-transparent px-1 py-0.5 hover:border-neutral-300 focus:border-neutral-400 dark:hover:border-neutral-700"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
+                        type="number"
+                        value={valorActual(jugador, "anioNacimiento") ?? ""}
+                        onChange={(e) =>
+                          editarCampo(
+                            jugador.id,
+                            "anioNacimiento",
+                            e.target.value === "" ? null : Number(e.target.value)
+                          )
                         }
                         className="w-20 rounded border border-transparent bg-transparent px-1 py-0.5 hover:border-neutral-300 focus:border-neutral-400 dark:hover:border-neutral-700"
                       />

@@ -16,6 +16,7 @@ export interface JugadorAdmin {
   club: string;
   categoria: Categoria;
   elo: number;
+  anioNacimiento: number | null;
   fideId: string | null;
   valorMercado: number;
   activo: boolean;
@@ -26,7 +27,9 @@ export async function fetchTodosLosJugadores(
 ): Promise<JugadorAdmin[]> {
   const { data, error } = await supabase
     .from("players")
-    .select("id, nombre, club, categoria, elo, fide_id, valor_mercado, activo")
+    .select(
+      "id, nombre, club, categoria, elo, anio_nacimiento, fide_id, valor_mercado, activo"
+    )
     .order("nombre");
 
   if (error || !data) return [];
@@ -37,6 +40,7 @@ export async function fetchTodosLosJugadores(
     club: p.club ?? "",
     categoria: Number(p.categoria) as Categoria,
     elo: p.elo,
+    anioNacimiento: p.anio_nacimiento ?? null,
     fideId: p.fide_id,
     valorMercado: Number(p.valor_mercado),
     activo: p.activo,
@@ -53,6 +57,8 @@ export async function actualizarJugadorDB(
   if (cambios.club !== undefined) payload.club = cambios.club;
   if (cambios.categoria !== undefined) payload.categoria = cambios.categoria;
   if (cambios.elo !== undefined) payload.elo = cambios.elo;
+  if (cambios.anioNacimiento !== undefined)
+    payload.anio_nacimiento = cambios.anioNacimiento;
   if (cambios.fideId !== undefined) payload.fide_id = cambios.fideId;
   if (cambios.valorMercado !== undefined)
     payload.valor_mercado = cambios.valorMercado;
@@ -71,15 +77,25 @@ export async function crearJugadorDB(
     club: string;
     categoria: Categoria;
     elo: number;
-    valorMercado: number;
+    anioNacimiento: number | null;
   }
 ): Promise<ResultadoAccion> {
+  // El valor inicial lo calcula la base de datos con la misma fórmula que
+  // usa "Recalcular valores iniciales" (ver 0010_valor_inicial.sql).
+  const { data: valor, error: errorValor } = await supabase.rpc(
+    "calcular_valor_inicial",
+    { p_elo: datos.elo, p_anio_nacimiento: datos.anioNacimiento }
+  );
+
+  if (errorValor) return { ok: false, mensaje: errorValor.message };
+
   const { error } = await supabase.from("players").insert({
     nombre: datos.nombre,
     club: datos.club,
     categoria: datos.categoria,
     elo: datos.elo,
-    valor_mercado: datos.valorMercado,
+    anio_nacimiento: datos.anioNacimiento,
+    valor_mercado: Number(valor),
     activo: true,
   });
 
@@ -95,4 +111,15 @@ export async function eliminarJugadorDB(
 
   if (error) return { ok: false, mensaje: error.message };
   return { ok: true };
+}
+
+export async function recalcularValoresInicialesDB(
+  supabase: Supabase
+): Promise<{ ok: true; actualizados: number } | { ok: false; mensaje: string }> {
+  const { data, error } = await supabase.rpc("recalcular_valores_iniciales");
+
+  if (error) return { ok: false, mensaje: error.message };
+  return data as
+    | { ok: true; actualizados: number }
+    | { ok: false; mensaje: string };
 }
