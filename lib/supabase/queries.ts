@@ -305,3 +305,16 @@ export async function hacerOfertaDB(
   if (error) return { ok: false, mensaje: error.message };
   return { ok: true };
 }
+
+
+// Elimina la cuenta del usuario que está logueado (y, por cascada, su
+// equipo, plantilla, ofertas y operaciones). Ver
+// supabase/migrations/0008_eliminar_cuenta.sql.
+export async function eliminarMiCuentaDB(
+  supabase: Supabase
+): Promise<ResultadoAccion> {
+  const { data, error } = await supabase.rpc("eliminar_mi_cuenta");
+
+  if (error) return { ok: false, mensaje: error.message };
+  return data as ResultadoAccion;
+}

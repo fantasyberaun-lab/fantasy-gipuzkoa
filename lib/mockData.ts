@@ -11,6 +11,7 @@ import type {
 // (ver lib/supabase/client.ts) en cuanto exista el esquema.
 
 export const mockEquipo: EquipoManager = {
+  id: "mock-equipo",
   nombreEquipo: "Ostadar taldea",
   saldo: 18,
 };

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useGameState } from "@/components/GameStateProvider";
 import { createClient } from "@/lib/supabase/client";
+import EliminarCuentaButton from "@/components/EliminarCuentaButton";
 
 export default function EquipoHeader() {
   const { equipo, cargando, esRoot } = useGameState();
@@ -32,6 +33,7 @@ export default function EquipoHeader() {
           >
             Cerrar sesión
           </button>
+          <EliminarCuentaButton />
           {esRoot && (
             <Link
               href="/admin"
