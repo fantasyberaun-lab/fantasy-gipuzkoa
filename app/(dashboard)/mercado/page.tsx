@@ -176,10 +176,11 @@ export default function MercadoPage() {
 
                   <div>
                     <label className="text-xs font-medium text-neutral-500">
-                      Importe de la puja (M)
+                      Importe de la puja (M) — mínimo {jugador.valorMercado} M
                     </label>
                     <input
                       type="number"
+                      min={jugador.valorMercado}
                       value={montoPuja}
                       onChange={(e) => setMontoPuja(e.target.value)}
                       placeholder={`${jugador.valorMercado}`}
@@ -189,7 +190,7 @@ export default function MercadoPage() {
 
                   <button
                     onClick={() => enviarPuja(jugador.listingId, jugador.id)}
-                    disabled={!montoPuja || enviando}
+                    disabled={!montoPuja || Number(montoPuja) < jugador.valorMercado || enviando}
                     className="rounded-lg bg-neutral-900 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
                   >
                     Pujar
