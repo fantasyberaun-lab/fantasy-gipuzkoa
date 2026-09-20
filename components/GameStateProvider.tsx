@@ -26,6 +26,7 @@ import {
   fetchMercado,
   fetchMiEquipo,
   fetchMiPlantilla,
+  fetchMiRol,
   fetchMisOfertas,
   ficharJugadorDB,
   hacerOfertaDB,
@@ -51,6 +52,7 @@ type ResultadoAccion = { ok: true } | { ok: false; mensaje: string };
 interface GameState {
   cargando: boolean;
   tieneEquipo: boolean;
+  esRoot: boolean;
   equipo: EquipoManager;
   squad: PlantillaSlot[];
   titulares: Record<string, boolean>;
@@ -71,6 +73,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
   const [cargando, setCargando] = useState(true);
   const [tieneEquipo, setTieneEquipo] = useState(false);
+  const [esRoot, setEsRoot] = useState(false);
   const [equipo, setEquipo] = useState<EquipoManager>(EQUIPO_VACIO);
   const [squad, setSquad] = useState<PlantillaSlot[]>([]);
   const [titulares, setTitulares] = useState<Record<string, boolean>>({});
@@ -89,6 +92,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     }
 
     const miEquipo = await fetchMiEquipo(supabase, user.id);
+    const rol = await fetchMiRol(supabase, user.id);
+    setEsRoot(rol === "root");
 
     if (!miEquipo) {
       // No debería pasar (el trigger de registro crea el equipo a la vez
@@ -184,6 +189,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       value={{
         cargando,
         tieneEquipo,
+        esRoot,
         equipo,
         squad,
         titulares,

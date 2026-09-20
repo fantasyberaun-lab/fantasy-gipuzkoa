@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useGameState } from "@/components/GameStateProvider";
 import { createClient } from "@/lib/supabase/client";
 
 export default function EquipoHeader() {
-  const { equipo, cargando } = useGameState();
+  const { equipo, cargando, esRoot } = useGameState();
   const router = useRouter();
   const supabase = createClient();
 
@@ -24,12 +25,22 @@ export default function EquipoHeader() {
         <h1 className="text-2xl font-semibold">
           {cargando ? "Cargando…" : equipo.nombreEquipo}
         </h1>
-        <button
-          onClick={cerrarSesion}
-          className="mt-1 text-xs text-neutral-500 underline underline-offset-2 hover:text-neutral-800 dark:hover:text-neutral-300"
-        >
-          Cerrar sesión
-        </button>
+        <div className="mt-1 flex items-center gap-3 text-xs">
+          <button
+            onClick={cerrarSesion}
+            className="text-neutral-500 underline underline-offset-2 hover:text-neutral-800 dark:hover:text-neutral-300"
+          >
+            Cerrar sesión
+          </button>
+          {esRoot && (
+            <Link
+              href="/admin"
+              className="font-medium text-accent underline underline-offset-2"
+            >
+              Admin
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="rounded-xl border border-neutral-200 px-4 py-2 dark:border-neutral-800">

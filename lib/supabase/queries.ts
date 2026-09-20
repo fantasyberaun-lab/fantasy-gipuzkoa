@@ -5,6 +5,7 @@
 
 import type { createClient } from "@/lib/supabase/client";
 import type {
+  Categoria,
   EquipoManager,
   JugadorLiga,
   OfertaPendiente,
@@ -90,7 +91,11 @@ export async function fetchMiPlantilla(
           id: s.players.id,
           nombre: s.players.nombre,
           club: s.players.club ?? "",
-          categoria: s.players.categoria,
+          // players.categoria es un enum de texto ('1'/'2'/'3') en Postgres;
+          // PostgREST lo devuelve como string. Lo convertimos a número aquí
+          // para que coincida con el tipo Categoria en toda la app (por
+          // ejemplo, plantilla/page.tsx compara "categoria === 3").
+          categoria: Number(s.players.categoria) as Categoria,
           elo: s.players.elo,
           valorMercado: Number(s.players.valor_mercado),
           activo: s.players.activo,
@@ -124,7 +129,7 @@ export async function fetchJugadoresLiga(
     id: p.id,
     nombre: p.nombre,
     club: p.club ?? "",
-    categoria: p.categoria,
+    categoria: Number(p.categoria) as Categoria,
     elo: p.elo,
     valorMercado: Number(p.valor_mercado),
     activo: p.activo,
@@ -153,7 +158,7 @@ export async function fetchMercado(supabase: Supabase): Promise<JugadorLiga[]> {
     id: p.id,
     nombre: p.nombre,
     club: p.club ?? "",
-    categoria: p.categoria,
+    categoria: Number(p.categoria) as Categoria,
     elo: p.elo,
     valorMercado: Number(p.valor_mercado),
     activo: p.activo,
@@ -180,6 +185,20 @@ export async function fetchMisOfertas(
     jugadorId: o.player_id,
     importe: Number(o.importe),
   }));
+}
+
+export async function fetchMiRol(
+  supabase: Supabase,
+  userId: string
+): Promise<"root" | "manager" | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("rol")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data.rol as "root" | "manager";
 }
 
 // ---------- Escrituras ----------

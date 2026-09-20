@@ -5,6 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // registro, y cualquier página pública futura) queda accesible sin login.
 const RUTAS_PROTEGIDAS = ["/plantilla", "/mercado", "/jugadores", "/clasificacion"];
 const RUTAS_SOLO_SIN_SESION = ["/login", "/registro"];
+const RUTAS_SOLO_ROOT = ["/admin"];
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -44,8 +45,9 @@ export async function updateSession(request: NextRequest) {
   const esRutaSoloSinSesion = RUTAS_SOLO_SIN_SESION.some((r) =>
     pathname.startsWith(r)
   );
+  const esRutaSoloRoot = RUTAS_SOLO_ROOT.some((r) => pathname.startsWith(r));
 
-  if (!user && esRutaProtegida) {
+  if (!user && (esRutaProtegida || esRutaSoloRoot)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
@@ -55,6 +57,20 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/plantilla";
     return NextResponse.redirect(url);
+  }
+
+  if (user && esRutaSoloRoot) {
+    const { data: perfil } = await supabase
+      .from("profiles")
+      .select("rol")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (perfil?.rol !== "root") {
+      const url = request.nextUrl.clone();
+      url.pathname = "/plantilla";
+      return NextResponse.redirect(url);
+    }
   }
 
   return response;
