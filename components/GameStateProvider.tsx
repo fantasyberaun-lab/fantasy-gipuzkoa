@@ -1,18 +1,5 @@
 "use client";
 
-// Estado compartido entre las pestañas del dashboard (plantilla, mercado,
-// jugadores...), respaldado por Supabase de verdad en vez de datos de
-// ejemplo. Vive en app/(dashboard)/layout.tsx, que Next.js mantiene
-// montado al navegar entre pestañas, así que no hace falta recargar nada
-// al cambiar de pestaña.
-//
-// Cómo está organizado:
-//   - Toda la comunicación con Supabase vive en lib/supabase/queries.ts.
-//   - Este archivo solo mantiene el estado en React y decide cuándo volver
-//     a pedir los datos (después de cada acción, recarga todo con
-//     cargarTodo() — más simple que ir parcheando el estado a mano, a
-//     costa de un pequeño parpadeo tras cada acción).
-
 import {
   createContext,
   useContext,
@@ -31,12 +18,14 @@ import {
   ficharJugadorDB,
   hacerOfertaDB,
   pagarClausulaDB,
+  pujarMercadoDB,
   toggleTitularDB,
   venderJugadorDB,
 } from "@/lib/supabase/queries";
 import type {
   EquipoManager,
   JugadorLiga,
+  MercadoDelDia,
   OfertaPendiente,
   PlantillaSlot,
 } from "@/lib/types";
@@ -57,13 +46,14 @@ interface GameState {
   squad: PlantillaSlot[];
   titulares: Record<string, boolean>;
   jugadoresLiga: JugadorLiga[];
-  mercado: JugadorLiga[];
+  mercado: MercadoDelDia[];
   ofertas: OfertaPendiente[];
   toggleTitular: (id: string) => Promise<void>;
   venderJugador: (id: string, valorMercado: number) => Promise<ResultadoAccion>;
   pagarClausula: (jugadorId: string) => Promise<ResultadoAccion>;
   hacerOferta: (jugadorId: string, importe: number) => Promise<ResultadoAccion>;
   ficharJugador: (jugadorId: string) => Promise<ResultadoAccion>;
+  pujarMercado: (listingId: string, importe: number) => Promise<ResultadoAccion>;
 }
 
 const GameStateContext = createContext<GameState | null>(null);
@@ -78,7 +68,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const [squad, setSquad] = useState<PlantillaSlot[]>([]);
   const [titulares, setTitulares] = useState<Record<string, boolean>>({});
   const [jugadoresLiga, setJugadoresLiga] = useState<JugadorLiga[]>([]);
-  const [mercado, setMercado] = useState<JugadorLiga[]>([]);
+  const [mercado, setMercado] = useState<MercadoDelDia[]>([]);
   const [ofertas, setOfertas] = useState<OfertaPendiente[]>([]);
 
   async function cargarTodo() {
@@ -96,9 +86,6 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     setEsRoot(rol === "root");
 
     if (!miEquipo) {
-      // No debería pasar (el trigger de registro crea el equipo a la vez
-      // que el usuario), pero por si acaso: mostramos "sin equipo" en vez
-      // de romper la página.
       setTieneEquipo(false);
       setCargando(false);
       return;
@@ -126,18 +113,15 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     cargarTodo();
-    // Solo al montar: cargarTodo() se vuelve a llamar explícitamente
-    // después de cada acción, no hace falta re-suscribirse a nada más.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function toggleTitular(id: string) {
     const nuevoValor = !titulares[id];
-    setTitulares((prev) => ({ ...prev, [id]: nuevoValor })); // optimista
+    setTitulares((prev) => ({ ...prev, [id]: nuevoValor }));
     if (!equipo.id) return;
     const resultado = await toggleTitularDB(supabase, equipo.id, id, nuevoValor);
     if (!resultado.ok) {
-      // Si falla el guardado, deshacemos el cambio optimista.
       setTitulares((prev) => ({ ...prev, [id]: !nuevoValor }));
     }
   }
@@ -184,6 +168,25 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     return resultado;
   }
 
+  async function pujarMercado(
+    listingId: string,
+    importe: number
+  ): Promise<ResultadoAccion> {
+    if (!equipo.id) return { ok: false, mensaje: "No tienes equipo todavía." };
+    if (!Number.isFinite(importe) || importe <= 0) {
+      return { ok: false, mensaje: "Introduce un importe válido." };
+    }
+    if (importe > equipo.saldo) {
+      return {
+        ok: false,
+        mensaje: `No puedes pujar más de tu saldo disponible (${equipo.saldo} M).`,
+      };
+    }
+    const resultado = await pujarMercadoDB(supabase, listingId, importe);
+    if (resultado.ok) await cargarTodo();
+    return resultado;
+  }
+
   return (
     <GameStateContext.Provider
       value={{
@@ -201,6 +204,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         pagarClausula,
         hacerOferta,
         ficharJugador,
+        pujarMercado,
       }}
     >
       {children}

@@ -1,28 +1,33 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
+import { proximaTandaMercado, formatearCuentaAtras } from "@/lib/mercadoCountdown";
 
-// v1: fichaje instantáneo al valor de mercado actual (ver
-// supabase/migrations/0004_mercado.sql). No hay pujas todavía ni tanda
-// con cierre programado — cuando eso exista (tabla bids + un campo de
-// cierre en matchdays o game_config), esta pantalla es el sitio donde
-// habría que añadir el contador y el formulario de puja.
-
-type Orden = "valor" | "puntos" | "nombre" | "categoria";
+type Orden = "valor" | "puntos" | "pujas" | "nombre" | "categoria";
+type MensajePuja = { tipo: "ok" | "error"; texto: string };
 
 export default function MercadoPage() {
-  const { mercado, ficharJugador, equipo, cargando } = useGameState();
+  const { mercado, pujarMercado, equipo, cargando } = useGameState();
 
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
   const [orden, setOrden] = useState<Orden>("valor");
-  const [confirmandoId, setConfirmandoId] = useState<string | null>(null);
+  const [montoPuja, setMontoPuja] = useState("");
   const [enviando, setEnviando] = useState(false);
-  const [mensajePorJugador, setMensajePorJugador] = useState<
-    Record<string, { tipo: "ok" | "error"; texto: string }>
-  >({});
+  const [mensajePorJugador, setMensajePorJugador] = useState<Record<string, MensajePuja>>({});
+  const [ahora, setAhora] = useState(() => new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setAhora(new Date()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const cuentaAtras = useMemo(() => {
+    const proxima = proximaTandaMercado(ahora);
+    return formatearCuentaAtras(proxima.getTime() - ahora.getTime());
+  }, [ahora]);
 
   const jugadoresFiltrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
@@ -36,6 +41,8 @@ export default function MercadoPage() {
       copia.sort((a, b) => b.valorMercado - a.valorMercado);
     } else if (orden === "puntos") {
       copia.sort((a, b) => b.puntosTotales - a.puntosTotales);
+    } else if (orden === "pujas") {
+      copia.sort((a, b) => b.numeroPujas - a.numeroPujas);
     } else if (orden === "nombre") {
       copia.sort((a, b) => a.nombre.localeCompare(b.nombre));
     } else if (orden === "categoria") {
@@ -51,25 +58,24 @@ export default function MercadoPage() {
 
   const toggleSeleccion = (id: string) => {
     setSeleccionadoId((prev) => (prev === id ? null : id));
+    setMontoPuja("");
   };
 
-  const confirmarFichaje = async (jugadorId: string) => {
-    setConfirmandoId(null);
+  const enviarPuja = async (listingId: string, jugadorId: string) => {
+    const importe = Number(montoPuja);
     setEnviando(true);
-    const resultado = await ficharJugador(jugadorId);
+    const resultado = await pujarMercado(listingId, importe);
     setEnviando(false);
 
     setMensajePorJugador((prev) => ({
       ...prev,
       [jugadorId]: resultado.ok
-        ? { tipo: "ok", texto: "Fichado. Ya está en tu plantilla." }
+        ? { tipo: "ok", texto: "Puja registrada." }
         : { tipo: "error", texto: resultado.mensaje },
     }));
 
-    if (resultado.ok) setSeleccionadoId(null);
+    if (resultado.ok) setMontoPuja("");
   };
-
-  const jugadorConfirmando = mercado.find((j) => j.id === confirmandoId);
 
   return (
     <div className="flex flex-col gap-4">
@@ -77,6 +83,10 @@ export default function MercadoPage() {
         <h2 className="text-lg font-semibold">Mercado</h2>
         <span className="text-sm text-neutral-500">Tu saldo: {equipo.saldo} M</span>
       </div>
+
+      <p className="text-xs text-neutral-500">
+        {mercado.length} jugadores en la tanda de hoy — se resuelve en {cuentaAtras}.
+      </p>
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
@@ -109,6 +119,7 @@ export default function MercadoPage() {
         >
           <option value="valor">Ordenar por valor</option>
           <option value="puntos">Ordenar por puntos</option>
+          <option value="pujas">Ordenar por número de pujas</option>
           <option value="nombre">Ordenar por nombre</option>
           <option value="categoria">Ordenar por categoría</option>
         </select>
@@ -117,8 +128,8 @@ export default function MercadoPage() {
       {jugadoresFiltrados.length === 0 && (
         <p className="py-6 text-center text-sm text-neutral-500">
           {mercado.length === 0
-            ? "No hay jugadores libres en el mercado ahora mismo."
-            : `No hay jugadores libres que coincidan con "${busqueda}".`}
+            ? "No hay jugadores en el mercado ahora mismo."
+            : `No hay jugadores que coincidan con "${busqueda}".`}
         </p>
       )}
 
@@ -153,19 +164,35 @@ export default function MercadoPage() {
                     {jugador.puntosTotales} pts esta temporada
                   </p>
                 </div>
-                <span className="text-sm font-semibold">{jugador.valorMercado} M</span>
+                <div className="text-right">
+                  <p className="text-sm font-semibold">{jugador.valorMercado} M</p>
+                  <p className="text-xs text-neutral-500">{jugador.numeroPujas} pujas</p>
+                </div>
               </button>
 
               {estaSeleccionado && (
                 <div className="flex flex-col gap-3 border-t border-neutral-200 p-3 dark:border-neutral-800">
                   <HistorialPuntosChart historial={jugador.historialPuntos} />
 
+                  <div>
+                    <label className="text-xs font-medium text-neutral-500">
+                      Importe de la puja (M)
+                    </label>
+                    <input
+                      type="number"
+                      value={montoPuja}
+                      onChange={(e) => setMontoPuja(e.target.value)}
+                      placeholder={`${jugador.valorMercado}`}
+                      className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+                    />
+                  </div>
+
                   <button
-                    onClick={() => setConfirmandoId(jugador.id)}
-                    disabled={enviando}
+                    onClick={() => enviarPuja(jugador.listingId, jugador.id)}
+                    disabled={!montoPuja || enviando}
                     className="rounded-lg bg-neutral-900 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
                   >
-                    Fichar por {jugador.valorMercado} M
+                    Pujar
                   </button>
 
                   {mensaje && (
@@ -183,38 +210,6 @@ export default function MercadoPage() {
           );
         })}
       </div>
-
-      {jugadorConfirmando && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setConfirmandoId(null)}
-          />
-          <div className="relative w-full max-w-sm rounded-t-2xl bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-xl dark:bg-neutral-900 sm:rounded-2xl sm:pb-5">
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-neutral-300 dark:bg-neutral-700 sm:hidden" />
-
-            <p className="text-base font-semibold">Fichar a {jugadorConfirmando.nombre}</p>
-            <p className="mt-1 text-sm text-neutral-500">
-              Se descontarán {jugadorConfirmando.valorMercado} M de tu saldo.
-            </p>
-
-            <div className="mt-5 flex gap-2">
-              <button
-                onClick={() => setConfirmandoId(null)}
-                className="flex-1 rounded-lg border border-neutral-300 py-2.5 text-sm font-medium dark:border-neutral-700"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => confirmarFichaje(jugadorConfirmando.id)}
-                className="flex-1 rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white dark:bg-white dark:text-neutral-900"
-              >
-                Sí, fichar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

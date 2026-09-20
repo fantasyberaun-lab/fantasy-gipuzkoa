@@ -43,20 +43,31 @@ export interface ClasificacionEntry {
   nombreEquipo: string;
   puntos: number;
   esMiEquipo?: boolean;
-  historialPuntos: PuntosJornada[]; // puntos del equipo/manager, ronda a ronda
+  historialPuntos: PuntosJornada[];
 }
 
 export interface EquipoManager {
   id: string;
   nombreEquipo: string;
-  saldo: number; // presupuesto disponible para fichajes, en millones
+  saldo: number;
 }
 
 export interface JugadorLiga extends Jugador {
-  puntosTotales: number; // puntos acumulados en toda la liga
-  propietario: string | null; // nombre del equipo que lo tiene fichado, o null si está libre
-  esMiEquipo?: boolean; // true si el propietario eres tú
-  historialPuntos: PuntosJornada[]; // puntos jornada a jornada de la temporada
+  puntosTotales: number;
+  propietario: string | null;
+  esMiEquipo?: boolean;
+  historialPuntos: PuntosJornada[];
+}
+
+// Un jugador dentro de la tanda diaria del mercado: los mismos datos que
+// JugadorLiga (siempre libre, así que propietario/esMiEquipo no aplican),
+// más el id del listing (necesario para pujar_mercado, distinto del id
+// del jugador) y el número de pujas actuales sobre ese listing.
+export interface MercadoDelDia extends Jugador {
+  listingId: string;
+  puntosTotales: number;
+  historialPuntos: PuntosJornada[];
+  numeroPujas: number;
 }
 
 export interface OfertaPendiente {
