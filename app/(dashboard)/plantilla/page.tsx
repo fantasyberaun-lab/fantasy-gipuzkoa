@@ -3,7 +3,7 @@
 import PlayerCard from "@/components/PlayerCard";
 import { useGameState } from "@/components/GameStateProvider";
 
-const MAX_TERCERA = 2;
+const MAX_TERCERA = 3;
 const MAX_TITULARES = 6;
 const MAX_PLANTILLA = 10;
 
