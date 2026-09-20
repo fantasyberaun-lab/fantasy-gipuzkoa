@@ -3,6 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import PasswordInput from "@/components/PasswordInput";
+
+// Letras, números, punto, guion y guion bajo; sin espacios ni "@" (así se
+// distingue de un email en el login).
+const FORMATO_NOMBRE_USUARIO = /^[A-Za-z0-9_.-]{3,20}$/;
 
 export default function RegistroPage() {
   const supabase = createClient();
@@ -18,7 +23,33 @@ export default function RegistroPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    const nombreLimpio = nombre.trim();
+    if (!FORMATO_NOMBRE_USUARIO.test(nombreLimpio)) {
+      setError(
+        "El nombre de usuario debe tener de 3 a 20 caracteres: letras, números, punto, guion o guion bajo (sin espacios)."
+      );
+      return;
+    }
+
     setCargando(true);
+
+    const { data: disponible, error: errorDisponible } = await supabase.rpc(
+      "nombre_usuario_disponible",
+      { p_nombre: nombreLimpio }
+    );
+
+    if (errorDisponible) {
+      setCargando(false);
+      setError("No se ha podido comprobar el nombre de usuario. Inténtalo de nuevo.");
+      return;
+    }
+
+    if (disponible === false) {
+      setCargando(false);
+      setError("Ese nombre de usuario ya está en uso.");
+      return;
+    }
 
     // "nombre" y "nombre_equipo" viajan en los metadatos del usuario;
     // el trigger handle_new_user() (ver supabase/migrations/0002_auth.sql)
@@ -28,7 +59,7 @@ export default function RegistroPage() {
       password,
       options: {
         data: {
-          nombre,
+          nombre: nombreLimpio,
           nombre_equipo: nombreEquipo,
         },
       },
@@ -69,11 +100,16 @@ export default function RegistroPage() {
     >
       <div>
         <label className="text-xs font-medium text-neutral-500">
-          Tu nombre
+          Nombre de usuario
         </label>
         <input
           type="text"
           required
+          minLength={3}
+          maxLength={20}
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
           className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
@@ -109,13 +145,12 @@ export default function RegistroPage() {
         <label className="text-xs font-medium text-neutral-500">
           Contraseña
         </label>
-        <input
-          type="password"
+        <PasswordInput
           required
           minLength={6}
+          autoComplete="new-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
         />
       </div>
 

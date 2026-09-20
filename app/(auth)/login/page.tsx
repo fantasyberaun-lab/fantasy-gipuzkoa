@@ -3,13 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import PasswordInput from "@/components/PasswordInput";
 
 export default function LoginPage() {
   const router = useRouter();
-  const supabase = createClient();
 
-  const [email, setEmail] = useState("");
+  const [identificador, setIdentificador] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
@@ -19,19 +18,22 @@ export default function LoginPage() {
     setError(null);
     setCargando(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    let resultado: { ok: boolean; mensaje?: string } = { ok: false };
+    try {
+      const respuesta = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identificador, password }),
+      });
+      resultado = await respuesta.json();
+    } catch {
+      resultado = { ok: false, mensaje: "No se ha podido conectar. Inténtalo de nuevo." };
+    }
 
     setCargando(false);
 
-    if (error) {
-      setError(
-        error.message === "Invalid login credentials"
-          ? "Email o contraseña incorrectos."
-          : error.message
-      );
+    if (!resultado.ok) {
+      setError(resultado.mensaje ?? "No se ha podido iniciar sesión.");
       return;
     }
 
@@ -45,12 +47,17 @@ export default function LoginPage() {
       className="flex flex-col gap-4 rounded-2xl border border-neutral-200 p-6 dark:border-neutral-800"
     >
       <div>
-        <label className="text-xs font-medium text-neutral-500">Email</label>
+        <label className="text-xs font-medium text-neutral-500">
+          Email o nombre de usuario
+        </label>
         <input
-          type="email"
+          type="text"
           required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          autoComplete="username"
+          autoCapitalize="none"
+          spellCheck={false}
+          value={identificador}
+          onChange={(e) => setIdentificador(e.target.value)}
           className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
         />
       </div>
@@ -59,12 +66,11 @@ export default function LoginPage() {
         <label className="text-xs font-medium text-neutral-500">
           Contraseña
         </label>
-        <input
-          type="password"
+        <PasswordInput
           required
+          autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
         />
       </div>
 
