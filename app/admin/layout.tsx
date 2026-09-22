@@ -1,4 +1,5 @@
 import Link from "next/link";
+import AdminNav from "@/components/AdminNav";
 
 // Nota: este layout NO reutiliza app/(dashboard)/layout.tsx a propósito
 // — el panel de admin es una zona aparte, sin las pestañas de manager ni
@@ -13,12 +14,12 @@ export default function AdminLayout({
 }) {
   return (
     <div className="mx-auto max-w-4xl px-4 pb-16 pt-6">
-      <header className="mb-6 flex items-center justify-between">
+      <header className="mb-4 flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-wide text-neutral-500">
             Panel de administración
           </p>
-          <h1 className="text-2xl font-semibold">Jugadores</h1>
+          <h1 className="text-2xl font-semibold">Administración</h1>
         </div>
         <Link
           href="/plantilla"
@@ -27,7 +28,8 @@ export default function AdminLayout({
           ← Volver a la app
         </Link>
       </header>
-      {children}
+      <AdminNav />
+      <div className="mt-6">{children}</div>
     </div>
   );
 }

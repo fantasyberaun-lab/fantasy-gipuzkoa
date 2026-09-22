@@ -123,3 +123,131 @@ export async function recalcularValoresInicialesDB(
     | { ok: true; actualizados: number }
     | { ok: false; mensaje: string };
 }
+
+// ---------- Jornadas y resultados ----------
+
+export interface JornadaAdmin {
+  id: string;
+  numero: number;
+  fechaInicio: string | null;
+  fechaFin: string | null;
+}
+
+export async function fetchJornadas(supabase: Supabase): Promise<JornadaAdmin[]> {
+  const { data, error } = await supabase
+    .from("matchdays")
+    .select("id, numero, fecha_inicio, fecha_fin")
+    .order("numero", { ascending: false });
+
+  if (error || !data) return [];
+
+  return data.map((m: any) => ({
+    id: m.id,
+    numero: m.numero,
+    fechaInicio: m.fecha_inicio,
+    fechaFin: m.fecha_fin,
+  }));
+}
+
+export async function crearJornadaDB(
+  supabase: Supabase,
+  numero: number
+): Promise<{ ok: true; jornada: JornadaAdmin } | { ok: false; mensaje: string }> {
+  const { data, error } = await supabase
+    .from("matchdays")
+    .insert({ numero })
+    .select("id, numero, fecha_inicio, fecha_fin")
+    .single();
+
+  if (error || !data) {
+    return { ok: false, mensaje: error?.message ?? "No se pudo crear la jornada." };
+  }
+
+  return {
+    ok: true,
+    jornada: {
+      id: data.id,
+      numero: data.numero,
+      fechaInicio: data.fecha_inicio,
+      fechaFin: data.fecha_fin,
+    },
+  };
+}
+
+export interface ResultadoGuardado {
+  playerId: string;
+  resultado: "victoria" | "tablas" | "derrota";
+  rivalPlayerId: string | null;
+  rivalElo: number | null;
+  puntosFantasy: number;
+}
+
+export async function fetchResultadosDeJornada(
+  supabase: Supabase,
+  matchdayId: string
+): Promise<ResultadoGuardado[]> {
+  const { data, error } = await supabase
+    .from("results")
+    .select("player_id, resultado, rival_player_id, rival_elo_en_el_momento, puntos_fantasy")
+    .eq("matchday_id", matchdayId);
+
+  if (error || !data) return [];
+
+  return data.map((r: any) => ({
+    playerId: r.player_id,
+    resultado: r.resultado,
+    rivalPlayerId: r.rival_player_id,
+    rivalElo: r.rival_elo_en_el_momento,
+    puntosFantasy: r.puntos_fantasy,
+  }));
+}
+
+// puntos_fantasy NO se envía: lo calcula siempre el trigger de la base de
+// datos (ver 0014_puntuacion_resultados.sql), a partir de resultado +
+// diferencia de Elo. Así nunca puede quedar desincronizado con la regla.
+export async function guardarResultadoDB(
+  supabase: Supabase,
+  input: {
+    matchdayId: string;
+    playerId: string;
+    resultado: "victoria" | "tablas" | "derrota";
+    rivalPlayerId: string | null;
+    rivalElo: number | null;
+  }
+): Promise<{ ok: true; puntos: number } | { ok: false; mensaje: string }> {
+  const { data, error } = await supabase
+    .from("results")
+    .upsert(
+      {
+        matchday_id: input.matchdayId,
+        player_id: input.playerId,
+        resultado: input.resultado,
+        rival_player_id: input.rivalPlayerId,
+        rival_elo_en_el_momento: input.rivalElo,
+      },
+      { onConflict: "player_id,matchday_id" }
+    )
+    .select("puntos_fantasy")
+    .single();
+
+  if (error || !data) {
+    return { ok: false, mensaje: error?.message ?? "No se pudo guardar el resultado." };
+  }
+
+  return { ok: true, puntos: data.puntos_fantasy };
+}
+
+export async function borrarResultadoDB(
+  supabase: Supabase,
+  matchdayId: string,
+  playerId: string
+): Promise<ResultadoAccion> {
+  const { error } = await supabase
+    .from("results")
+    .delete()
+    .eq("matchday_id", matchdayId)
+    .eq("player_id", playerId);
+
+  if (error) return { ok: false, mensaje: error.message };
+  return { ok: true };
+}
