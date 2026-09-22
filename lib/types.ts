@@ -11,7 +11,7 @@ export interface Jugador {
   club: string;
   categoria: Categoria;
   elo: number;
-  valorMercado: number; // en millones
+  valorMercado: number;
   activo: boolean;
 }
 
@@ -25,8 +25,8 @@ export interface PuntosJornada {
 export interface PlantillaSlot {
   jugador: Jugador;
   puntosJornada: number;
-  valorMercadoDelta: number; // variación (+1M, -2M, ...) de la última jornada
-  resultadosRecientes: ResultadoPartida[]; // para las bolitas de forma
+  valorMercadoDelta: number;
+  resultadosRecientes: ResultadoPartida[];
   esJugadorDeLaJornada?: boolean;
   historialPuntos: PuntosJornada[];
 }
@@ -48,6 +48,7 @@ export interface ClasificacionEntry {
 
 export interface EquipoManager {
   id: string;
+  leagueId: string;
   nombreEquipo: string;
   saldo: number;
 }
@@ -59,10 +60,6 @@ export interface JugadorLiga extends Jugador {
   historialPuntos: PuntosJornada[];
 }
 
-// Un jugador dentro de la tanda diaria del mercado: los mismos datos que
-// JugadorLiga (siempre libre, así que propietario/esMiEquipo no aplican),
-// más el id del listing (necesario para pujar_mercado, distinto del id
-// del jugador) y el número de pujas actuales sobre ese listing.
 export interface MercadoDelDia extends Jugador {
   listingId: string;
   puntosTotales: number;

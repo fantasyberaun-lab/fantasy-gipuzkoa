@@ -1,8 +1,3 @@
-// Capa de datos: todo lo que antes vivía como arrays fijos en mockData.ts
-// ahora se lee y se escribe aquí contra Supabase. GameStateProvider llama
-// a estas funciones y no habla con Supabase directamente en ningún otro
-// sitio, para que quede todo en un solo lugar si el esquema cambia.
-
 import type { createClient } from "@/lib/supabase/client";
 import type {
   Categoria,
@@ -26,7 +21,7 @@ export async function fetchMiEquipo(
 ): Promise<EquipoManager | null> {
   const { data, error } = await supabase
     .from("fantasy_teams")
-    .select("id, nombre, presupuesto")
+    .select("id, league_id, nombre, presupuesto")
     .eq("owner_id", userId)
     .maybeSingle();
 
@@ -34,6 +29,7 @@ export async function fetchMiEquipo(
 
   return {
     id: data.id,
+    leagueId: data.league_id,
     nombreEquipo: data.nombre,
     saldo: Number(data.presupuesto),
   };
@@ -106,11 +102,11 @@ export async function fetchMiPlantilla(
 
 export async function fetchJugadoresLiga(
   supabase: Supabase,
+  leagueId: string,
   miEquipoId: string | null
 ): Promise<JugadorLiga[]> {
   const { data, error } = await supabase
-    .from("player_status")
-    .select("*")
+    .rpc("player_status", { p_league_id: leagueId })
     .order("puntos_totales", { ascending: false });
 
   if (error || !data) return [];
@@ -130,16 +126,16 @@ export async function fetchJugadoresLiga(
   }));
 }
 
-export async function fetchMercado(supabase: Supabase): Promise<MercadoDelDia[]> {
-  // A partir de 0012_pujas_mercado.sql, el mercado ya no es "todos los
-  // jugadores libres" (eso sigue siendo la pestaña Jugadores) sino la
-  // tanda diaria concreta: los listings abiertos en market_listings,
-  // con su número de pujas desde la vista market_bid_counts.
+export async function fetchMercado(
+  supabase: Supabase,
+  leagueId: string
+): Promise<MercadoDelDia[]> {
   const { data: listings, error } = await supabase
     .from("market_listings")
     .select(
       "id, player_id, players (id, nombre, club, categoria, elo, valor_mercado, activo)"
     )
+    .eq("league_id", leagueId)
     .eq("disponible", true);
 
   if (error || !listings || listings.length === 0) return [];
@@ -149,22 +145,24 @@ export async function fetchMercado(supabase: Supabase): Promise<MercadoDelDia[]>
     .filter((id: unknown): id is string => Boolean(id));
   const listingIds = listings.map((l: any) => l.id);
 
-  const [{ data: estados }, { data: conteos }] = await Promise.all([
-    supabase
-      .from("player_status")
-      .select("id, puntos_totales, historial_puntos")
-      .in("id", playerIds),
+  const [{ data: estadosLiga }, { data: conteos }] = await Promise.all([
+    supabase.rpc("player_status", { p_league_id: leagueId }),
     supabase
       .from("market_bid_counts")
       .select("market_listing_id, numero_pujas")
       .in("market_listing_id", listingIds),
   ]);
 
-  const estadoPorJugador = new Map(
-    (estados ?? []).map((e: any) => [e.id, e])
+  const estadoPorJugador = new Map<string, any>(
+    ((estadosLiga ?? []) as any[])
+      .filter((e) => playerIds.includes(e.id))
+      .map((e): [string, any] => [e.id, e])
   );
-  const pujasPorListing = new Map(
-    (conteos ?? []).map((c: any) => [c.market_listing_id, c.numero_pujas])
+  const pujasPorListing = new Map<string, number>(
+    ((conteos ?? []) as any[]).map((c): [string, number] => [
+      c.market_listing_id,
+      c.numero_pujas,
+    ])
   );
 
   return listings
@@ -283,10 +281,12 @@ export async function venderJugadorDB(
 
 export async function pagarClausulaDB(
   supabase: Supabase,
-  playerId: string
+  playerId: string,
+  leagueId: string
 ): Promise<ResultadoAccion> {
   const { data, error } = await supabase.rpc("pagar_clausula", {
     p_player_id: playerId,
+    p_league_id: leagueId,
   });
 
   if (error) return { ok: false, mensaje: error.message };
@@ -295,10 +295,12 @@ export async function pagarClausulaDB(
 
 export async function ficharJugadorDB(
   supabase: Supabase,
-  playerId: string
+  playerId: string,
+  leagueId: string
 ): Promise<ResultadoAccion> {
   const { data, error } = await supabase.rpc("fichar_jugador", {
     p_player_id: playerId,
+    p_league_id: leagueId,
   });
 
   if (error) return { ok: false, mensaje: error.message };
@@ -308,11 +310,13 @@ export async function ficharJugadorDB(
 export async function pujarMercadoDB(
   supabase: Supabase,
   listingId: string,
-  importe: number
+  importe: number,
+  leagueId: string
 ): Promise<ResultadoAccion> {
   const { data, error } = await supabase.rpc("pujar_mercado", {
     p_listing_id: listingId,
     p_importe: importe,
+    p_league_id: leagueId,
   });
 
   if (error) return { ok: false, mensaje: error.message };

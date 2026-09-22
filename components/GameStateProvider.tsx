@@ -30,10 +30,10 @@ import type {
   PlantillaSlot,
 } from "@/lib/types";
 
-const EQUIPO_VACIO: EquipoManager = { id: "", nombreEquipo: "", saldo: 0 };
+const EQUIPO_VACIO: EquipoManager = { id: "", leagueId: "", nombreEquipo: "", saldo: 0 };
 
 export function calcularClausula(valorMercado: number) {
-  return Math.ceil(valorMercado * 1.5); // ver lib/gameConfig.ts -> clausula.porcentaje
+  return Math.ceil(valorMercado * 1.5);
 }
 
 type ResultadoAccion = { ok: true } | { ok: false; mensaje: string };
@@ -86,6 +86,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     setEsRoot(rol === "root");
 
     if (!miEquipo) {
+      // TODO: cuando existan varias ligas de verdad, esto pasa a
+      // significar "no tienes ningún equipo en ninguna liga todavía" —
+      // habrá que mandar a la pantalla de crear/unirse a liga en vez de
+      // solo marcar tieneEquipo = false.
       setTieneEquipo(false);
       setCargando(false);
       return;
@@ -96,9 +100,9 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
     const [plantilla, ligaJugadores, misOfertas, jugadoresMercado] = await Promise.all([
       fetchMiPlantilla(supabase, miEquipo.id),
-      fetchJugadoresLiga(supabase, miEquipo.id),
+      fetchJugadoresLiga(supabase, miEquipo.leagueId, miEquipo.id),
       fetchMisOfertas(supabase, miEquipo.id),
-      fetchMercado(supabase),
+      fetchMercado(supabase, miEquipo.leagueId),
     ]);
 
     setSquad(plantilla.map(({ titular: _titular, ...resto }) => resto));
@@ -137,7 +141,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   }
 
   async function pagarClausula(jugadorId: string): Promise<ResultadoAccion> {
-    const resultado = await pagarClausulaDB(supabase, jugadorId);
+    if (!equipo.leagueId) return { ok: false, mensaje: "No tienes equipo todavía." };
+    const resultado = await pagarClausulaDB(supabase, jugadorId, equipo.leagueId);
     if (resultado.ok) await cargarTodo();
     return resultado;
   }
@@ -162,8 +167,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   }
 
   async function ficharJugador(jugadorId: string): Promise<ResultadoAccion> {
-    if (!equipo.id) return { ok: false, mensaje: "No tienes equipo todavía." };
-    const resultado = await ficharJugadorDB(supabase, jugadorId);
+    if (!equipo.leagueId) return { ok: false, mensaje: "No tienes equipo todavía." };
+    const resultado = await ficharJugadorDB(supabase, jugadorId, equipo.leagueId);
     if (resultado.ok) await cargarTodo();
     return resultado;
   }
@@ -172,7 +177,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     listingId: string,
     importe: number
   ): Promise<ResultadoAccion> {
-    if (!equipo.id) return { ok: false, mensaje: "No tienes equipo todavía." };
+    if (!equipo.leagueId) return { ok: false, mensaje: "No tienes equipo todavía." };
     if (!Number.isFinite(importe) || importe <= 0) {
       return { ok: false, mensaje: "Introduce un importe válido." };
     }
@@ -182,7 +187,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         mensaje: `No puedes pujar más de tu saldo disponible (${equipo.saldo} M).`,
       };
     }
-    const resultado = await pujarMercadoDB(supabase, listingId, importe);
+    const resultado = await pujarMercadoDB(supabase, listingId, importe, equipo.leagueId);
     if (resultado.ok) await cargarTodo();
     return resultado;
   }
