@@ -6,6 +6,7 @@
 
 import type { createClient } from "@/lib/supabase/client";
 import type { Categoria } from "@/lib/types";
+import type { DatosTorneo } from "@/lib/torneos";
 
 type Supabase = ReturnType<typeof createClient>;
 type ResultadoAccion = { ok: true } | { ok: false; mensaje: string };
@@ -128,18 +129,17 @@ export async function recalcularValoresInicialesDB(
 
 export interface JornadaAdmin {
   id: string;
+  // Número de jornada DENTRO de su torneo (empieza en 1 en cada torneo).
   numero: number;
   fechaInicio: string | null;
   fechaFin: string | null;
-  // Torneo y ronda a los que pertenece (null en jornadas antiguas, de
-  // antes de existir los torneos — ver 0019_torneos.sql).
+  // null solo en jornadas antiguas, de antes de existir los torneos.
   torneoId: string | null;
   torneoNombre: string | null;
-  ronda: number | null;
 }
 
 const COLUMNAS_JORNADA =
-  "id, numero, fecha_inicio, fecha_fin, tournament_id, ronda, tournaments (nombre)";
+  "id, numero, fecha_inicio, fecha_fin, tournament_id, tournaments (nombre)";
 
 function mapearJornada(m: any): JornadaAdmin {
   return {
@@ -149,60 +149,42 @@ function mapearJornada(m: any): JornadaAdmin {
     fechaFin: m.fecha_fin,
     torneoId: m.tournament_id ?? null,
     torneoNombre: m.tournaments?.nombre ?? null,
-    ronda: m.ronda ?? null,
   };
 }
 
+// Las jornadas más recientes primero (por fecha de creación).
 export async function fetchJornadas(supabase: Supabase): Promise<JornadaAdmin[]> {
   const { data, error } = await supabase
     .from("matchdays")
-    .select(COLUMNAS_JORNADA)
-    .order("numero", { ascending: false });
+    .select(`${COLUMNAS_JORNADA}, created_at`)
+    .order("created_at", { ascending: false });
 
   if (error || !data) return [];
 
   return data.map(mapearJornada);
 }
 
-// Crea la siguiente ronda de un torneo. La ronda se calcula sola (la
-// última del torneo + 1) y no deja pasar del número de rondas previsto.
-// "numero" es el número de jornada global del Fantasy.
+// Crea la siguiente jornada de un torneo (la última + 1; la primera es la
+// 1). Cada torneo lleva su propia numeración.
 export async function crearJornadaDB(
   supabase: Supabase,
-  numero: number,
   torneoId: string
 ): Promise<{ ok: true; jornada: JornadaAdmin } | { ok: false; mensaje: string }> {
-  const { data: torneo, error: errorTorneo } = await supabase
-    .from("tournaments")
-    .select("nombre, numero_rondas")
-    .eq("id", torneoId)
-    .single();
-
-  if (errorTorneo || !torneo) {
-    return { ok: false, mensaje: errorTorneo?.message ?? "No se encontró el torneo." };
-  }
-
   const { data: ultima, error: errorUltima } = await supabase
     .from("matchdays")
-    .select("ronda")
+    .select("numero")
     .eq("tournament_id", torneoId)
-    .order("ronda", { ascending: false })
+    .order("numero", { ascending: false })
     .limit(1)
     .maybeSingle();
 
   if (errorUltima) return { ok: false, mensaje: errorUltima.message };
 
-  const ronda = (ultima?.ronda ?? 0) + 1;
-  if (ronda > torneo.numero_rondas) {
-    return {
-      ok: false,
-      mensaje: `"${torneo.nombre}" ya tiene sus ${torneo.numero_rondas} rondas creadas.`,
-    };
-  }
+  const numero = (ultima?.numero ?? 0) + 1;
 
   const { data, error } = await supabase
     .from("matchdays")
-    .insert({ numero, tournament_id: torneoId, ronda })
+    .insert({ numero, tournament_id: torneoId })
     .select(COLUMNAS_JORNADA)
     .single();
 
@@ -211,6 +193,19 @@ export async function crearJornadaDB(
   }
 
   return { ok: true, jornada: mapearJornada(data) };
+}
+
+// Borra la jornada Y todo lo que cuelga de ella (resultados y la foto de
+// titulares de cada equipo), porque así están definidas las claves
+// foráneas (on delete cascade).
+export async function borrarJornadaDB(
+  supabase: Supabase,
+  id: string
+): Promise<ResultadoAccion> {
+  const { error } = await supabase.from("matchdays").delete().eq("id", id);
+
+  if (error) return { ok: false, mensaje: error.message };
+  return { ok: true };
 }
 
 export interface ResultadoGuardado {
@@ -292,47 +287,8 @@ export async function borrarResultadoDB(
 }
 
 // ---------- Torneos ----------
-// Ficha de torneo con la información habitual de chess-results. Ver
-// 0019_torneos.sql. Todos los textos opcionales se guardan como null
-// cuando se dejan vacíos.
-
-export type SistemaTorneo = "suizo" | "round_robin" | "eliminatoria" | "otro";
-
-export interface DatosTorneo {
-  // General
-  nombre: string;
-  categoria: Categoria | null;
-  observaciones: string | null;
-  // Organización
-  organizador: string | null;
-  federacion: string | null;
-  director: string | null;
-  arbitroPrincipal: string | null;
-  arbitrosAdjuntos: string | null;
-  // Lugar de juego
-  lugar: string | null;
-  direccion: string | null;
-  ciudad: string | null;
-  provincia: string | null;
-  pais: string;
-  // Calendario
-  fechaInicio: string | null;
-  fechaFin: string | null;
-  numeroRondas: number;
-  // Sistema de juego
-  sistema: SistemaTorneo;
-  ritmoJuego: string | null;
-  computoElo: string | null;
-  desempates: string | null;
-  // Enlaces y contacto
-  webUrl: string | null;
-  emailContacto: string | null;
-}
-
-export interface TorneoAdmin extends DatosTorneo {
-  id: string;
-  rondasCreadas: number;
-}
+// La lectura vive en torneosQueries.ts (la comparten los managers). Aquí
+// solo las escrituras, que la base de datos ya limita al rol root.
 
 function torneoAFila(t: DatosTorneo) {
   return {
@@ -361,57 +317,42 @@ function torneoAFila(t: DatosTorneo) {
   };
 }
 
-export async function fetchTorneos(supabase: Supabase): Promise<TorneoAdmin[]> {
-  const { data, error } = await supabase
-    .from("tournaments")
-    .select("*, matchdays (count)")
-    .order("fecha_inicio", { ascending: false, nullsFirst: true })
-    .order("created_at", { ascending: false });
-
-  if (error || !data) return [];
-
-  return data.map((t: any) => ({
-    id: t.id,
-    nombre: t.nombre,
-    categoria: t.categoria ? (Number(t.categoria) as Categoria) : null,
-    observaciones: t.observaciones,
-    organizador: t.organizador,
-    federacion: t.federacion,
-    director: t.director,
-    arbitroPrincipal: t.arbitro_principal,
-    arbitrosAdjuntos: t.arbitros_adjuntos,
-    lugar: t.lugar,
-    direccion: t.direccion,
-    ciudad: t.ciudad,
-    provincia: t.provincia,
-    pais: t.pais,
-    fechaInicio: t.fecha_inicio,
-    fechaFin: t.fecha_fin,
-    numeroRondas: t.numero_rondas,
-    sistema: t.sistema,
-    ritmoJuego: t.ritmo_juego,
-    computoElo: t.computo_elo,
-    desempates: t.desempates,
-    webUrl: t.web_url,
-    emailContacto: t.email_contacto,
-    rondasCreadas: t.matchdays?.[0]?.count ?? 0,
-  }));
-}
-
 export async function crearTorneoDB(
   supabase: Supabase,
-  datos: DatosTorneo
+  datos: DatosTorneo,
+  jugadoresIds: string[]
 ): Promise<ResultadoAccion> {
-  const { error } = await supabase.from("tournaments").insert(torneoAFila(datos));
+  const { data, error } = await supabase
+    .from("tournaments")
+    .insert(torneoAFila(datos))
+    .select("id")
+    .single();
 
-  if (error) return { ok: false, mensaje: error.message };
+  if (error || !data) {
+    return { ok: false, mensaje: error?.message ?? "No se pudo crear el torneo." };
+  }
+
+  if (jugadoresIds.length > 0) {
+    const { error: errorJugadores } = await supabase
+      .from("tournament_players")
+      .insert(jugadoresIds.map((playerId) => ({ tournament_id: data.id, player_id: playerId })));
+
+    if (errorJugadores) {
+      // Sin los jugadores el torneo queda a medias: se deshace para poder
+      // reintentar sin dejar un torneo duplicado.
+      await supabase.from("tournaments").delete().eq("id", data.id);
+      return { ok: false, mensaje: errorJugadores.message };
+    }
+  }
+
   return { ok: true };
 }
 
 export async function actualizarTorneoDB(
   supabase: Supabase,
   id: string,
-  datos: DatosTorneo
+  datos: DatosTorneo,
+  jugadoresIds: string[]
 ): Promise<ResultadoAccion> {
   const { error } = await supabase
     .from("tournaments")
@@ -419,6 +360,35 @@ export async function actualizarTorneoDB(
     .eq("id", id);
 
   if (error) return { ok: false, mensaje: error.message };
+
+  const { data: actuales, error: errorActuales } = await supabase
+    .from("tournament_players")
+    .select("player_id")
+    .eq("tournament_id", id);
+
+  if (errorActuales) return { ok: false, mensaje: errorActuales.message };
+
+  const antes = new Set((actuales ?? []).map((r: any) => r.player_id as string));
+  const despues = new Set(jugadoresIds);
+  const quitar = [...antes].filter((p) => !despues.has(p));
+  const anadir = [...despues].filter((p) => !antes.has(p));
+
+  if (quitar.length > 0) {
+    const { error: errorQuitar } = await supabase
+      .from("tournament_players")
+      .delete()
+      .eq("tournament_id", id)
+      .in("player_id", quitar);
+    if (errorQuitar) return { ok: false, mensaje: errorQuitar.message };
+  }
+
+  if (anadir.length > 0) {
+    const { error: errorAnadir } = await supabase
+      .from("tournament_players")
+      .insert(anadir.map((playerId) => ({ tournament_id: id, player_id: playerId })));
+    if (errorAnadir) return { ok: false, mensaje: errorAnadir.message };
+  }
+
   return { ok: true };
 }
 
@@ -436,7 +406,7 @@ export async function eliminarTorneoDB(
     return {
       ok: false,
       mensaje: tieneJornadas
-        ? "Este torneo ya tiene jornadas creadas, así que no se puede borrar."
+        ? "Este torneo ya tiene jornadas creadas: borra primero sus jornadas."
         : error.message,
     };
   }

@@ -7,16 +7,17 @@ import BuscadorSelect from "@/components/BuscadorSelect";
 import {
   fetchTodosLosJugadores,
   fetchJornadas,
-  fetchTorneos,
   crearJornadaDB,
+  borrarJornadaDB,
   fetchResultadosDeJornada,
   guardarResultadoDB,
   borrarResultadoDB,
   type JugadorAdmin,
   type JornadaAdmin,
   type ResultadoGuardado,
-  type TorneoAdmin,
 } from "@/lib/supabase/adminQueries";
+import { fetchParticipantesPorTorneo, fetchTorneos } from "@/lib/supabase/torneosQueries";
+import type { Torneo } from "@/lib/torneos";
 import type { Categoria } from "@/lib/types";
 
 type Resultado = "victoria" | "tablas" | "derrota";
@@ -39,12 +40,21 @@ const FILA_VACIA: FilaEdicion = {
   rivalEloManual: "",
 };
 
+function etiquetaJornada(j: JornadaAdmin): string {
+  return j.torneoNombre
+    ? `${j.torneoNombre} · Jornada ${j.numero}`
+    : `Jornada ${j.numero} (sin torneo)`;
+}
+
 export default function AdminResultadosPage() {
   const supabase = createClient();
 
   const [jugadores, setJugadores] = useState<JugadorAdmin[]>([]);
   const [jornadas, setJornadas] = useState<JornadaAdmin[]>([]);
-  const [torneos, setTorneos] = useState<TorneoAdmin[]>([]);
+  const [torneos, setTorneos] = useState<Torneo[]>([]);
+  const [participantesPorTorneo, setParticipantesPorTorneo] = useState<
+    Record<string, string[]>
+  >({});
   const [torneoNuevaId, setTorneoNuevaId] = useState<string>("");
   const [errorJornada, setErrorJornada] = useState<string | null>(null);
   const [jornadaId, setJornadaId] = useState<string | null>(null);
@@ -56,6 +66,7 @@ export default function AdminResultadosPage() {
   const [cargando, setCargando] = useState(true);
   const [cargandoJornada, setCargandoJornada] = useState(false);
   const [creandoJornada, setCreandoJornada] = useState(false);
+  const [borrandoJornada, setBorrandoJornada] = useState(false);
   const [guardandoId, setGuardandoId] = useState<string | null>(null);
   const [mensajePorJugador, setMensajePorJugador] = useState<
     Record<string, { tipo: "ok" | "error"; texto: string }>
@@ -68,14 +79,17 @@ export default function AdminResultadosPage() {
   useEffect(() => {
     (async () => {
       setCargando(true);
-      const [listaJugadores, listaJornadas, listaTorneos] = await Promise.all([
-        fetchTodosLosJugadores(supabase),
-        fetchJornadas(supabase),
-        fetchTorneos(supabase),
-      ]);
+      const [listaJugadores, listaJornadas, listaTorneos, participantes] =
+        await Promise.all([
+          fetchTodosLosJugadores(supabase),
+          fetchJornadas(supabase),
+          fetchTorneos(supabase),
+          fetchParticipantesPorTorneo(supabase),
+        ]);
       setJugadores(listaJugadores);
       setJornadas(listaJornadas);
       setTorneos(listaTorneos);
+      setParticipantesPorTorneo(participantes);
       // Por defecto, el torneo de la última jornada; si no hay, el primero.
       setTorneoNuevaId(listaJornadas[0]?.torneoId ?? listaTorneos[0]?.id ?? "");
       setJornadaId(listaJornadas[0]?.id ?? null);
@@ -116,19 +130,39 @@ export default function AdminResultadosPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jornadaId]);
 
+  const jornadaActual = jornadas.find((j) => j.id === jornadaId) ?? null;
+
+  // Jugadores de la jornada: los inscritos en su torneo (más cualquiera que
+  // ya tenga resultado guardado, por si se le quitó del torneo después).
+  // En jornadas antiguas sin torneo, o de un torneo sin jugadores
+  // elegidos, salen todos los activos, como antes.
+  const idsInscritos = useMemo(() => {
+    const ids = jornadaActual?.torneoId
+      ? participantesPorTorneo[jornadaActual.torneoId]
+      : undefined;
+    return ids && ids.length > 0 ? new Set(ids) : null;
+  }, [jornadaActual, participantesPorTorneo]);
+
+  const jugadoresDeLaJornada = useMemo(
+    () =>
+      idsInscritos
+        ? jugadores.filter((j) => idsInscritos.has(j.id) || resultadosGuardados[j.id])
+        : jugadores,
+    [jugadores, idsInscritos, resultadosGuardados]
+  );
+
   const jugadoresFiltrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
-    return jugadores.filter((j) => {
+    return jugadoresDeLaJornada.filter((j) => {
       if (!j.activo) return false;
       if (filtroCategoria && j.categoria !== filtroCategoria) return false;
       if (texto && !j.nombre.toLowerCase().includes(texto)) return false;
       if (soloPendientes && resultadosGuardados[j.id]) return false;
       return true;
     });
-  }, [jugadores, busqueda, filtroCategoria, soloPendientes, resultadosGuardados]);
+  }, [jugadoresDeLaJornada, busqueda, filtroCategoria, soloPendientes, resultadosGuardados]);
 
-  const jornadaActual = jornadas.find((j) => j.id === jornadaId) ?? null;
-  const totalActivos = jugadores.filter((j) => j.activo).length;
+  const totalActivos = jugadoresDeLaJornada.filter((j) => j.activo).length;
   const totalConResultado = Object.keys(resultadosGuardados).length;
 
   function filaDe(id: string): FilaEdicion {
@@ -142,9 +176,8 @@ export default function AdminResultadosPage() {
   async function onCrearJornada() {
     if (!torneoNuevaId) return;
     setErrorJornada(null);
-    const siguienteNumero = (jornadas[0]?.numero ?? 0) + 1;
     setCreandoJornada(true);
-    const resultado = await crearJornadaDB(supabase, siguienteNumero, torneoNuevaId);
+    const resultado = await crearJornadaDB(supabase, torneoNuevaId);
     setCreandoJornada(false);
 
     if (!resultado.ok) {
@@ -154,7 +187,32 @@ export default function AdminResultadosPage() {
 
     setJornadas((prev) => [resultado.jornada, ...prev]);
     setJornadaId(resultado.jornada.id);
-    // Refresca el contador "X / N rondas" del torneo.
+    // Refresca el contador de jornadas del torneo.
+    setTorneos(await fetchTorneos(supabase));
+  }
+
+  async function onBorrarJornada() {
+    if (!jornadaActual) return;
+    const nombre = etiquetaJornada(jornadaActual);
+    const aviso =
+      totalConResultado > 0
+        ? `Se borrarán también los ${totalConResultado} resultados de esta jornada y sus puntos. `
+        : "";
+    if (!confirm(`¿Borrar "${nombre}"? ${aviso}Esto no se puede deshacer.`)) return;
+
+    setErrorJornada(null);
+    setBorrandoJornada(true);
+    const resultado = await borrarJornadaDB(supabase, jornadaActual.id);
+    setBorrandoJornada(false);
+
+    if (!resultado.ok) {
+      setErrorJornada(resultado.mensaje);
+      return;
+    }
+
+    const restantes = jornadas.filter((j) => j.id !== jornadaActual.id);
+    setJornadas(restantes);
+    setJornadaId(restantes[0]?.id ?? null);
     setTorneos(await fetchTorneos(supabase));
   }
 
@@ -256,10 +314,7 @@ export default function AdminResultadosPage() {
           {jornadas.length === 0 && <option value="">Sin jornadas todavía</option>}
           {jornadas.map((j) => (
             <option key={j.id} value={j.id}>
-              Jornada {j.numero}
-              {j.torneoNombre
-                ? ` · ${j.torneoNombre}${j.ronda ? ` · Ronda ${j.ronda}` : ""}`
-                : " · Sin torneo"}
+              {etiquetaJornada(j)}
             </option>
           ))}
         </select>
@@ -273,7 +328,8 @@ export default function AdminResultadosPage() {
             >
               {torneos.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.nombre} ({t.rondasCreadas}/{t.numeroRondas})
+                  {t.nombre} ({t.rondasCreadas}
+                  {t.numeroRondas != null ? `/${t.numeroRondas}` : ""} jornadas)
                 </option>
               ))}
             </select>
@@ -292,6 +348,16 @@ export default function AdminResultadosPage() {
           >
             Crea primero un torneo para poder añadir jornadas
           </Link>
+        )}
+
+        {jornadaActual && (
+          <button
+            onClick={onBorrarJornada}
+            disabled={borrandoJornada}
+            className="rounded-lg border border-neutral-300 px-3 py-2 text-sm text-negative disabled:opacity-40 dark:border-neutral-700"
+          >
+            {borrandoJornada ? "Borrando…" : "Borrar jornada"}
+          </button>
         )}
 
         {jornadaActual && (
@@ -349,9 +415,13 @@ export default function AdminResultadosPage() {
                 const fila = filaDe(jugador.id);
                 const guardado = resultadosGuardados[jugador.id];
                 const mensaje = mensajePorJugador[jugador.id];
-                const rivalesMismaCategoria = jugadores.filter(
-                  (r) => r.categoria === jugador.categoria && r.id !== jugador.id
-                );
+                // Con jugadores inscritos, el rival sale de los inscritos; si no
+                // (jornada sin torneo o sin lista), de la misma categoría.
+                const rivalesMismaCategoria = (
+                  idsInscritos
+                    ? jugadores.filter((r) => idsInscritos.has(r.id))
+                    : jugadores.filter((r) => r.categoria === jugador.categoria)
+                ).filter((r) => r.id !== jugador.id);
 
                 return (
                   <div

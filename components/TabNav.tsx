@@ -8,13 +8,14 @@ const TABS = [
   { href: "/mercado", label: "Mercado" },
   { href: "/jugadores", label: "Jugadores" },
   { href: "/clasificacion", label: "Clasificación" },
+  { href: "/torneos", label: "Torneos" },
 ];
 
 export default function TabNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex gap-6 border-b border-neutral-200 dark:border-neutral-800">
+    <nav className="flex gap-6 overflow-x-auto whitespace-nowrap border-b border-neutral-200 dark:border-neutral-800">
       {TABS.map((tab) => {
         const isActive = pathname?.startsWith(tab.href);
         return (

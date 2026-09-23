@@ -1,20 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   actualizarTorneoDB,
   crearTorneoDB,
   eliminarTorneoDB,
-  fetchTorneos,
-  type DatosTorneo,
-  type SistemaTorneo,
-  type TorneoAdmin,
+  fetchTodosLosJugadores,
+  type JugadorAdmin,
 } from "@/lib/supabase/adminQueries";
+import { fetchParticipantesIds, fetchTorneos } from "@/lib/supabase/torneosQueries";
+import { estadoTorneo, ordenarTorneos, type DatosTorneo, type Torneo } from "@/lib/torneos";
+import FichaTorneo from "@/components/FichaTorneo";
 import type { Categoria } from "@/lib/types";
 
 // El formulario trabaja siempre con strings (es lo que devuelven los
-// inputs); se convierte a DatosTorneo al guardar.
+// inputs); se convierte a DatosTorneo al guardar. Solo el nombre es
+// obligatorio: el resto son textos libres, sin ningún formato exigido.
 interface FormTorneo {
   nombre: string;
   categoria: "" | "1" | "2" | "3";
@@ -32,7 +34,7 @@ interface FormTorneo {
   fechaInicio: string;
   fechaFin: string;
   numeroRondas: string;
-  sistema: SistemaTorneo;
+  sistema: string;
   ritmoJuego: string;
   computoElo: string;
   desempates: string;
@@ -56,27 +58,13 @@ const FORM_VACIO: FormTorneo = {
   pais: "España",
   fechaInicio: "",
   fechaFin: "",
-  numeroRondas: "9",
-  sistema: "suizo",
+  numeroRondas: "",
+  sistema: "",
   ritmoJuego: "",
   computoElo: "",
   desempates: "",
   webUrl: "",
   emailContacto: "",
-};
-
-const SISTEMAS: { valor: SistemaTorneo; etiqueta: string }[] = [
-  { valor: "suizo", etiqueta: "Sistema suizo" },
-  { valor: "round_robin", etiqueta: "Round robin (todos contra todos)" },
-  { valor: "eliminatoria", etiqueta: "Eliminatoria" },
-  { valor: "otro", etiqueta: "Otro" },
-];
-
-const ETIQUETA_SISTEMA: Record<SistemaTorneo, string> = {
-  suizo: "Sistema suizo",
-  round_robin: "Round robin",
-  eliminatoria: "Eliminatoria",
-  otro: "Otro",
 };
 
 const INPUT =
@@ -85,6 +73,7 @@ const INPUT =
 const vacioANull = (texto: string) => (texto.trim() === "" ? null : texto.trim());
 
 function formADatos(f: FormTorneo): DatosTorneo {
+  const rondas = Number(f.numeroRondas);
   return {
     nombre: f.nombre.trim(),
     categoria: f.categoria ? (Number(f.categoria) as Categoria) : null,
@@ -98,11 +87,11 @@ function formADatos(f: FormTorneo): DatosTorneo {
     direccion: vacioANull(f.direccion),
     ciudad: vacioANull(f.ciudad),
     provincia: vacioANull(f.provincia),
-    pais: f.pais.trim() || "España",
+    pais: vacioANull(f.pais),
     fechaInicio: vacioANull(f.fechaInicio),
     fechaFin: vacioANull(f.fechaFin),
-    numeroRondas: Number(f.numeroRondas),
-    sistema: f.sistema,
+    numeroRondas: f.numeroRondas.trim() !== "" && Number.isFinite(rondas) ? Math.round(rondas) : null,
+    sistema: vacioANull(f.sistema),
     ritmoJuego: vacioANull(f.ritmoJuego),
     computoElo: vacioANull(f.computoElo),
     desempates: vacioANull(f.desempates),
@@ -111,7 +100,7 @@ function formADatos(f: FormTorneo): DatosTorneo {
   };
 }
 
-function torneoAForm(t: TorneoAdmin): FormTorneo {
+function torneoAForm(t: Torneo): FormTorneo {
   return {
     nombre: t.nombre,
     categoria: t.categoria ? (String(t.categoria) as FormTorneo["categoria"]) : "",
@@ -125,42 +114,17 @@ function torneoAForm(t: TorneoAdmin): FormTorneo {
     direccion: t.direccion ?? "",
     ciudad: t.ciudad ?? "",
     provincia: t.provincia ?? "",
-    pais: t.pais,
+    pais: t.pais ?? "",
     fechaInicio: t.fechaInicio ?? "",
     fechaFin: t.fechaFin ?? "",
-    numeroRondas: String(t.numeroRondas),
-    sistema: t.sistema,
+    numeroRondas: t.numeroRondas != null ? String(t.numeroRondas) : "",
+    sistema: t.sistema ?? "",
     ritmoJuego: t.ritmoJuego ?? "",
     computoElo: t.computoElo ?? "",
     desempates: t.desempates ?? "",
     webUrl: t.webUrl ?? "",
     emailContacto: t.emailContacto ?? "",
   };
-}
-
-function formatearFecha(iso: string | null): string | null {
-  if (!iso) return null;
-  return new Date(`${iso}T00:00:00`).toLocaleDateString("es-ES", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function rangoFechas(t: TorneoAdmin): string | null {
-  const inicio = formatearFecha(t.fechaInicio);
-  const fin = formatearFecha(t.fechaFin);
-  if (inicio && fin) return inicio === fin ? inicio : `${inicio} – ${fin}`;
-  return inicio ?? fin;
-}
-
-// Estado derivado de las fechas: no se guarda, así nunca queda desfasado.
-function estadoTorneo(t: TorneoAdmin): "Próximo" | "En curso" | "Finalizado" | null {
-  const hoy = new Date().toISOString().slice(0, 10);
-  if (t.fechaInicio && hoy < t.fechaInicio) return "Próximo";
-  if (t.fechaFin && hoy > t.fechaFin) return "Finalizado";
-  if (t.fechaInicio) return "En curso";
-  return null;
 }
 
 function Campo({
@@ -191,32 +155,155 @@ function Seccion({ titulo, children }: { titulo: string; children: React.ReactNo
   );
 }
 
-function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | null }) {
-  if (!valor) return null;
+// Elección de los jugadores que participan en el torneo. Trabaja con un
+// Set de ids que vive en el formulario padre.
+function SelectorJugadores({
+  jugadores,
+  seleccionados,
+  onCambiar,
+}: {
+  jugadores: JugadorAdmin[];
+  seleccionados: Set<string>;
+  onCambiar: (nuevo: Set<string>) => void;
+}) {
+  const [busqueda, setBusqueda] = useState("");
+  const [filtroCategoria, setFiltroCategoria] = useState<"" | "1" | "2" | "3">("");
+
+  // Solo jugadores activos, más los ya inscritos aunque estén inactivos
+  // (para poder verlos y quitarlos).
+  const visibles = useMemo(() => {
+    const texto = busqueda.trim().toLowerCase();
+    return jugadores.filter((j) => {
+      if (!j.activo && !seleccionados.has(j.id)) return false;
+      if (filtroCategoria && String(j.categoria) !== filtroCategoria) return false;
+      if (texto && !`${j.nombre} ${j.club}`.toLowerCase().includes(texto)) return false;
+      return true;
+    });
+  }, [jugadores, seleccionados, busqueda, filtroCategoria]);
+
+  function alternar(id: string) {
+    const nuevo = new Set(seleccionados);
+    if (nuevo.has(id)) nuevo.delete(id);
+    else nuevo.add(id);
+    onCambiar(nuevo);
+  }
+
+  function marcarVisibles() {
+    const nuevo = new Set(seleccionados);
+    visibles.forEach((j) => nuevo.add(j.id));
+    onCambiar(nuevo);
+  }
+
+  function quitarVisibles() {
+    const nuevo = new Set(seleccionados);
+    visibles.forEach((j) => nuevo.delete(j.id));
+    onCambiar(nuevo);
+  }
+
   return (
-    <div className="flex flex-col">
-      <dt className="text-xs text-neutral-500">{etiqueta}</dt>
-      <dd className="whitespace-pre-line">{valor}</dd>
-    </div>
+    <fieldset className="flex flex-col gap-3">
+      <legend className="mb-1 text-xs font-medium uppercase tracking-wide text-neutral-500">
+        Jugadores del torneo · {seleccionados.size} seleccionado
+        {seleccionados.size === 1 ? "" : "s"}
+      </legend>
+
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <input
+          type="text"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          placeholder="Buscar por nombre o club…"
+          className={`${INPUT} sm:flex-1`}
+        />
+        <select
+          value={filtroCategoria}
+          onChange={(e) => setFiltroCategoria(e.target.value as typeof filtroCategoria)}
+          className={`${INPUT} sm:w-auto`}
+        >
+          <option value="">Todas las categorías</option>
+          <option value="1">1ª</option>
+          <option value="2">2ª</option>
+          <option value="3">3ª</option>
+        </select>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        <button
+          type="button"
+          onClick={marcarVisibles}
+          className="rounded border border-neutral-300 px-2 py-1 dark:border-neutral-700"
+        >
+          Marcar los {visibles.length} visibles
+        </button>
+        <button
+          type="button"
+          onClick={quitarVisibles}
+          className="rounded border border-neutral-300 px-2 py-1 dark:border-neutral-700"
+        >
+          Quitar los visibles
+        </button>
+        <button
+          type="button"
+          onClick={() => onCambiar(new Set())}
+          disabled={seleccionados.size === 0}
+          className="rounded border border-neutral-300 px-2 py-1 disabled:opacity-40 dark:border-neutral-700"
+        >
+          Quitar todos
+        </button>
+      </div>
+
+      <ul className="max-h-72 divide-y divide-neutral-200 overflow-y-auto rounded-lg border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+        {visibles.length === 0 && (
+          <li className="px-3 py-4 text-center text-sm text-neutral-500">
+            Ningún jugador coincide.
+          </li>
+        )}
+        {visibles.map((j) => (
+          <li key={j.id}>
+            <label className="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-neutral-900">
+              <input
+                type="checkbox"
+                checked={seleccionados.has(j.id)}
+                onChange={() => alternar(j.id)}
+              />
+              <span className="flex-1">
+                {j.nombre}
+                {!j.activo && <span className="text-neutral-500"> (inactivo)</span>}
+              </span>
+              <span className="text-xs text-neutral-500">
+                {j.club} · {j.categoria}ª · {j.elo}
+              </span>
+            </label>
+          </li>
+        ))}
+      </ul>
+    </fieldset>
   );
 }
 
 export default function AdminTorneosPage() {
   const supabase = createClient();
 
-  const [torneos, setTorneos] = useState<TorneoAdmin[]>([]);
+  const [torneos, setTorneos] = useState<Torneo[]>([]);
+  const [jugadores, setJugadores] = useState<JugadorAdmin[]>([]);
   const [cargando, setCargando] = useState(true);
   const [mensaje, setMensaje] = useState<string | null>(null);
 
   const [formAbierto, setFormAbierto] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [form, setForm] = useState<FormTorneo>(FORM_VACIO);
+  const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set());
   const [guardando, setGuardando] = useState(false);
   const [errorForm, setErrorForm] = useState<string | null>(null);
 
   async function cargar() {
     setCargando(true);
-    setTorneos(await fetchTorneos(supabase));
+    const [listaTorneos, listaJugadores] = await Promise.all([
+      fetchTorneos(supabase),
+      fetchTodosLosJugadores(supabase),
+    ]);
+    setTorneos(ordenarTorneos(listaTorneos));
+    setJugadores(listaJugadores);
     setCargando(false);
   }
 
@@ -232,13 +319,15 @@ export default function AdminTorneosPage() {
   function abrirNuevo() {
     setEditandoId(null);
     setForm(FORM_VACIO);
+    setSeleccionados(new Set());
     setErrorForm(null);
     setFormAbierto(true);
   }
 
-  function abrirEdicion(t: TorneoAdmin) {
+  async function abrirEdicion(t: Torneo) {
     setEditandoId(t.id);
     setForm(torneoAForm(t));
+    setSeleccionados(new Set(await fetchParticipantesIds(supabase, t.id)));
     setErrorForm(null);
     setFormAbierto(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -250,37 +339,21 @@ export default function AdminTorneosPage() {
     setErrorForm(null);
   }
 
-  function validar(): string | null {
-    if (!form.nombre.trim()) return "El nombre del torneo es obligatorio.";
-    const rondas = Number(form.numeroRondas);
-    if (!Number.isInteger(rondas) || rondas < 1) {
-      return "El número de rondas tiene que ser un entero de 1 o más.";
-    }
-    if (form.fechaInicio && form.fechaFin && form.fechaFin < form.fechaInicio) {
-      return "La fecha de fin no puede ser anterior a la de inicio.";
-    }
-    const torneoEditado = torneos.find((t) => t.id === editandoId);
-    if (torneoEditado && rondas < torneoEditado.rondasCreadas) {
-      return `Ya hay ${torneoEditado.rondasCreadas} rondas creadas; no puedes bajar de ese número.`;
-    }
-    return null;
-  }
-
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
     setMensaje(null);
 
-    const problema = validar();
-    if (problema) {
-      setErrorForm(problema);
+    if (!form.nombre.trim()) {
+      setErrorForm("Ponle al menos un nombre al torneo.");
       return;
     }
 
     setGuardando(true);
     const datos = formADatos(form);
+    const ids = [...seleccionados];
     const resultado = editandoId
-      ? await actualizarTorneoDB(supabase, editandoId, datos)
-      : await crearTorneoDB(supabase, datos);
+      ? await actualizarTorneoDB(supabase, editandoId, datos, ids)
+      : await crearTorneoDB(supabase, datos, ids);
     setGuardando(false);
 
     if (!resultado.ok) {
@@ -292,7 +365,7 @@ export default function AdminTorneosPage() {
     await cargar();
   }
 
-  async function borrar(t: TorneoAdmin) {
+  async function borrar(t: Torneo) {
     if (!confirm(`¿Seguro que quieres borrar "${t.nombre}"? Esto no se puede deshacer.`)) {
       return;
     }
@@ -309,8 +382,8 @@ export default function AdminTorneosPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-neutral-500">
-          Cada jornada del Fantasy es una ronda de un torneo. Crea aquí el torneo
-          antes de crear sus jornadas.
+          Cada jornada del Fantasy pertenece a un torneo y cada torneo numera las suyas
+          desde 1. Crea aquí el torneo, con sus jugadores, antes de crear sus jornadas.
         </p>
         {!formAbierto && (
           <button
@@ -325,14 +398,18 @@ export default function AdminTorneosPage() {
       {formAbierto && (
         <form
           onSubmit={guardar}
+          noValidate
           className="flex flex-col gap-6 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800"
         >
           <p className="text-sm font-medium">
-            {editandoId ? "Editar torneo" : "Nuevo torneo"}
+            {editandoId ? "Editar torneo" : "Nuevo torneo"}{" "}
+            <span className="font-normal text-neutral-500">
+              (solo el nombre es obligatorio; el resto es texto libre)
+            </span>
           </p>
 
           <Seccion titulo="General">
-            <Campo etiqueta="Nombre del torneo *" className="sm:col-span-2">
+            <Campo etiqueta="Nombre del torneo" className="sm:col-span-2">
               <input
                 type="text"
                 value={form.nombre}
@@ -341,7 +418,7 @@ export default function AdminTorneosPage() {
                 className={INPUT}
               />
             </Campo>
-            <Campo etiqueta="Categoría del Fantasy">
+            <Campo etiqueta="Categoría">
               <select
                 value={form.categoria}
                 onChange={(e) => campo("categoria", e.target.value as FormTorneo["categoria"])}
@@ -377,7 +454,6 @@ export default function AdminTorneosPage() {
                 type="text"
                 value={form.federacion}
                 onChange={(e) => campo("federacion", e.target.value)}
-                placeholder="Federación Guipuzcoana de Ajedrez"
                 className={INPUT}
               />
             </Campo>
@@ -397,7 +473,7 @@ export default function AdminTorneosPage() {
                 className={INPUT}
               />
             </Campo>
-            <Campo etiqueta="Árbitros adjuntos (separados por comas)" className="sm:col-span-2">
+            <Campo etiqueta="Árbitros adjuntos" className="sm:col-span-2">
               <textarea
                 value={form.arbitrosAdjuntos}
                 onChange={(e) => campo("arbitrosAdjuntos", e.target.value)}
@@ -467,10 +543,10 @@ export default function AdminTorneosPage() {
                 className={INPUT}
               />
             </Campo>
-            <Campo etiqueta="Número de rondas *">
+            <Campo etiqueta="Número de rondas">
               <input
-                type="number"
-                min={1}
+                type="text"
+                inputMode="numeric"
                 value={form.numeroRondas}
                 onChange={(e) => campo("numeroRondas", e.target.value)}
                 className={INPUT}
@@ -480,17 +556,18 @@ export default function AdminTorneosPage() {
 
           <Seccion titulo="Sistema de juego">
             <Campo etiqueta="Sistema">
-              <select
+              <input
+                type="text"
+                list="opciones-sistema"
                 value={form.sistema}
-                onChange={(e) => campo("sistema", e.target.value as SistemaTorneo)}
+                onChange={(e) => campo("sistema", e.target.value)}
                 className={INPUT}
-              >
-                {SISTEMAS.map((s) => (
-                  <option key={s.valor} value={s.valor}>
-                    {s.etiqueta}
-                  </option>
-                ))}
-              </select>
+              />
+              <datalist id="opciones-sistema">
+                <option value="Sistema suizo" />
+                <option value="Round robin" />
+                <option value="Eliminatoria" />
+              </datalist>
             </Campo>
             <Campo etiqueta="Ritmo de juego">
               <input
@@ -521,7 +598,6 @@ export default function AdminTorneosPage() {
                 type="text"
                 value={form.desempates}
                 onChange={(e) => campo("desempates", e.target.value)}
-                placeholder="Buchholz -1, Buchholz, Sonneborn-Berger"
                 className={INPUT}
               />
             </Campo>
@@ -530,22 +606,27 @@ export default function AdminTorneosPage() {
           <Seccion titulo="Enlaces y contacto">
             <Campo etiqueta="Web / enlace a chess-results">
               <input
-                type="url"
+                type="text"
                 value={form.webUrl}
                 onChange={(e) => campo("webUrl", e.target.value)}
-                placeholder="https://chess-results.com/…"
                 className={INPUT}
               />
             </Campo>
             <Campo etiqueta="Email de contacto">
               <input
-                type="email"
+                type="text"
                 value={form.emailContacto}
                 onChange={(e) => campo("emailContacto", e.target.value)}
                 className={INPUT}
               />
             </Campo>
           </Seccion>
+
+          <SelectorJugadores
+            jugadores={jugadores}
+            seleccionados={seleccionados}
+            onCambiar={setSeleccionados}
+          />
 
           {errorForm && <p className="text-sm text-negative">{errorForm}</p>}
 
@@ -580,8 +661,6 @@ export default function AdminTorneosPage() {
         <ul className="flex flex-col gap-4">
           {torneos.map((t) => {
             const estado = estadoTorneo(t);
-            const fechas = rangoFechas(t);
-            const lugar = [t.lugar, t.ciudad, t.provincia].filter(Boolean).join(", ");
             return (
               <li
                 key={t.id}
@@ -598,7 +677,12 @@ export default function AdminTorneosPage() {
                         </span>
                       )}
                       <span>
-                        {t.rondasCreadas} / {t.numeroRondas} rondas creadas
+                        {t.participantes} jugador{t.participantes === 1 ? "" : "es"}
+                      </span>
+                      <span>
+                        {t.rondasCreadas}
+                        {t.numeroRondas != null ? ` / ${t.numeroRondas}` : ""} jornada
+                        {t.rondasCreadas === 1 ? "" : "s"}
                       </span>
                     </div>
                   </div>
@@ -618,37 +702,7 @@ export default function AdminTorneosPage() {
                   </div>
                 </div>
 
-                <dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
-                  <Dato etiqueta="Fechas" valor={fechas} />
-                  <Dato etiqueta="Lugar de juego" valor={lugar || null} />
-                  <Dato etiqueta="Dirección" valor={t.direccion} />
-                  <Dato etiqueta="Organizador" valor={t.organizador} />
-                  <Dato etiqueta="Federación" valor={t.federacion} />
-                  <Dato etiqueta="Director del torneo" valor={t.director} />
-                  <Dato etiqueta="Árbitro principal" valor={t.arbitroPrincipal} />
-                  <Dato etiqueta="Árbitros adjuntos" valor={t.arbitrosAdjuntos} />
-                  <Dato etiqueta="Sistema" valor={ETIQUETA_SISTEMA[t.sistema]} />
-                  <Dato etiqueta="Ritmo de juego" valor={t.ritmoJuego} />
-                  <Dato etiqueta="Cómputo de Elo" valor={t.computoElo} />
-                  <Dato etiqueta="Desempates" valor={t.desempates} />
-                  <Dato etiqueta="Email de contacto" valor={t.emailContacto} />
-                  {t.webUrl && (
-                    <div className="flex flex-col">
-                      <dt className="text-xs text-neutral-500">Web</dt>
-                      <dd className="truncate">
-                        <a
-                          href={t.webUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-accent underline underline-offset-2"
-                        >
-                          {t.webUrl}
-                        </a>
-                      </dd>
-                    </div>
-                  )}
-                  <Dato etiqueta="Observaciones" valor={t.observaciones} />
-                </dl>
+                <FichaTorneo torneo={t} />
               </li>
             );
           })}

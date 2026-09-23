@@ -56,13 +56,15 @@ export async function fetchMiPlantilla(
 
   const { data: resultados } = await supabase
     .from("results")
-    .select("player_id, resultado, puntos_fantasy, matchdays (numero)")
+    .select(
+      "player_id, resultado, puntos_fantasy, matchdays (id, numero, created_at, tournaments (nombre))"
+    )
     .in("player_id", playerIds);
 
   const resultadosAscendentes = (resultados ?? []).slice().sort((a: any, b: any) => {
-    const numA = a.matchdays?.numero ?? 0;
-    const numB = b.matchdays?.numero ?? 0;
-    return numA - numB;
+    // Por orden de creación de la jornada: el número solo es único dentro
+    // de cada torneo.
+    return (a.matchdays?.created_at ?? "").localeCompare(b.matchdays?.created_at ?? "");
   });
 
   return slots
@@ -77,6 +79,9 @@ export async function fetchMiPlantilla(
         (r: any) => ({
           jornada: r.matchdays?.numero ?? 0,
           puntos: r.puntos_fantasy,
+          id: r.matchdays?.id,
+          torneo: r.matchdays?.tournaments?.nombre ?? null,
+          creada: r.matchdays?.created_at,
         })
       );
 

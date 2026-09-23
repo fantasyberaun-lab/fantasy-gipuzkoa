@@ -3,7 +3,13 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // Rutas que requieren sesión iniciada. Todo lo que no esté aquí (login,
 // registro, y cualquier página pública futura) queda accesible sin login.
-const RUTAS_PROTEGIDAS = ["/plantilla", "/mercado", "/jugadores", "/clasificacion"];
+const RUTAS_PROTEGIDAS = [
+  "/plantilla",
+  "/mercado",
+  "/jugadores",
+  "/clasificacion",
+  "/torneos",
+];
 const RUTAS_SOLO_SIN_SESION = ["/login", "/registro"];
 const RUTAS_SOLO_ROOT = ["/admin"];
 

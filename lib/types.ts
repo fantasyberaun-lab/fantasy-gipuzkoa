@@ -17,9 +17,16 @@ export interface Jugador {
 
 export type ResultadoPartida = "victoria" | "tablas" | "derrota";
 
+// Puntos de un jugador (o de un equipo) en una jornada. "jornada" es el
+// número DENTRO de su torneo, así que se repite entre torneos: para
+// distinguir jornadas usa "id". Los campos opcionales los rellena la base
+// de datos (ver 0020_*.sql); pueden faltar en datos de prueba.
 export interface PuntosJornada {
   jornada: number;
   puntos: number;
+  id?: string;
+  torneo?: string | null;
+  creada?: string;
 }
 
 export interface PlantillaSlot {

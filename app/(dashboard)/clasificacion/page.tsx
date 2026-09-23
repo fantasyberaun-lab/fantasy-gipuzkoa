@@ -3,7 +3,15 @@
 import { useMemo, useState } from "react";
 import { useGameState, calcularClausula } from "@/components/GameStateProvider";
 
-type Orden = "total" | number;
+// "total", o el id de una jornada concreta (la numeración de jornadas
+// empieza en 1 en cada torneo, así que el número solo no la identifica).
+type Orden = "total" | string;
+
+interface JornadaOpcion {
+  clave: string;
+  etiqueta: string;
+  creada: string;
+}
 
 export default function ClasificacionPage() {
   const { clasificacion, jugadoresLiga, equipo, hacerOferta, pagarClausula, cargando } =
@@ -16,14 +24,32 @@ export default function ClasificacionPage() {
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
-  const numeroRondas = Math.max(
-    0,
-    ...clasificacion.flatMap((e) => e.historialPuntos.map((h) => h.jornada))
-  );
+  // Jornadas que aparecen en el historial de algún equipo, por orden de
+  // creación (sin repetir).
+  const jornadasDisponibles = useMemo(() => {
+    const porClave = new Map<string, JornadaOpcion>();
+    for (const entry of clasificacion) {
+      for (const h of entry.historialPuntos) {
+        const clave = h.id ?? String(h.jornada);
+        if (porClave.has(clave)) continue;
+        porClave.set(clave, {
+          clave,
+          etiqueta: h.torneo ? `${h.torneo} · Jornada ${h.jornada}` : `Jornada ${h.jornada}`,
+          creada: h.creada ?? "",
+        });
+      }
+    }
+    return [...porClave.values()].sort((a, b) => a.creada.localeCompare(b.creada));
+  }, [clasificacion]);
+
+  const etiquetaOrden =
+    jornadasDisponibles.find((j) => j.clave === orden)?.etiqueta ?? "";
 
   const puntosParaOrden = (entry: (typeof clasificacion)[number]) => {
     if (orden === "total") return entry.puntos;
-    return entry.historialPuntos.find((h) => h.jornada === orden)?.puntos ?? 0;
+    return (
+      entry.historialPuntos.find((h) => (h.id ?? String(h.jornada)) === orden)?.puntos ?? 0
+    );
   };
 
   const clasificacionOrdenada = useMemo(() => {
@@ -73,15 +99,13 @@ export default function ClasificacionPage() {
         <h2 className="text-lg font-semibold">Clasificación general</h2>
         <select
           value={orden}
-          onChange={(e) =>
-            setOrden(e.target.value === "total" ? "total" : Number(e.target.value))
-          }
+          onChange={(e) => setOrden(e.target.value)}
           className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
         >
           <option value="total">Puntos totales</option>
-          {Array.from({ length: numeroRondas }).map((_, i) => (
-            <option key={i + 1} value={i + 1}>
-              Ronda {i + 1}
+          {jornadasDisponibles.map((j) => (
+            <option key={j.clave} value={j.clave}>
+              {j.etiqueta}
             </option>
           ))}
         </select>
@@ -107,7 +131,7 @@ export default function ClasificacionPage() {
               <span className="font-medium">
                 {puntosParaOrden(entry)} pts{" "}
                 <span className="text-neutral-500">
-                  {orden === "total" ? "este año" : `ronda ${orden}`}
+                  {orden === "total" ? "este año" : etiquetaOrden}
                 </span>
               </span>
               {!entry.esMiEquipo && (
