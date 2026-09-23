@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import BuscadorSelect from "@/components/BuscadorSelect";
 import {
   fetchTodosLosJugadores,
   fetchJornadas,
+  fetchTorneos,
   crearJornadaDB,
   fetchResultadosDeJornada,
   guardarResultadoDB,
@@ -13,6 +15,7 @@ import {
   type JugadorAdmin,
   type JornadaAdmin,
   type ResultadoGuardado,
+  type TorneoAdmin,
 } from "@/lib/supabase/adminQueries";
 import type { Categoria } from "@/lib/types";
 
@@ -41,6 +44,9 @@ export default function AdminResultadosPage() {
 
   const [jugadores, setJugadores] = useState<JugadorAdmin[]>([]);
   const [jornadas, setJornadas] = useState<JornadaAdmin[]>([]);
+  const [torneos, setTorneos] = useState<TorneoAdmin[]>([]);
+  const [torneoNuevaId, setTorneoNuevaId] = useState<string>("");
+  const [errorJornada, setErrorJornada] = useState<string | null>(null);
   const [jornadaId, setJornadaId] = useState<string | null>(null);
   const [resultadosGuardados, setResultadosGuardados] = useState<
     Record<string, ResultadoGuardado>
@@ -62,12 +68,16 @@ export default function AdminResultadosPage() {
   useEffect(() => {
     (async () => {
       setCargando(true);
-      const [listaJugadores, listaJornadas] = await Promise.all([
+      const [listaJugadores, listaJornadas, listaTorneos] = await Promise.all([
         fetchTodosLosJugadores(supabase),
         fetchJornadas(supabase),
+        fetchTorneos(supabase),
       ]);
       setJugadores(listaJugadores);
       setJornadas(listaJornadas);
+      setTorneos(listaTorneos);
+      // Por defecto, el torneo de la última jornada; si no hay, el primero.
+      setTorneoNuevaId(listaJornadas[0]?.torneoId ?? listaTorneos[0]?.id ?? "");
       setJornadaId(listaJornadas[0]?.id ?? null);
       setCargando(false);
     })();
@@ -130,15 +140,22 @@ export default function AdminResultadosPage() {
   }
 
   async function onCrearJornada() {
+    if (!torneoNuevaId) return;
+    setErrorJornada(null);
     const siguienteNumero = (jornadas[0]?.numero ?? 0) + 1;
     setCreandoJornada(true);
-    const resultado = await crearJornadaDB(supabase, siguienteNumero);
+    const resultado = await crearJornadaDB(supabase, siguienteNumero, torneoNuevaId);
     setCreandoJornada(false);
 
-    if (resultado.ok) {
-      setJornadas((prev) => [resultado.jornada, ...prev]);
-      setJornadaId(resultado.jornada.id);
+    if (!resultado.ok) {
+      setErrorJornada(resultado.mensaje);
+      return;
     }
+
+    setJornadas((prev) => [resultado.jornada, ...prev]);
+    setJornadaId(resultado.jornada.id);
+    // Refresca el contador "X / N rondas" del torneo.
+    setTorneos(await fetchTorneos(supabase));
   }
 
   async function onGuardar(playerId: string) {
@@ -240,17 +257,42 @@ export default function AdminResultadosPage() {
           {jornadas.map((j) => (
             <option key={j.id} value={j.id}>
               Jornada {j.numero}
+              {j.torneoNombre
+                ? ` · ${j.torneoNombre}${j.ronda ? ` · Ronda ${j.ronda}` : ""}`
+                : " · Sin torneo"}
             </option>
           ))}
         </select>
 
-        <button
-          onClick={onCrearJornada}
-          disabled={creandoJornada}
-          className="rounded-lg border border-neutral-300 px-3 py-2 text-sm disabled:opacity-40 dark:border-neutral-700"
-        >
-          {creandoJornada ? "Creando…" : "+ Nueva jornada"}
-        </button>
+        {torneos.length > 0 ? (
+          <>
+            <select
+              value={torneoNuevaId}
+              onChange={(e) => setTorneoNuevaId(e.target.value)}
+              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+            >
+              {torneos.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.nombre} ({t.rondasCreadas}/{t.numeroRondas})
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={onCrearJornada}
+              disabled={creandoJornada || !torneoNuevaId}
+              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm disabled:opacity-40 dark:border-neutral-700"
+            >
+              {creandoJornada ? "Creando…" : "+ Nueva jornada"}
+            </button>
+          </>
+        ) : (
+          <Link
+            href="/admin/torneos"
+            className="text-sm text-accent underline underline-offset-2"
+          >
+            Crea primero un torneo para poder añadir jornadas
+          </Link>
+        )}
 
         {jornadaActual && (
           <span className="text-sm text-neutral-500">
@@ -258,6 +300,8 @@ export default function AdminResultadosPage() {
           </span>
         )}
       </div>
+
+      {errorJornada && <p className="text-sm text-negative">{errorJornada}</p>}
 
       {!jornadaId && (
         <p className="py-6 text-center text-sm text-neutral-500">
