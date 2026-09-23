@@ -2,17 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useGameState, calcularClausula } from "@/components/GameStateProvider";
-import { mockClasificacion } from "@/lib/mockData";
 
 type Orden = "total" | number;
 
 export default function ClasificacionPage() {
-  // TODO: sustituir mockClasificacion por la consulta real (suma de puntos
-  // por equipo y jornada). Las plantillas rivales ya salen de
-  // jugadoresLiga vía useGameState(), no hace falta tocar nada aquí
-  // cuando eso se conecte a Supabase de verdad.
-
-  const { jugadoresLiga, equipo, hacerOferta, pagarClausula } = useGameState();
+  const { clasificacion, jugadoresLiga, equipo, hacerOferta, pagarClausula, cargando } =
+    useGameState();
 
   const [orden, setOrden] = useState<Orden>("total");
   const [equipoAbierto, setEquipoAbierto] = useState<string | null>(null);
@@ -21,16 +16,24 @@ export default function ClasificacionPage() {
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
-  const numeroRondas = mockClasificacion[0]?.historialPuntos.length ?? 0;
+  const numeroRondas = Math.max(
+    0,
+    ...clasificacion.flatMap((e) => e.historialPuntos.map((h) => h.jornada))
+  );
 
-  const puntosParaOrden = (entry: (typeof mockClasificacion)[number]) => {
+  const puntosParaOrden = (entry: (typeof clasificacion)[number]) => {
     if (orden === "total") return entry.puntos;
     return entry.historialPuntos.find((h) => h.jornada === orden)?.puntos ?? 0;
   };
 
   const clasificacionOrdenada = useMemo(() => {
-    return [...mockClasificacion].sort((a, b) => puntosParaOrden(b) - puntosParaOrden(a));
-  }, [orden]);
+    return [...clasificacion].sort((a, b) => puntosParaOrden(b) - puntosParaOrden(a));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orden, clasificacion]);
+
+  if (cargando) {
+    return <p className="text-sm text-neutral-500">Cargando clasificación…</p>;
+  }
 
   const cerrarPanel = () => {
     setEquipoAbierto(null);
@@ -85,6 +88,11 @@ export default function ClasificacionPage() {
       </div>
 
       <ol className="divide-y divide-neutral-200 dark:divide-neutral-800">
+        {clasificacionOrdenada.length === 0 && (
+          <li className="py-6 text-center text-sm text-neutral-500">
+            Todavía no hay equipos en la clasificación.
+          </li>
+        )}
         {clasificacionOrdenada.map((entry, i) => (
           <li
             key={entry.nombreEquipo}

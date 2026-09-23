@@ -1,6 +1,7 @@
 import type { createClient } from "@/lib/supabase/client";
 import type {
   Categoria,
+  ClasificacionEntry,
   EquipoManager,
   JugadorLiga,
   MercadoDelDia,
@@ -350,4 +351,24 @@ export async function eliminarMiCuentaDB(
 
   if (error) return { ok: false, mensaje: error.message };
   return data as ResultadoAccion;
+}
+
+export async function fetchClasificacion(
+  supabase: Supabase,
+  leagueId: string,
+  miEquipoId: string | null
+): Promise<ClasificacionEntry[]> {
+  const { data, error } = await supabase
+    .rpc("clasificacion", { p_league_id: leagueId })
+    .order("puntos_totales", { ascending: false });
+
+  if (error || !data) return [];
+
+  return (data as any[]).map((e, indice: number) => ({
+    posicion: indice + 1,
+    nombreEquipo: e.nombre_equipo,
+    puntos: e.puntos_totales,
+    esMiEquipo: miEquipoId ? e.equipo_id === miEquipoId : false,
+    historialPuntos: (e.historial_puntos ?? []) as PuntosJornada[],
+  }));
 }

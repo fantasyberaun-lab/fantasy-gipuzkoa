@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import BuscadorSelect from "@/components/BuscadorSelect";
 import {
   fetchTodosLosJugadores,
   fetchJornadas,
@@ -355,18 +356,17 @@ export default function AdminResultadosPage() {
                       </select>
 
                       {fila.rivalModo === "jugador" ? (
-                        <select
-                          value={fila.rivalPlayerId}
-                          onChange={(e) => editarFila(jugador.id, { rivalPlayerId: e.target.value })}
-                          className="col-span-2 rounded-lg border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900 sm:col-span-1"
-                        >
-                          <option value="">— Elegir rival —</option>
-                          {rivalesMismaCategoria.map((r) => (
-                            <option key={r.id} value={r.id}>
-                              {r.nombre} ({r.elo})
-                            </option>
-                          ))}
-                        </select>
+                        <div className="col-span-2 sm:col-span-1">
+                          <BuscadorSelect
+                            opciones={rivalesMismaCategoria.map((r) => ({
+                              id: r.id,
+                              etiqueta: `${r.nombre} (${r.elo})`,
+                            }))}
+                            valor={fila.rivalPlayerId}
+                            onSeleccionar={(id) => editarFila(jugador.id, { rivalPlayerId: id })}
+                            placeholder="Buscar rival…"
+                          />
+                        </div>
                       ) : (
                         <input
                           type="number"

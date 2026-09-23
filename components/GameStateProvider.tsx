@@ -9,6 +9,7 @@ import {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
+  fetchClasificacion,
   fetchJugadoresLiga,
   fetchMercado,
   fetchMiEquipo,
@@ -23,6 +24,7 @@ import {
   venderJugadorDB,
 } from "@/lib/supabase/queries";
 import type {
+  ClasificacionEntry,
   EquipoManager,
   JugadorLiga,
   MercadoDelDia,
@@ -48,6 +50,7 @@ interface GameState {
   jugadoresLiga: JugadorLiga[];
   mercado: MercadoDelDia[];
   ofertas: OfertaPendiente[];
+  clasificacion: ClasificacionEntry[];
   toggleTitular: (id: string) => Promise<void>;
   venderJugador: (id: string, valorMercado: number) => Promise<ResultadoAccion>;
   pagarClausula: (jugadorId: string) => Promise<ResultadoAccion>;
@@ -70,6 +73,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const [jugadoresLiga, setJugadoresLiga] = useState<JugadorLiga[]>([]);
   const [mercado, setMercado] = useState<MercadoDelDia[]>([]);
   const [ofertas, setOfertas] = useState<OfertaPendiente[]>([]);
+  const [clasificacion, setClasificacion] = useState<ClasificacionEntry[]>([]);
 
   async function cargarTodo() {
     const {
@@ -98,11 +102,12 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     setTieneEquipo(true);
     setEquipo(miEquipo);
 
-    const [plantilla, ligaJugadores, misOfertas, jugadoresMercado] = await Promise.all([
+    const [plantilla, ligaJugadores, misOfertas, jugadoresMercado, tabla] = await Promise.all([
       fetchMiPlantilla(supabase, miEquipo.id),
       fetchJugadoresLiga(supabase, miEquipo.leagueId, miEquipo.id),
       fetchMisOfertas(supabase, miEquipo.id),
       fetchMercado(supabase, miEquipo.leagueId),
+      fetchClasificacion(supabase, miEquipo.leagueId, miEquipo.id),
     ]);
 
     setSquad(plantilla.map(({ titular: _titular, ...resto }) => resto));
@@ -112,6 +117,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     setJugadoresLiga(ligaJugadores);
     setOfertas(misOfertas);
     setMercado(jugadoresMercado);
+    setClasificacion(tabla);
     setCargando(false);
   }
 
@@ -204,6 +210,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         jugadoresLiga,
         mercado,
         ofertas,
+        clasificacion,
         toggleTitular,
         venderJugador,
         pagarClausula,
