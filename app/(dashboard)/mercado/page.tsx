@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
@@ -143,9 +144,20 @@ export default function MercadoPage() {
               key={jugador.id}
               className="rounded-xl border border-neutral-200 dark:border-neutral-800"
             >
-              <button
+              {/* Es un div con role="button" (y no un <button>) porque dentro
+                  va el enlace al perfil, y un enlace dentro de un botón no
+                  funciona en todos los navegadores. */}
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => toggleSeleccion(jugador.id)}
-                className="flex w-full items-center gap-3 p-3 text-left"
+                onKeyDown={(e) => {
+                  if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
+                    e.preventDefault();
+                    toggleSeleccion(jugador.id);
+                  }
+                }}
+                className="flex w-full cursor-pointer items-center gap-3 p-3 text-left"
               >
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 text-xs font-semibold dark:bg-neutral-800">
                   {jugador.nombre
@@ -156,7 +168,15 @@ export default function MercadoPage() {
                     .toUpperCase()}
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium">{jugador.nombre}</p>
+                  <p className="text-sm font-medium">
+                    <Link
+                      href={`/jugadores/${jugador.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="hover:underline"
+                    >
+                      {jugador.nombre}
+                    </Link>
+                  </p>
                   <p className="text-xs text-neutral-500">
                     {jugador.club} · {jugador.categoria}ª cat. · Elo {jugador.elo}
                   </p>
@@ -168,7 +188,7 @@ export default function MercadoPage() {
                   <p className="text-sm font-semibold">{jugador.valorMercado} M</p>
                   <p className="text-xs text-neutral-500">{jugador.numeroPujas} pujas</p>
                 </div>
-              </button>
+              </div>
 
               {estaSeleccionado && (
                 <div className="flex flex-col gap-3 border-t border-neutral-200 p-3 dark:border-neutral-800">

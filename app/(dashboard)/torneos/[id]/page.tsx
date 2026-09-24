@@ -9,23 +9,44 @@ import {
   fetchTorneo,
   type DetalleTorneo,
 } from "@/lib/supabase/torneosQueries";
-import { estadoTorneo, type Torneo } from "@/lib/torneos";
+import { estadoTorneo, formatearPuntos, MARCADOR, type Torneo } from "@/lib/torneos";
 import FichaTorneo from "@/components/FichaTorneo";
-import type { ResultadoPartida } from "@/lib/types";
+import type { LadoPartida } from "@/lib/supabase/torneosQueries";
 
 type Pestana = "jugadores" | "resultados";
 
-const ETIQUETA_RESULTADO: Record<ResultadoPartida, string> = {
-  victoria: "Victoria",
-  tablas: "Tablas",
-  derrota: "Derrota",
-};
-
-const COLOR_RESULTADO: Record<ResultadoPartida, string> = {
-  victoria: "text-positive",
-  tablas: "text-neutral-500",
-  derrota: "text-negative",
-};
+// Un jugador de una partida: el nombre lleva a su perfil (dentro del
+// contexto de este torneo) y debajo van sus puntos Fantasy.
+function LadoDePartida({
+  lado,
+  torneoId,
+  alineacion,
+}: {
+  lado: LadoPartida;
+  torneoId: string;
+  alineacion: "text-right" | "text-left";
+}) {
+  return (
+    <div className={alineacion}>
+      {lado.id ? (
+        <Link
+          href={`/jugadores/${lado.id}?torneo=${torneoId}`}
+          className="font-medium hover:underline"
+        >
+          {lado.nombre}
+        </Link>
+      ) : (
+        <span className="font-medium">
+          {lado.nombre}
+          {lado.elo != null ? ` (${lado.elo})` : ""}
+        </span>
+      )}
+      {lado.puntosFantasy != null && (
+        <p className="text-xs text-neutral-500">{lado.puntosFantasy} pts</p>
+      )}
+    </div>
+  );
+}
 
 export default function TorneoDetallePage() {
   const { id } = useParams<{ id: string }>();
@@ -130,7 +151,7 @@ export default function TorneoDetallePage() {
           </p>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-neutral-200 dark:border-neutral-800">
-            <table className="w-full min-w-[520px] text-sm">
+            <table className="w-full min-w-[640px] text-sm">
               <thead className="bg-neutral-50 text-left text-xs uppercase text-neutral-500 dark:bg-neutral-900">
                 <tr>
                   <th className="px-3 py-2 font-medium">Jugador</th>
@@ -138,18 +159,31 @@ export default function TorneoDetallePage() {
                   <th className="px-3 py-2 font-medium">Cat.</th>
                   <th className="px-3 py-2 font-medium">Elo</th>
                   <th className="px-3 py-2 text-right font-medium">Partidas</th>
+                  <th className="px-3 py-2 text-right font-medium">Puntos</th>
+                  <th className="px-3 py-2 text-right font-medium">Perf. Elo</th>
                   <th className="px-3 py-2 text-right font-medium">Pts Fantasy</th>
                 </tr>
               </thead>
               <tbody>
                 {detalle.participantes.map((j) => (
                   <tr key={j.id} className="border-t border-neutral-200 dark:border-neutral-800">
-                    <td className="px-3 py-2 font-medium">{j.nombre}</td>
+                    <td className="px-3 py-2 font-medium">
+                      <Link
+                        href={`/jugadores/${j.id}?torneo=${torneo.id}`}
+                        className="hover:underline"
+                      >
+                        {j.nombre}
+                      </Link>
+                    </td>
                     <td className="px-3 py-2 text-neutral-500">{j.club}</td>
                     <td className="px-3 py-2">{j.categoria}ª</td>
                     <td className="px-3 py-2">{j.elo}</td>
                     <td className="px-3 py-2 text-right">{j.partidas}</td>
-                    <td className="px-3 py-2 text-right font-medium">{j.puntos}</td>
+                    <td className="px-3 py-2 text-right font-medium">
+                      {j.partidas > 0 ? formatearPuntos(j.puntos) : "–"}
+                    </td>
+                    <td className="px-3 py-2 text-right">{j.rendimiento ?? "–"}</td>
+                    <td className="px-3 py-2 text-right text-neutral-500">{j.puntosFantasy}</td>
                   </tr>
                 ))}
               </tbody>
@@ -176,33 +210,46 @@ export default function TorneoDetallePage() {
               ))}
             </select>
 
-            {jornadaActual && jornadaActual.resultados.length === 0 && (
-              <p className="py-6 text-center text-sm text-neutral-500">
-                Todavía no hay resultados en esta jornada.
-              </p>
-            )}
+            {jornadaActual &&
+              jornadaActual.partidas.length === 0 &&
+              jornadaActual.descansan.length === 0 && (
+                <p className="py-6 text-center text-sm text-neutral-500">
+                  Todavía no hay resultados en esta jornada.
+                </p>
+              )}
 
-            {jornadaActual && jornadaActual.resultados.length > 0 && (
+            {jornadaActual && jornadaActual.partidas.length > 0 && (
               <ul className="divide-y divide-neutral-200 rounded-xl border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
-                {jornadaActual.resultados.map((r) => (
+                {jornadaActual.partidas.map((partida) => (
                   <li
-                    key={r.playerId}
-                    className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
+                    key={partida.clave}
+                    className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-3 py-2.5 text-sm"
                   >
-                    <div>
-                      <p className="font-medium">{r.jugadorNombre}</p>
-                      <p className="text-xs text-neutral-500">
-                        <span className={COLOR_RESULTADO[r.resultado]}>
-                          {ETIQUETA_RESULTADO[r.resultado]}
-                        </span>{" "}
-                        vs {r.rivalNombre ?? "rival externo"}
-                        {r.rivalElo != null ? ` (${r.rivalElo})` : ""}
-                      </p>
-                    </div>
-                    <span className="whitespace-nowrap font-medium">{r.puntos} pts</span>
+                    <LadoDePartida lado={partida.a} torneoId={torneo.id} alineacion="text-right" />
+                    <span className="min-w-[3.5rem] text-center font-semibold">
+                      {MARCADOR[partida.resultadoA]}
+                    </span>
+                    <LadoDePartida lado={partida.b} torneoId={torneo.id} alineacion="text-left" />
                   </li>
                 ))}
               </ul>
+            )}
+
+            {jornadaActual && jornadaActual.descansan.length > 0 && (
+              <p className="text-xs text-neutral-500">
+                Sin emparejar (descansan):{" "}
+                {jornadaActual.descansan.map((d, i) => (
+                  <span key={d.id}>
+                    {i > 0 && ", "}
+                    <Link
+                      href={`/jugadores/${d.id}?torneo=${torneo.id}`}
+                      className="font-medium hover:underline"
+                    >
+                      {d.nombre}
+                    </Link>
+                  </span>
+                ))}
+              </p>
             )}
           </div>
         ))}

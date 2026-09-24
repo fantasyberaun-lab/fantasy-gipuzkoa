@@ -236,9 +236,30 @@ export async function fetchResultadosDeJornada(
   }));
 }
 
+// Jugadores marcados como "descansa" (sin emparejar) en una jornada.
+export async function fetchDescansosDeJornada(
+  supabase: Supabase,
+  matchdayId: string
+): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("matchday_byes")
+    .select("player_id")
+    .eq("matchday_id", matchdayId);
+
+  if (error || !data) return [];
+  return data.map((r: any) => r.player_id as string);
+}
+
+// Las tres escrituras de abajo pasan por funciones de la base de datos
+// (ver 0021_emparejamientos.sql) y no por insert/update directos, porque
+// cada una toca varias filas a la vez y tiene que ser atómica:
+//   - una partida contra un rival de la lista guarda también el resultado
+//     espejo del rival (victoria <-> derrota), así que los dos puntúan;
+//   - cambiar de rival o borrar deshace el emparejamiento anterior;
+//   - un jugador "descansa" o está emparejado, nunca las dos cosas.
 // puntos_fantasy NO se envía: lo calcula siempre el trigger de la base de
 // datos (ver 0014_puntuacion_resultados.sql), a partir de resultado +
-// diferencia de Elo. Así nunca puede quedar desincronizado con la regla.
+// diferencia de Elo.
 export async function guardarResultadoDB(
   supabase: Supabase,
   input: {
@@ -248,41 +269,61 @@ export async function guardarResultadoDB(
     rivalPlayerId: string | null;
     rivalElo: number | null;
   }
-): Promise<{ ok: true; puntos: number } | { ok: false; mensaje: string }> {
-  const { data, error } = await supabase
-    .from("results")
-    .upsert(
-      {
-        matchday_id: input.matchdayId,
-        player_id: input.playerId,
-        resultado: input.resultado,
-        rival_player_id: input.rivalPlayerId,
-        rival_elo_en_el_momento: input.rivalElo,
-      },
-      { onConflict: "player_id,matchday_id" }
-    )
-    .select("puntos_fantasy")
-    .single();
+): Promise<
+  | { ok: true; puntos: number; puntosRival: number | null }
+  | { ok: false; mensaje: string }
+> {
+  const { data, error } = await supabase.rpc("guardar_resultado_partida", {
+    p_matchday_id: input.matchdayId,
+    p_player_id: input.playerId,
+    p_resultado: input.resultado,
+    p_rival_player_id: input.rivalPlayerId,
+    p_rival_elo: input.rivalElo,
+  });
 
   if (error || !data) {
     return { ok: false, mensaje: error?.message ?? "No se pudo guardar el resultado." };
   }
+  if (!data.ok) return { ok: false, mensaje: data.mensaje };
 
-  return { ok: true, puntos: data.puntos_fantasy };
+  return { ok: true, puntos: data.puntos, puntosRival: data.puntos_rival ?? null };
 }
 
+// Deja al jugador sin emparejar en esa jornada (sin partida y sin puntos).
+// Si estaba emparejado con alguien, también se quita el resultado del rival.
+export async function marcarDescansoDB(
+  supabase: Supabase,
+  matchdayId: string,
+  playerId: string
+): Promise<ResultadoAccion> {
+  const { data, error } = await supabase.rpc("marcar_descanso", {
+    p_matchday_id: matchdayId,
+    p_player_id: playerId,
+  });
+
+  if (error || !data) {
+    return { ok: false, mensaje: error?.message ?? "No se pudo guardar el descanso." };
+  }
+  if (!data.ok) return { ok: false, mensaje: data.mensaje };
+  return { ok: true };
+}
+
+// Borra el resultado (o el descanso) del jugador y también el resultado
+// espejo de su rival, si lo tenía.
 export async function borrarResultadoDB(
   supabase: Supabase,
   matchdayId: string,
   playerId: string
 ): Promise<ResultadoAccion> {
-  const { error } = await supabase
-    .from("results")
-    .delete()
-    .eq("matchday_id", matchdayId)
-    .eq("player_id", playerId);
+  const { data, error } = await supabase.rpc("borrar_resultado_partida", {
+    p_matchday_id: matchdayId,
+    p_player_id: playerId,
+  });
 
-  if (error) return { ok: false, mensaje: error.message };
+  if (error || !data) {
+    return { ok: false, mensaje: error?.message ?? "No se pudo borrar el resultado." };
+  }
+  if (!data.ok) return { ok: false, mensaje: data.mensaje };
   return { ok: true };
 }
 

@@ -10,7 +10,9 @@ import {
   crearJornadaDB,
   borrarJornadaDB,
   fetchResultadosDeJornada,
+  fetchDescansosDeJornada,
   guardarResultadoDB,
+  marcarDescansoDB,
   borrarResultadoDB,
   type JugadorAdmin,
   type JornadaAdmin,
@@ -26,8 +28,10 @@ type Resultado = "victoria" | "tablas" | "derrota";
 // el desplegable busca un rival dentro de players (y su Elo se toma
 // siempre actualizado al guardar) o si se introduce un Elo a mano
 // (para un rival que no está en nuestra tabla de jugadores).
+// "descanso" deja al jugador sin emparejar en esta jornada (por ejemplo,
+// el que sobra cuando hay un número impar de jugadores).
 interface FilaEdicion {
-  resultado: Resultado | "";
+  resultado: Resultado | "descanso" | "";
   rivalModo: "jugador" | "manual";
   rivalPlayerId: string;
   rivalEloManual: string;
@@ -39,6 +43,17 @@ const FILA_VACIA: FilaEdicion = {
   rivalPlayerId: "",
   rivalEloManual: "",
 };
+
+const FILA_DESCANSO: FilaEdicion = { ...FILA_VACIA, resultado: "descanso" };
+
+function filaDesdeGuardado(r: ResultadoGuardado): FilaEdicion {
+  return {
+    resultado: r.resultado,
+    rivalModo: r.rivalPlayerId ? "jugador" : "manual",
+    rivalPlayerId: r.rivalPlayerId ?? "",
+    rivalEloManual: r.rivalElo != null ? String(r.rivalElo) : "",
+  };
+}
 
 function etiquetaJornada(j: JornadaAdmin): string {
   return j.torneoNombre
@@ -61,6 +76,7 @@ export default function AdminResultadosPage() {
   const [resultadosGuardados, setResultadosGuardados] = useState<
     Record<string, ResultadoGuardado>
   >({});
+  const [descansos, setDescansos] = useState<Set<string>>(new Set());
   const [filas, setFilas] = useState<Record<string, FilaEdicion>>({});
 
   const [cargando, setCargando] = useState(true);
@@ -101,28 +117,29 @@ export default function AdminResultadosPage() {
   useEffect(() => {
     if (!jornadaId) {
       setResultadosGuardados({});
+      setDescansos(new Set());
       setFilas({});
       return;
     }
 
     (async () => {
       setCargandoJornada(true);
-      const resultados = await fetchResultadosDeJornada(supabase, jornadaId);
+      const [resultados, idsDescansos] = await Promise.all([
+        fetchResultadosDeJornada(supabase, jornadaId),
+        fetchDescansosDeJornada(supabase, jornadaId),
+      ]);
 
       const porJugador: Record<string, ResultadoGuardado> = {};
       const filasIniciales: Record<string, FilaEdicion> = {};
 
       for (const r of resultados) {
         porJugador[r.playerId] = r;
-        filasIniciales[r.playerId] = {
-          resultado: r.resultado,
-          rivalModo: r.rivalPlayerId ? "jugador" : "manual",
-          rivalPlayerId: r.rivalPlayerId ?? "",
-          rivalEloManual: r.rivalElo != null ? String(r.rivalElo) : "",
-        };
+        filasIniciales[r.playerId] = filaDesdeGuardado(r);
       }
+      for (const id of idsDescansos) filasIniciales[id] = FILA_DESCANSO;
 
       setResultadosGuardados(porJugador);
+      setDescansos(new Set(idsDescansos));
       setFilas(filasIniciales);
       setMensajePorJugador({});
       setCargandoJornada(false);
@@ -133,8 +150,8 @@ export default function AdminResultadosPage() {
   const jornadaActual = jornadas.find((j) => j.id === jornadaId) ?? null;
 
   // Jugadores de la jornada: los inscritos en su torneo (más cualquiera que
-  // ya tenga resultado guardado, por si se le quitó del torneo después).
-  // En jornadas antiguas sin torneo, o de un torneo sin jugadores
+  // ya tenga resultado o descanso guardado, por si se le quitó del torneo
+  // después). En jornadas antiguas sin torneo, o de un torneo sin jugadores
   // elegidos, salen todos los activos, como antes.
   const idsInscritos = useMemo(() => {
     const ids = jornadaActual?.torneoId
@@ -146,21 +163,32 @@ export default function AdminResultadosPage() {
   const jugadoresDeLaJornada = useMemo(
     () =>
       idsInscritos
-        ? jugadores.filter((j) => idsInscritos.has(j.id) || resultadosGuardados[j.id])
+        ? jugadores.filter(
+            (j) => idsInscritos.has(j.id) || resultadosGuardados[j.id] || descansos.has(j.id)
+          )
         : jugadores,
-    [jugadores, idsInscritos, resultadosGuardados]
+    [jugadores, idsInscritos, resultadosGuardados, descansos]
   );
 
+  // Pendiente = todavía sin resultado ni descanso guardado. Al guardar una
+  // partida contra otro jugador de la lista, los dos dejan de ser pendientes.
   const jugadoresFiltrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
     return jugadoresDeLaJornada.filter((j) => {
       if (!j.activo) return false;
       if (filtroCategoria && j.categoria !== filtroCategoria) return false;
       if (texto && !j.nombre.toLowerCase().includes(texto)) return false;
-      if (soloPendientes && resultadosGuardados[j.id]) return false;
+      if (soloPendientes && (resultadosGuardados[j.id] || descansos.has(j.id))) return false;
       return true;
     });
-  }, [jugadoresDeLaJornada, busqueda, filtroCategoria, soloPendientes, resultadosGuardados]);
+  }, [
+    jugadoresDeLaJornada,
+    busqueda,
+    filtroCategoria,
+    soloPendientes,
+    resultadosGuardados,
+    descansos,
+  ]);
 
   const totalActivos = jugadoresDeLaJornada.filter((j) => j.activo).length;
   const totalConResultado = Object.keys(resultadosGuardados).length;
@@ -171,6 +199,50 @@ export default function AdminResultadosPage() {
 
   function editarFila(id: string, cambios: Partial<FilaEdicion>) {
     setFilas((prev) => ({ ...prev, [id]: { ...filaDe(id), ...cambios } }));
+  }
+
+  function nombreDe(id: string): string {
+    return jugadores.find((j) => j.id === id)?.nombre ?? "su rival";
+  }
+
+  // Vuelve a leer la jornada tras guardar o borrar. Guardar una partida
+  // cambia también la fila del rival, así que se refrescan las filas cuyo
+  // estado guardado ha cambiado; las demás conservan lo que estés
+  // escribiendo sin guardar.
+  async function refrescarJornada(id: string) {
+    const [resultados, idsDescansos] = await Promise.all([
+      fetchResultadosDeJornada(supabase, id),
+      fetchDescansosDeJornada(supabase, id),
+    ]);
+
+    const nuevos: Record<string, ResultadoGuardado> = {};
+    for (const r of resultados) nuevos[r.playerId] = r;
+    const nuevosDescansos = new Set(idsDescansos);
+
+    const afectados = new Set([
+      ...Object.keys(resultadosGuardados),
+      ...Object.keys(nuevos),
+      ...descansos,
+      ...nuevosDescansos,
+    ]);
+
+    setFilas((prev) => {
+      const siguiente = { ...prev };
+      for (const pid of afectados) {
+        const cambio =
+          JSON.stringify(resultadosGuardados[pid]) !== JSON.stringify(nuevos[pid]) ||
+          descansos.has(pid) !== nuevosDescansos.has(pid);
+        if (!cambio) continue;
+        siguiente[pid] = nuevos[pid]
+          ? filaDesdeGuardado(nuevos[pid])
+          : nuevosDescansos.has(pid)
+            ? FILA_DESCANSO
+            : FILA_VACIA;
+      }
+      return siguiente;
+    });
+    setResultadosGuardados(nuevos);
+    setDescansos(nuevosDescansos);
   }
 
   async function onCrearJornada() {
@@ -216,10 +288,28 @@ export default function AdminResultadosPage() {
     setTorneos(await fetchTorneos(supabase));
   }
 
+  function avisar(playerId: string, tipo: "ok" | "error", texto: string) {
+    setMensajePorJugador((prev) => ({ ...prev, [playerId]: { tipo, texto } }));
+  }
+
   async function onGuardar(playerId: string) {
     if (!jornadaId) return;
     const fila = filaDe(playerId);
     if (!fila.resultado) return;
+
+    if (fila.resultado === "descanso") {
+      setGuardandoId(playerId);
+      const resultado = await marcarDescansoDB(supabase, jornadaId, playerId);
+      if (resultado.ok) await refrescarJornada(jornadaId);
+      setGuardandoId(null);
+
+      avisar(
+        playerId,
+        resultado.ok ? "ok" : "error",
+        resultado.ok ? "Marcado como sin emparejar." : resultado.mensaje
+      );
+      return;
+    }
 
     const rivalPlayerId = fila.rivalModo === "jugador" ? fila.rivalPlayerId || null : null;
     const rivalElo =
@@ -228,17 +318,11 @@ export default function AdminResultadosPage() {
         : null;
 
     if (fila.rivalModo === "jugador" && !rivalPlayerId) {
-      setMensajePorJugador((prev) => ({
-        ...prev,
-        [playerId]: { tipo: "error", texto: "Elige un rival de la lista." },
-      }));
+      avisar(playerId, "error", "Elige un rival de la lista.");
       return;
     }
     if (fila.rivalModo === "manual" && !rivalElo) {
-      setMensajePorJugador((prev) => ({
-        ...prev,
-        [playerId]: { tipo: "error", texto: "Introduce el Elo del rival." },
-      }));
+      avisar(playerId, "error", "Introduce el Elo del rival.");
       return;
     }
 
@@ -250,52 +334,49 @@ export default function AdminResultadosPage() {
       rivalPlayerId,
       rivalElo,
     });
+    if (resultado.ok) await refrescarJornada(jornadaId);
     setGuardandoId(null);
 
     if (resultado.ok) {
-      setResultadosGuardados((prev) => ({
-        ...prev,
-        [playerId]: {
-          playerId,
-          resultado: fila.resultado as Resultado,
-          rivalPlayerId,
-          rivalElo,
-          puntosFantasy: resultado.puntos,
-        },
-      }));
-      setMensajePorJugador((prev) => ({
-        ...prev,
-        [playerId]: { tipo: "ok", texto: `Guardado — ${resultado.puntos} pts` },
-      }));
+      const conRival =
+        rivalPlayerId && resultado.puntosRival != null
+          ? ` · ${nombreDe(rivalPlayerId)}: ${resultado.puntosRival} pts`
+          : "";
+      avisar(playerId, "ok", `Guardado — ${resultado.puntos} pts${conRival}`);
     } else {
-      setMensajePorJugador((prev) => ({
-        ...prev,
-        [playerId]: { tipo: "error", texto: resultado.mensaje },
-      }));
+      avisar(playerId, "error", resultado.mensaje);
     }
   }
 
   async function onBorrar(playerId: string) {
     if (!jornadaId) return;
+
+    // Borrar una partida entre dos jugadores de la lista también quita la
+    // del rival: se avisa antes.
+    const rivalId = resultadosGuardados[playerId]?.rivalPlayerId;
+    if (
+      rivalId &&
+      resultadosGuardados[rivalId]?.rivalPlayerId === playerId &&
+      !confirm(
+        `Esto también quitará el resultado de ${nombreDe(rivalId)}, que jugaba contra este jugador. ¿Continuar?`
+      )
+    ) {
+      return;
+    }
+
     setGuardandoId(playerId);
     const resultado = await borrarResultadoDB(supabase, jornadaId, playerId);
+    if (resultado.ok) await refrescarJornada(jornadaId);
     setGuardandoId(null);
 
     if (resultado.ok) {
-      setResultadosGuardados((prev) => {
-        const { [playerId]: _fuera, ...resto } = prev;
-        return resto;
-      });
       setFilas((prev) => ({ ...prev, [playerId]: FILA_VACIA }));
       setMensajePorJugador((prev) => {
         const { [playerId]: _fuera, ...resto } = prev;
         return resto;
       });
     } else {
-      setMensajePorJugador((prev) => ({
-        ...prev,
-        [playerId]: { tipo: "error", texto: resultado.mensaje },
-      }));
+      avisar(playerId, "error", resultado.mensaje);
     }
   }
 
@@ -363,6 +444,9 @@ export default function AdminResultadosPage() {
         {jornadaActual && (
           <span className="text-sm text-neutral-500">
             {totalConResultado} / {totalActivos} jugadores con resultado
+            {descansos.size > 0
+              ? ` · ${descansos.size} sin emparejar`
+              : ""}
           </span>
         )}
       </div>
@@ -414,14 +498,25 @@ export default function AdminResultadosPage() {
               {jugadoresFiltrados.map((jugador) => {
                 const fila = filaDe(jugador.id);
                 const guardado = resultadosGuardados[jugador.id];
+                const descansa = descansos.has(jugador.id);
                 const mensaje = mensajePorJugador[jugador.id];
-                // Con jugadores inscritos, el rival sale de los inscritos; si no
-                // (jornada sin torneo o sin lista), de la misma categoría.
-                const rivalesMismaCategoria = (
+                const esDescanso = fila.resultado === "descanso";
+
+                // Rivales posibles: con jugadores inscritos, los inscritos;
+                // si no (jornada sin torneo o sin lista), los de la misma
+                // categoría. Se quitan los que ya juegan contra otro o
+                // descansan: solo quedan libres (y su rival actual, si
+                // este jugador ya estaba emparejado con él).
+                const rivalesPosibles = (
                   idsInscritos
                     ? jugadores.filter((r) => idsInscritos.has(r.id))
                     : jugadores.filter((r) => r.categoria === jugador.categoria)
-                ).filter((r) => r.id !== jugador.id);
+                ).filter((r) => {
+                  if (r.id === jugador.id || !r.activo) return false;
+                  if (descansos.has(r.id)) return false;
+                  const suResultado = resultadosGuardados[r.id];
+                  return !suResultado || suResultado.rivalPlayerId === jugador.id;
+                });
 
                 return (
                   <div
@@ -440,13 +535,20 @@ export default function AdminResultadosPage() {
                           {guardado.puntosFantasy} pts
                         </span>
                       )}
+                      {descansa && (
+                        <span className="text-xs font-medium text-neutral-500">
+                          Sin emparejar
+                        </span>
+                      )}
                     </div>
 
                     <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
                       <select
                         value={fila.resultado}
                         onChange={(e) =>
-                          editarFila(jugador.id, { resultado: e.target.value as Resultado })
+                          editarFila(jugador.id, {
+                            resultado: e.target.value as FilaEdicion["resultado"],
+                          })
                         }
                         className="rounded-lg border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900"
                       >
@@ -454,43 +556,54 @@ export default function AdminResultadosPage() {
                         <option value="victoria">Victoria</option>
                         <option value="tablas">Tablas</option>
                         <option value="derrota">Derrota</option>
+                        <option value="descanso">Sin emparejar (descansa)</option>
                       </select>
 
-                      <select
-                        value={fila.rivalModo}
-                        onChange={(e) =>
-                          editarFila(jugador.id, {
-                            rivalModo: e.target.value as "jugador" | "manual",
-                          })
-                        }
-                        className="rounded-lg border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900"
-                      >
-                        <option value="jugador">Rival de la lista</option>
-                        <option value="manual">Rival — Elo manual</option>
-                      </select>
-
-                      {fila.rivalModo === "jugador" ? (
-                        <div className="col-span-2 sm:col-span-1">
-                          <BuscadorSelect
-                            opciones={rivalesMismaCategoria.map((r) => ({
-                              id: r.id,
-                              etiqueta: `${r.nombre} (${r.elo})`,
-                            }))}
-                            valor={fila.rivalPlayerId}
-                            onSeleccionar={(id) => editarFila(jugador.id, { rivalPlayerId: id })}
-                            placeholder="Buscar rival…"
-                          />
-                        </div>
+                      {esDescanso ? (
+                        <p className="col-span-2 flex items-center text-xs text-neutral-500 sm:col-span-2">
+                          No juega en esta jornada y no suma puntos.
+                        </p>
                       ) : (
-                        <input
-                          type="number"
-                          placeholder="Elo del rival"
-                          value={fila.rivalEloManual}
-                          onChange={(e) =>
-                            editarFila(jugador.id, { rivalEloManual: e.target.value })
-                          }
-                          className="col-span-2 rounded-lg border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900 sm:col-span-1"
-                        />
+                        <>
+                          <select
+                            value={fila.rivalModo}
+                            onChange={(e) =>
+                              editarFila(jugador.id, {
+                                rivalModo: e.target.value as "jugador" | "manual",
+                              })
+                            }
+                            className="rounded-lg border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+                          >
+                            <option value="jugador">Rival de la lista</option>
+                            <option value="manual">Rival — Elo manual</option>
+                          </select>
+
+                          {fila.rivalModo === "jugador" ? (
+                            <div className="col-span-2 sm:col-span-1">
+                              <BuscadorSelect
+                                opciones={rivalesPosibles.map((r) => ({
+                                  id: r.id,
+                                  etiqueta: `${r.nombre} (${r.elo})`,
+                                }))}
+                                valor={fila.rivalPlayerId}
+                                onSeleccionar={(id) =>
+                                  editarFila(jugador.id, { rivalPlayerId: id })
+                                }
+                                placeholder="Buscar rival…"
+                              />
+                            </div>
+                          ) : (
+                            <input
+                              type="number"
+                              placeholder="Elo del rival"
+                              value={fila.rivalEloManual}
+                              onChange={(e) =>
+                                editarFila(jugador.id, { rivalEloManual: e.target.value })
+                              }
+                              className="col-span-2 rounded-lg border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900 sm:col-span-1"
+                            />
+                          )}
+                        </>
                       )}
 
                       <div className="col-span-2 flex gap-2 sm:col-span-1">
@@ -501,7 +614,7 @@ export default function AdminResultadosPage() {
                         >
                           Guardar
                         </button>
-                        {guardado && (
+                        {(guardado || descansa) && (
                           <button
                             onClick={() => onBorrar(jugador.id)}
                             disabled={guardandoId === jugador.id}

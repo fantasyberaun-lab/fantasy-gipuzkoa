@@ -1,11 +1,11 @@
 // Lectura de torneos, sus jugadores y sus resultados. La leen tanto el
 // panel de admin como las pantallas de los managers: las políticas de
-// lectura de tournaments, tournament_players, matchdays y results son
-// públicas (ver 0001, 0019 y 0020).
+// lectura de tournaments, tournament_players, matchdays, results y
+// matchday_byes son públicas (ver 0001, 0019, 0020 y 0021).
 
 import type { createClient } from "@/lib/supabase/client";
 import type { Categoria, ResultadoPartida } from "@/lib/types";
-import type { Torneo } from "@/lib/torneos";
+import { calcularEstadisticas, type Torneo } from "@/lib/torneos";
 
 type Supabase = ReturnType<typeof createClient>;
 
@@ -103,23 +103,34 @@ export interface JugadorTorneo {
   club: string;
   categoria: Categoria;
   elo: number;
-  puntos: number; // suma de puntos Fantasy en este torneo
-  partidas: number; // partidas con resultado en este torneo
+  partidas: number; // partidas jugadas en este torneo
+  puntos: number; // puntos de torneo: 1 por victoria, ½ por tablas
+  rendimiento: number | null; // performance Elo
+  puntosFantasy: number; // suma de puntos Fantasy en este torneo
 }
 
-export interface ResultadoTorneo {
-  playerId: string;
-  jugadorNombre: string;
-  resultado: ResultadoPartida;
-  rivalNombre: string | null; // null si el rival no está en la base de jugadores
-  rivalElo: number | null;
-  puntos: number;
+// Un lado de una partida (un jugador, o un rival externo sin perfil).
+export interface LadoPartida {
+  id: string | null; // null si no está en la base de jugadores
+  nombre: string;
+  elo: number | null;
+  puntosFantasy: number | null;
+}
+
+// Una partida, con los dos jugadores al mismo nivel. "resultadoA" es el
+// resultado visto desde el lado A.
+export interface PartidaTorneo {
+  clave: string;
+  a: LadoPartida;
+  b: LadoPartida;
+  resultadoA: ResultadoPartida;
 }
 
 export interface JornadaTorneo {
   id: string;
   numero: number;
-  resultados: ResultadoTorneo[];
+  partidas: PartidaTorneo[];
+  descansan: { id: string; nombre: string }[]; // sin emparejar en esta jornada
 }
 
 export interface DetalleTorneo {
@@ -157,29 +168,38 @@ export async function fetchDetalleTorneo(
       elo: p.elo,
     });
   }
-  const inscritosIds = new Set(jugadores.keys());
 
   const idsJornadas = (jornadasDb ?? []).map((j: any) => j.id as string);
   let filasResultados: any[] = [];
+  let filasDescansos: any[] = [];
   if (idsJornadas.length > 0) {
-    const { data } = await supabase
-      .from("results")
-      .select(
-        "matchday_id, player_id, resultado, rival_player_id, rival_elo_en_el_momento, puntos_fantasy"
-      )
-      .in("matchday_id", idsJornadas);
-    filasResultados = data ?? [];
+    const [{ data: resultados }, { data: descansos }] = await Promise.all([
+      supabase
+        .from("results")
+        .select(
+          "matchday_id, player_id, resultado, rival_player_id, rival_elo_en_el_momento, puntos_fantasy"
+        )
+        .in("matchday_id", idsJornadas),
+      supabase
+        .from("matchday_byes")
+        .select("matchday_id, player_id")
+        .in("matchday_id", idsJornadas),
+    ]);
+    filasResultados = resultados ?? [];
+    filasDescansos = descansos ?? [];
   }
 
-  // Nombres de quienes aparecen en resultados sin estar inscritos (por
-  // ejemplo, un jugador que se quitó del torneo después, o un rival que
-  // no es participante).
+  // Nombre y Elo de quienes aparecen sin estar inscritos (por ejemplo, un
+  // jugador que se quitó del torneo después).
   const faltan = new Set<string>();
   for (const r of filasResultados) {
     if (!jugadores.has(r.player_id)) faltan.add(r.player_id);
     if (r.rival_player_id && !jugadores.has(r.rival_player_id)) {
       faltan.add(r.rival_player_id);
     }
+  }
+  for (const d of filasDescansos) {
+    if (!jugadores.has(d.player_id)) faltan.add(d.player_id);
   }
   const otros = new Map<string, { nombre: string; elo: number }>();
   if (faltan.size > 0) {
@@ -194,36 +214,106 @@ export async function fetchDetalleTorneo(
 
   const nombreDe = (id: string) =>
     jugadores.get(id)?.nombre ?? otros.get(id)?.nombre ?? "Jugador desconocido";
+  const eloDe = (id: string): number | null =>
+    jugadores.get(id)?.elo ?? otros.get(id)?.elo ?? null;
 
-  const jornadas: JornadaTorneo[] = (jornadasDb ?? []).map((j: any) => ({
-    id: j.id,
-    numero: j.numero,
-    resultados: filasResultados
-      .filter((r) => r.matchday_id === j.id)
-      .map((r) => ({
-        playerId: r.player_id,
-        jugadorNombre: nombreDe(r.player_id),
+  const lado = (fila: any): LadoPartida => ({
+    id: fila.player_id,
+    nombre: nombreDe(fila.player_id),
+    elo: eloDe(fila.player_id),
+    puntosFantasy: fila.puntos_fantasy ?? null,
+  });
+
+  const jornadas: JornadaTorneo[] = (jornadasDb ?? []).map((j: any) => {
+    const filas = filasResultados.filter((r) => r.matchday_id === j.id);
+    const porJugador = new Map<string, any>(filas.map((r) => [r.player_id, r]));
+    const usados = new Set<string>();
+    const partidas: PartidaTorneo[] = [];
+
+    for (const r of filas) {
+      if (usados.has(r.player_id)) continue;
+      usados.add(r.player_id);
+
+      // La partida entre dos jugadores de la lista tiene una fila por
+      // cada lado: se junta en una sola, con el de más Elo a la izquierda.
+      const espejo = r.rival_player_id ? porJugador.get(r.rival_player_id) : undefined;
+
+      if (espejo && espejo.rival_player_id === r.player_id) {
+        usados.add(espejo.player_id);
+        const eloR = eloDe(r.player_id) ?? 0;
+        const eloE = eloDe(espejo.player_id) ?? 0;
+        const primeroEsR =
+          eloR !== eloE
+            ? eloR > eloE
+            : nombreDe(r.player_id).localeCompare(nombreDe(espejo.player_id)) <= 0;
+        const [primera, segunda] = primeroEsR ? [r, espejo] : [espejo, r];
+
+        partidas.push({
+          clave: `${primera.player_id}-${segunda.player_id}`,
+          a: lado(primera),
+          b: lado(segunda),
+          resultadoA: primera.resultado as ResultadoPartida,
+        });
+      } else {
+        // Rival externo, o partida guardada solo por un lado.
+        partidas.push({
+          clave: `${r.player_id}-${r.rival_player_id ?? "externo"}`,
+          a: lado(r),
+          b: r.rival_player_id
+            ? {
+                id: r.rival_player_id,
+                nombre: nombreDe(r.rival_player_id),
+                elo: eloDe(r.rival_player_id),
+                puntosFantasy: null,
+              }
+            : {
+                id: null,
+                nombre: "Rival externo",
+                elo: r.rival_elo_en_el_momento ?? null,
+                puntosFantasy: null,
+              },
+          resultadoA: r.resultado as ResultadoPartida,
+        });
+      }
+    }
+
+    // Mesas de arriba abajo por el Elo más alto de cada partida.
+    const eloMaximo = (p: PartidaTorneo) => Math.max(p.a.elo ?? 0, p.b.elo ?? 0);
+    partidas.sort((x, y) => eloMaximo(y) - eloMaximo(x));
+
+    const descansan = filasDescansos
+      .filter((d) => d.matchday_id === j.id)
+      .map((d) => ({ id: d.player_id as string, nombre: nombreDe(d.player_id) }))
+      .sort((x, y) => x.nombre.localeCompare(y.nombre));
+
+    return { id: j.id, numero: j.numero, partidas, descansan };
+  });
+
+  const participantes: JugadorTorneo[] = [...jugadores.entries()].map(([id, info]) => {
+    const suyas = filasResultados.filter((r) => r.player_id === id);
+    const estadisticas = calcularEstadisticas(
+      suyas.map((r) => ({
         resultado: r.resultado as ResultadoPartida,
-        rivalNombre: r.rival_player_id ? nombreDe(r.rival_player_id) : null,
         rivalElo: r.rival_elo_en_el_momento ?? null,
-        puntos: r.puntos_fantasy,
       }))
-      .sort((a, b) => a.jugadorNombre.localeCompare(b.jugadorNombre)),
-  }));
-
-  const participantes: JugadorTorneo[] = [...inscritosIds].map((id) => {
-    const info = jugadores.get(id)!;
-    const suyos = filasResultados.filter((r) => r.player_id === id);
+    );
     return {
       id,
       ...info,
-      puntos: suyos.reduce((total, r) => total + (r.puntos_fantasy ?? 0), 0),
-      partidas: suyos.length,
+      partidas: estadisticas.partidas,
+      puntos: estadisticas.puntos,
+      rendimiento: estadisticas.rendimiento,
+      puntosFantasy: suyas.reduce((total, r) => total + (r.puntos_fantasy ?? 0), 0),
     };
   });
 
+  // Como en chess-results: por puntos de torneo, después por performance.
   participantes.sort(
-    (a, b) => b.puntos - a.puntos || b.elo - a.elo || a.nombre.localeCompare(b.nombre)
+    (a, b) =>
+      b.puntos - a.puntos ||
+      (b.rendimiento ?? -1) - (a.rendimiento ?? -1) ||
+      b.elo - a.elo ||
+      a.nombre.localeCompare(b.nombre)
   );
 
   return { participantes, jornadas };

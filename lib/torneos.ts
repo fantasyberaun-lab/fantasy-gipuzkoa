@@ -4,7 +4,7 @@
 // Todos los textos son libres y opcionales (salvo el nombre): nada valida
 // el formato porque solo los administradores crean torneos.
 
-import type { Categoria } from "@/lib/types";
+import type { Categoria, ResultadoPartida } from "@/lib/types";
 
 export interface DatosTorneo {
   // General
@@ -94,4 +94,76 @@ export function rangoFechas(
   const fin = formatearFecha(t.fechaFin);
   if (inicio && fin) return inicio === fin ? inicio : `${inicio} – ${fin}`;
   return inicio ?? fin;
+}
+
+// ---------- Resultados y performance Elo ----------
+
+export const MARCADOR: Record<ResultadoPartida, string> = {
+  victoria: "1-0",
+  tablas: "½-½",
+  derrota: "0-1",
+};
+
+// El mismo resultado visto desde el lado del rival.
+export function resultadoInverso(r: ResultadoPartida): ResultadoPartida {
+  return r === "victoria" ? "derrota" : r === "derrota" ? "victoria" : "tablas";
+}
+
+// Tabla de conversión del porcentaje de puntos "p" en diferencia de
+// rating "dp" (Reglamento de rating de la FIDE, B.02, tabla 8.1.1): aquí
+// están los valores para p = 0,50 … 1,00 de centésima en centésima. Para
+// p < 0,5 se usa el valor simétrico con signo negativo. Con p = 1 o 0 el
+// valor es "teórico" (800) porque en realidad no está determinado.
+const DP_FIDE = [
+  0, 7, 14, 21, 29, 36, 43, 50, 57, 65, 72, 80, 87, 95, 102, 110, 117, 125,
+  133, 141, 149, 158, 166, 175, 184, 193, 202, 211, 220, 230, 240, 251, 262,
+  273, 284, 296, 309, 322, 336, 351, 366, 383, 401, 422, 444, 470, 501, 538,
+  589, 677, 800,
+];
+
+export function diferenciaDp(p: number): number {
+  const centesimas = Math.min(100, Math.max(0, Math.round(p * 100)));
+  return centesimas >= 50 ? DP_FIDE[centesimas - 50] : -DP_FIDE[50 - centesimas];
+}
+
+export interface PartidaParaCalculo {
+  resultado: ResultadoPartida;
+  rivalElo: number | null;
+}
+
+export interface EstadisticasJugador {
+  partidas: number;
+  puntos: number; // 1 por victoria, ½ por tablas
+  rendimiento: number | null; // performance Elo; null si no hay datos
+}
+
+const valorPartida = (r: ResultadoPartida) =>
+  r === "victoria" ? 1 : r === "tablas" ? 0.5 : 0;
+
+// Puntos de torneo y performance Elo: Rp = media del Elo de los rivales +
+// dp(porcentaje de puntos), como calcula la FIDE. Las partidas sin Elo de
+// rival conocido cuentan para los puntos pero no para la performance.
+export function calcularEstadisticas(
+  partidas: PartidaParaCalculo[]
+): EstadisticasJugador {
+  const puntos = partidas.reduce((total, p) => total + valorPartida(p.resultado), 0);
+
+  const conElo = partidas.filter((p) => p.rivalElo != null);
+  let rendimiento: number | null = null;
+  if (conElo.length > 0) {
+    const eloMedio =
+      conElo.reduce((total, p) => total + (p.rivalElo as number), 0) / conElo.length;
+    const porcentaje =
+      conElo.reduce((total, p) => total + valorPartida(p.resultado), 0) / conElo.length;
+    rendimiento = Math.round(eloMedio + diferenciaDp(porcentaje));
+  }
+
+  return { partidas: partidas.length, puntos, rendimiento };
+}
+
+// 3, 3½, ½, 0…
+export function formatearPuntos(n: number): string {
+  const entero = Math.floor(n);
+  if (n - entero < 0.5) return String(entero);
+  return entero === 0 ? "½" : `${entero}½`;
 }
