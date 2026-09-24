@@ -12,7 +12,6 @@ import {
   type TorneoPerfil,
 } from "@/lib/supabase/jugadoresQueries";
 import { estadoTorneo, formatearPuntos, MARCADOR, rangoFechas } from "@/lib/torneos";
-import { gameConfig } from "@/lib/gameConfig";
 
 function iniciales(nombre: string) {
   return nombre
@@ -118,7 +117,7 @@ function TarjetaTorneo({
             fila.tipo === "descanso" ? (
               <li key={`d-${fila.jornada}`} className="flex gap-3 py-2 text-neutral-500">
                 <span className="w-8 font-medium">J{fila.jornada}</span>
-                <span>Sin emparejar (descansa) · +{gameConfig.puntosPorDescanso} pt</span>
+                <span>Sin emparejar (descansa)</span>
               </li>
             ) : (
               <li key={`p-${fila.jornada}`} className="flex items-center gap-3 py-2">
@@ -248,7 +247,7 @@ function PerfilJugadorContenido() {
         )}
       </dl>
 
-      {enLiga && (
+      {enLiga && enLiga.historialPuntos.length > 0 && (
         <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
           <HistorialPuntosChart historial={enLiga.historialPuntos} />
         </div>
