@@ -5,6 +5,7 @@
 import type { createClient } from "@/lib/supabase/client";
 import type { Categoria, ResultadoPartida } from "@/lib/types";
 import { calcularEstadisticas, type EstadisticasJugador } from "@/lib/torneos";
+import { gameConfig } from "@/lib/gameConfig";
 
 type Supabase = ReturnType<typeof createClient>;
 
@@ -106,6 +107,11 @@ export async function fetchPerfilJugador(
   }
 
   const torneos: TorneoPerfil[] = filasTorneos.map((t) => {
+    const descansosTorneo = ((descansos ?? []) as any[])
+      .filter((d) => d.matchdays?.tournament_id === t.id)
+      .map((d) => d.matchdays.numero as number)
+      .sort((a, b) => a - b);
+
     const partidas: PartidaPerfil[] = ((resultados ?? []) as any[])
       .filter((r) => r.matchdays?.tournament_id === t.id)
       .map((r) => ({
@@ -125,14 +131,13 @@ export async function fetchPerfilJugador(
       fechaInicio: t.fecha_inicio,
       fechaFin: t.fecha_fin,
       partidas,
-      descansos: ((descansos ?? []) as any[])
-        .filter((d) => d.matchdays?.tournament_id === t.id)
-        .map((d) => d.matchdays.numero as number)
-        .sort((a, b) => a - b),
+      descansos: descansosTorneo,
       estadisticas: calcularEstadisticas(
         partidas.map((x) => ({ resultado: x.resultado, rivalElo: x.rivalElo }))
       ),
-      puntosFantasy: partidas.reduce((total, x) => total + x.puntosFantasy, 0),
+      puntosFantasy:
+        partidas.reduce((total, x) => total + x.puntosFantasy, 0) +
+        descansosTorneo.length * gameConfig.puntosPorDescanso,
     };
   });
 

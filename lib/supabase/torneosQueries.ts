@@ -6,6 +6,7 @@
 import type { createClient } from "@/lib/supabase/client";
 import type { Categoria, ResultadoPartida } from "@/lib/types";
 import { calcularEstadisticas, type Torneo } from "@/lib/torneos";
+import { gameConfig } from "@/lib/gameConfig";
 
 type Supabase = ReturnType<typeof createClient>;
 
@@ -303,7 +304,9 @@ export async function fetchDetalleTorneo(
       partidas: estadisticas.partidas,
       puntos: estadisticas.puntos,
       rendimiento: estadisticas.rendimiento,
-      puntosFantasy: suyas.reduce((total, r) => total + (r.puntos_fantasy ?? 0), 0),
+      puntosFantasy:
+        suyas.reduce((total, r) => total + (r.puntos_fantasy ?? 0), 0) +
+        filasDescansos.filter((d) => d.player_id === id).length * gameConfig.puntosPorDescanso,
     };
   });
 

@@ -16,8 +16,10 @@ import {
   fetchMiPlantilla,
   fetchMiRol,
   fetchMisOfertas,
+  fetchNotificaciones,
   ficharJugadorDB,
   hacerOfertaDB,
+  marcarNotificacionesVistasDB,
   pagarClausulaDB,
   pujarMercadoDB,
   toggleTitularDB,
@@ -28,6 +30,7 @@ import type {
   EquipoManager,
   JugadorLiga,
   MercadoDelDia,
+  Notificacion,
   OfertaPendiente,
   PlantillaSlot,
 } from "@/lib/types";
@@ -51,6 +54,12 @@ interface GameState {
   mercado: MercadoDelDia[];
   ofertas: OfertaPendiente[];
   clasificacion: ClasificacionEntry[];
+  notificaciones: Notificacion[];
+  // Instante (ms) de la última vez que abriste el panel de notificaciones.
+  notificacionesVistasEn: number;
+  // Avisos nuevos desde entonces, sin contar los de tus propias acciones.
+  notificacionesNoLeidas: number;
+  marcarNotificacionesVistas: () => Promise<void>;
   toggleTitular: (id: string) => Promise<void>;
   venderJugador: (id: string, valorMercado: number) => Promise<ResultadoAccion>;
   pagarClausula: (jugadorId: string) => Promise<ResultadoAccion>;
@@ -74,6 +83,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const [mercado, setMercado] = useState<MercadoDelDia[]>([]);
   const [ofertas, setOfertas] = useState<OfertaPendiente[]>([]);
   const [clasificacion, setClasificacion] = useState<ClasificacionEntry[]>([]);
+  const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
+  const [notificacionesVistasEn, setNotificacionesVistasEn] = useState(() => Date.now());
 
   async function cargarTodo() {
     const {
@@ -102,12 +113,13 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     setTieneEquipo(true);
     setEquipo(miEquipo);
 
-    const [plantilla, ligaJugadores, misOfertas, jugadoresMercado, tabla] = await Promise.all([
+    const [plantilla, ligaJugadores, misOfertas, jugadoresMercado, tabla, avisos] = await Promise.all([
       fetchMiPlantilla(supabase, miEquipo.id),
       fetchJugadoresLiga(supabase, miEquipo.leagueId, miEquipo.id),
       fetchMisOfertas(supabase, miEquipo.id),
       fetchMercado(supabase, miEquipo.leagueId),
       fetchClasificacion(supabase, miEquipo.leagueId, miEquipo.id),
+      fetchNotificaciones(supabase, miEquipo.leagueId, miEquipo.id),
     ]);
 
     setSquad(plantilla.map(({ titular: _titular, ...resto }) => resto));
@@ -118,6 +130,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     setOfertas(misOfertas);
     setMercado(jugadoresMercado);
     setClasificacion(tabla);
+    setNotificaciones(avisos.notificaciones);
+    setNotificacionesVistasEn(avisos.vistasEn);
     setCargando(false);
   }
 
@@ -125,6 +139,57 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     cargarTodo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function recargarNotificaciones() {
+    if (!equipo.id || !equipo.leagueId) return;
+    const avisos = await fetchNotificaciones(supabase, equipo.leagueId, equipo.id);
+    setNotificaciones(avisos.notificaciones);
+    setNotificacionesVistasEn(avisos.vistasEn);
+  }
+
+  // Los avisos nuevos llegan por Supabase Realtime (la RLS de la tabla
+  // hace que cada manager solo reciba los suyos). Como red de seguridad,
+  // también se recargan al volver a la pestaña del navegador.
+  useEffect(() => {
+    if (!equipo.id || !equipo.leagueId) return;
+
+    const canal = supabase
+      .channel(`notificaciones-${equipo.leagueId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notificaciones",
+          filter: `league_id=eq.${equipo.leagueId}`,
+        },
+        () => {
+          recargarNotificaciones();
+        }
+      )
+      .subscribe();
+
+    const alVolver = () => {
+      if (document.visibilityState === "visible") recargarNotificaciones();
+    };
+    document.addEventListener("visibilitychange", alVolver);
+
+    return () => {
+      supabase.removeChannel(canal);
+      document.removeEventListener("visibilitychange", alVolver);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [equipo.id, equipo.leagueId]);
+
+  async function marcarNotificacionesVistas() {
+    if (!equipo.leagueId) return;
+    const vistasEn = await marcarNotificacionesVistasDB(supabase, equipo.leagueId);
+    if (vistasEn !== null) setNotificacionesVistasEn(vistasEn);
+  }
+
+  const notificacionesNoLeidas = notificaciones.filter(
+    (n) => n.actorId !== equipo.id && Date.parse(n.creada) > notificacionesVistasEn
+  ).length;
 
   async function toggleTitular(id: string) {
     const nuevoValor = !titulares[id];
@@ -211,6 +276,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         mercado,
         ofertas,
         clasificacion,
+        notificaciones,
+        notificacionesVistasEn,
+        notificacionesNoLeidas,
+        marcarNotificacionesVistas,
         toggleTitular,
         venderJugador,
         pagarClausula,

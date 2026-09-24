@@ -16,6 +16,11 @@ export const gameConfig = {
     { hasta: 299, victoria: 7, tablas: 4, derrota: 0 },
     { hasta: Infinity, victoria: 9, tablas: 5, derrota: 0 },
   ],
+  // Rondas de un torneo (las que enseña el gráfico de puntos por jornada).
+  rondasPorTorneo: 7,
+  // Puntos Fantasy de un jugador que queda sin emparejar (descansa) en una
+  // jornada. Mantener igual que puntos_descanso() en 0023_descanso_un_punto.sql.
+  puntosPorDescanso: 1,
   bonusJugadorDeLaJornada: {
     victoria: 2,
     tablas: 1,

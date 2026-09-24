@@ -289,7 +289,8 @@ export async function guardarResultadoDB(
   return { ok: true, puntos: data.puntos, puntosRival: data.puntos_rival ?? null };
 }
 
-// Deja al jugador sin emparejar en esa jornada (sin partida y sin puntos).
+// Deja al jugador sin emparejar en esa jornada (sin partida; puntúa 1 punto
+// Fantasy, ver 0023_descanso_un_punto.sql).
 // Si estaba emparejado con alguien, también se quita el resultado del rival.
 export async function marcarDescansoDB(
   supabase: Supabase,

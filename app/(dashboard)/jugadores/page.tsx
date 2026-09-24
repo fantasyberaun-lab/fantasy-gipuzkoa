@@ -1,259 +1,286 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { useGameState, calcularClausula } from "@/components/GameStateProvider";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { useGameState } from "@/components/GameStateProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
+import {
+  fetchPerfilJugador,
+  type PerfilJugador,
+  type TorneoPerfil,
+} from "@/lib/supabase/jugadoresQueries";
+import { estadoTorneo, formatearPuntos, MARCADOR, rangoFechas } from "@/lib/torneos";
+import { gameConfig } from "@/lib/gameConfig";
 
-type Orden = "puntos" | "nombre" | "categoria";
+function iniciales(nombre: string) {
+  return nombre
+    .split(" ")
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join("")
+    .toUpperCase();
+}
 
-export default function JugadoresPage() {
-  const { jugadoresLiga, ofertas, pagarClausula, hacerOferta, cargando } =
-    useGameState();
+function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | number | null }) {
+  if (valor === null || valor === "") return null;
+  return (
+    <div className="flex flex-col">
+      <dt className="text-xs text-neutral-500">{etiqueta}</dt>
+      <dd>{valor}</dd>
+    </div>
+  );
+}
 
-  const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
-  const [montoOferta, setMontoOferta] = useState("");
-  const [busqueda, setBusqueda] = useState("");
-  const [orden, setOrden] = useState<Orden>("puntos");
-  const [enviando, setEnviando] = useState(false);
-  const [mensajePorJugador, setMensajePorJugador] = useState<
-    Record<string, { tipo: "ok" | "error"; texto: string }>
-  >({});
+function Cifra({ etiqueta, valor }: { etiqueta: string; valor: string }) {
+  return (
+    <div className="rounded-lg bg-neutral-50 px-3 py-2 dark:bg-neutral-900">
+      <p className="text-xs text-neutral-500">{etiqueta}</p>
+      <p className="text-base font-semibold">{valor}</p>
+    </div>
+  );
+}
 
-  const jugadoresFiltrados = useMemo(() => {
-    const texto = busqueda.trim().toLowerCase();
+// Una fila del historial del torneo: una partida o un descanso.
+type FilaHistorial =
+  | { tipo: "partida"; jornada: number; partida: TorneoPerfil["partidas"][number] }
+  | { tipo: "descanso"; jornada: number };
 
-    const filtrados = texto
-      ? jugadoresLiga.filter((j) => j.nombre.toLowerCase().includes(texto))
-      : jugadoresLiga;
+function TarjetaTorneo({
+  torneo,
+  destacado,
+}: {
+  torneo: TorneoPerfil;
+  destacado: boolean;
+}) {
+  const estado = estadoTorneo(torneo);
+  const fechas = rangoFechas(torneo);
+  const { estadisticas } = torneo;
 
-    const copia = [...filtrados];
-
-    if (orden === "puntos") {
-      copia.sort((a, b) => b.puntosTotales - a.puntosTotales);
-    } else if (orden === "nombre") {
-      copia.sort((a, b) => a.nombre.localeCompare(b.nombre));
-    } else if (orden === "categoria") {
-      copia.sort((a, b) => a.categoria - b.categoria || a.nombre.localeCompare(b.nombre));
-    }
-
-    return copia;
-  }, [busqueda, orden, jugadoresLiga]);
-
-  if (cargando) {
-    return <p className="text-sm text-neutral-500">Cargando jugadores…</p>;
-  }
-
-  const toggleSeleccion = (id: string) => {
-    setSeleccionadoId((prev) => (prev === id ? null : id));
-    setMontoOferta("");
-  };
-
-  const mostrarMensaje = (
-    jugadorId: string,
-    tipo: "ok" | "error",
-    texto: string
-  ) => {
-    setMensajePorJugador((prev) => ({ ...prev, [jugadorId]: { tipo, texto } }));
-  };
-
-  const onPagarClausula = async (jugadorId: string) => {
-    setEnviando(true);
-    const resultado = await pagarClausula(jugadorId);
-    setEnviando(false);
-    if (resultado.ok) {
-      mostrarMensaje(jugadorId, "ok", "Cláusula pagada. El jugador ya está en tu plantilla.");
-      setSeleccionadoId(null);
-    } else {
-      mostrarMensaje(jugadorId, "error", resultado.mensaje);
-    }
-  };
-
-  const onHacerOferta = async (jugadorId: string) => {
-    const importe = Number(montoOferta);
-    setEnviando(true);
-    const resultado = await hacerOferta(jugadorId, importe);
-    setEnviando(false);
-    if (resultado.ok) {
-      mostrarMensaje(jugadorId, "ok", `Oferta de ${importe} M enviada al manager.`);
-      setMontoOferta("");
-    } else {
-      mostrarMensaje(jugadorId, "error", resultado.mensaje);
-    }
-  };
+  const filas: FilaHistorial[] = [
+    ...torneo.partidas.map((partida) => ({
+      tipo: "partida" as const,
+      jornada: partida.jornada,
+      partida,
+    })),
+    ...torneo.descansos.map((jornada) => ({ tipo: "descanso" as const, jornada })),
+  ].sort((a, b) => a.jornada - b.jornada);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <div className="relative flex-1">
-          <svg
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
+    <section
+      className={`flex flex-col gap-3 rounded-xl border p-4 ${
+        destacado ? "border-accent" : "border-neutral-200 dark:border-neutral-800"
+      }`}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <Link
+            href={`/torneos/${torneo.id}`}
+            className="font-medium underline-offset-2 hover:underline"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-          <input
-            type="text"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar jugador por nombre..."
-            className="w-full rounded-lg border border-neutral-300 py-2 pl-9 pr-3 text-sm dark:border-neutral-700 dark:bg-neutral-900"
-          />
+            {torneo.nombre}
+          </Link>
+          <p className="text-xs text-neutral-500">
+            {[torneo.categoria ? `${torneo.categoria}ª categoría` : null, fechas]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
         </div>
-
-        <select
-          value={orden}
-          onChange={(e) => setOrden(e.target.value as Orden)}
-          className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
-        >
-          <option value="puntos">Ordenar por puntos</option>
-          <option value="nombre">Ordenar por nombre</option>
-          <option value="categoria">Ordenar por categoría</option>
-        </select>
+        {estado && (
+          <span className="rounded-full border border-neutral-300 px-2 py-0.5 text-xs text-neutral-500 dark:border-neutral-700">
+            {estado}
+          </span>
+        )}
       </div>
 
-      {jugadoresFiltrados.length === 0 && (
-        <p className="py-6 text-center text-sm text-neutral-500">
-          {jugadoresLiga.length === 0
-            ? "Todavía no hay jugadores cargados en la liga."
-            : `No hay jugadores que coincidan con "${busqueda}".`}
-        </p>
-      )}
+      <div className="grid grid-cols-3 gap-2">
+        <Cifra
+          etiqueta="Puntos"
+          valor={
+            estadisticas.partidas > 0
+              ? `${formatearPuntos(estadisticas.puntos)} / ${estadisticas.partidas}`
+              : "–"
+          }
+        />
+        <Cifra
+          etiqueta="Performance Elo"
+          valor={estadisticas.rendimiento != null ? String(estadisticas.rendimiento) : "–"}
+        />
+        <Cifra etiqueta="Pts Fantasy" valor={String(torneo.puntosFantasy)} />
+      </div>
 
-      <div className="flex flex-col gap-2">
-        {jugadoresFiltrados.map((jugador) => {
-          const estaSeleccionado = seleccionadoId === jugador.id;
-          const esFichable = jugador.propietario !== null && !jugador.esMiEquipo;
-          const ofertaActual = ofertas.find((o) => o.jugadorId === jugador.id);
-          const mensaje = mensajePorJugador[jugador.id];
-
-          return (
-            <div
-              key={jugador.id}
-              className="rounded-xl border border-neutral-200 dark:border-neutral-800"
-            >
-              {/* Es un div con role="button" (y no un <button>) porque dentro
-                  va el enlace al perfil, y un enlace dentro de un botón no
-                  funciona en todos los navegadores. */}
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={() => toggleSeleccion(jugador.id)}
-                onKeyDown={(e) => {
-                  if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
-                    e.preventDefault();
-                    toggleSeleccion(jugador.id);
-                  }
-                }}
-                className="flex w-full cursor-pointer items-center gap-3 p-3 text-left"
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 text-xs font-semibold dark:bg-neutral-800">
-                  {jugador.nombre
-                    .split(" ")
-                    .slice(0, 2)
-                    .map((p) => p[0])
-                    .join("")
-                    .toUpperCase()}
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium">
+      {filas.length === 0 ? (
+        <p className="text-xs text-neutral-500">Todavía no ha jugado ninguna partida.</p>
+      ) : (
+        <ul className="divide-y divide-neutral-200 text-sm dark:divide-neutral-800">
+          {filas.map((fila) =>
+            fila.tipo === "descanso" ? (
+              <li key={`d-${fila.jornada}`} className="flex gap-3 py-2 text-neutral-500">
+                <span className="w-8 font-medium">J{fila.jornada}</span>
+                <span>Sin emparejar (descansa) · +{gameConfig.puntosPorDescanso} pt</span>
+              </li>
+            ) : (
+              <li key={`p-${fila.jornada}`} className="flex items-center gap-3 py-2">
+                <span className="w-8 font-medium text-neutral-500">J{fila.jornada}</span>
+                <span className="w-12 text-center font-semibold">
+                  {MARCADOR[fila.partida.resultado]}
+                </span>
+                <span className="flex-1">
+                  {fila.partida.rivalId ? (
                     <Link
-                      href={`/jugadores/${jugador.id}`}
-                      onClick={(e) => e.stopPropagation()}
+                      href={`/jugadores/${fila.partida.rivalId}?torneo=${torneo.id}`}
                       className="hover:underline"
                     >
-                      {jugador.nombre}
+                      {fila.partida.rivalNombre ?? "Rival"}
                     </Link>
-                  </p>
-                  <p className="text-xs text-neutral-500">
-                    {jugador.club} · {jugador.categoria}ª cat. · Elo {jugador.elo}
-                  </p>
-                  <p className="mt-0.5 text-xs text-neutral-500">
-                    {jugador.esMiEquipo
-                      ? "En tu plantilla"
-                      : jugador.propietario
-                        ? `Fichado por ${jugador.propietario}`
-                        : "Libre"}
-                    {ofertaActual && !jugador.esMiEquipo
-                      ? ` · Oferta enviada: ${ofertaActual.importe} M`
-                      : ""}
-                  </p>
-                </div>
-                <span className="text-sm font-semibold">{jugador.puntosTotales} pts</span>
-              </div>
-
-              {estaSeleccionado && (
-                <div className="flex flex-col gap-4 border-t border-neutral-200 p-3 dark:border-neutral-800">
-                  <HistorialPuntosChart historial={jugador.historialPuntos} />
-
-                  {jugador.esMiEquipo && (
-                    <p className="text-sm text-neutral-500">
-                      Ya lo tienes en tu plantilla.
-                    </p>
+                  ) : (
+                    "Rival externo"
                   )}
-
-                  {!jugador.esMiEquipo && jugador.propietario === null && (
-                    <p className="text-sm text-neutral-500">
-                      Está libre — fíchalo desde la pestaña Mercado.
-                    </p>
+                  {fila.partida.rivalElo != null && (
+                    <span className="text-neutral-500"> ({fila.partida.rivalElo})</span>
                   )}
+                </span>
+                <span className="text-xs text-neutral-500">{fila.partida.puntosFantasy} pts</span>
+              </li>
+            )
+          )}
+        </ul>
+      )}
+    </section>
+  );
+}
 
-                  {esFichable && (
-                    <div className="flex flex-col gap-3">
-                      <div>
-                        <label className="text-xs font-medium text-neutral-500">
-                          Importe de la oferta (M)
-                        </label>
-                        <input
-                          type="number"
-                          value={montoOferta}
-                          onChange={(e) => setMontoOferta(e.target.value)}
-                          placeholder={`${jugador.valorMercado}`}
-                          className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
-                        />
-                      </div>
+function PerfilJugadorContenido() {
+  const { id } = useParams<{ id: string }>();
+  const torneoContexto = useSearchParams().get("torneo");
+  const router = useRouter();
+  const supabase = createClient();
+  const { jugadoresLiga } = useGameState();
 
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => onHacerOferta(jugador.id)}
-                          disabled={!montoOferta || enviando}
-                          className="flex-1 rounded-lg border border-neutral-300 py-2 text-sm font-medium disabled:opacity-40 dark:border-neutral-700"
-                        >
-                          Hacer oferta
-                        </button>
-                        <button
-                          onClick={() => onPagarClausula(jugador.id)}
-                          disabled={enviando}
-                          className="flex-1 rounded-lg bg-neutral-900 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
-                        >
-                          Pagar cláusula ({calcularClausula(jugador.valorMercado)} M)
-                        </button>
-                      </div>
+  const [perfil, setPerfil] = useState<PerfilJugador | null>(null);
+  const [cargando, setCargando] = useState(true);
 
-                      {mensaje && (
-                        <p
-                          className={`text-xs ${
-                            mensaje.tipo === "ok" ? "text-positive" : "text-negative"
-                          }`}
-                        >
-                          {mensaje.texto}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
+  useEffect(() => {
+    (async () => {
+      setCargando(true);
+      setPerfil(await fetchPerfilJugador(supabase, id));
+      setCargando(false);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  // Si se llega desde un torneo, ese va primero; el resto, del más
+  // reciente al más antiguo.
+  const torneos = useMemo(() => {
+    if (!perfil) return [];
+    return [...perfil.torneos].sort((a, b) => {
+      if (a.id === torneoContexto) return -1;
+      if (b.id === torneoContexto) return 1;
+      return (b.fechaInicio ?? "").localeCompare(a.fechaInicio ?? "");
+    });
+  }, [perfil, torneoContexto]);
+
+  const enLiga = jugadoresLiga.find((j) => j.id === id) ?? null;
+
+  if (cargando) {
+    return <p className="text-sm text-neutral-500">Cargando jugador…</p>;
+  }
+
+  if (!perfil) {
+    return (
+      <div className="flex flex-col gap-3">
+        <p className="text-sm text-neutral-500">No se ha encontrado este jugador.</p>
+        <button
+          onClick={() => router.back()}
+          className="w-fit text-sm text-accent underline underline-offset-2"
+        >
+          ← Volver
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <button
+        onClick={() => router.back()}
+        className="w-fit text-sm text-neutral-500 underline underline-offset-2 hover:text-neutral-800 dark:hover:text-neutral-300"
+      >
+        ← Volver
+      </button>
+
+      <div className="flex items-center gap-3">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 text-sm font-semibold dark:bg-neutral-800">
+          {iniciales(perfil.nombre)}
+        </div>
+        <div>
+          <h2 className="text-lg font-semibold">{perfil.nombre}</h2>
+          <p className="text-sm text-neutral-500">
+            {[perfil.club, `${perfil.categoria}ª categoría`, `Elo ${perfil.elo}`]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
+        </div>
+      </div>
+
+      <dl className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl border border-neutral-200 p-4 text-sm dark:border-neutral-800 sm:grid-cols-3">
+        <Dato etiqueta="Club" valor={perfil.club} />
+        <Dato etiqueta="Categoría" valor={`${perfil.categoria}ª`} />
+        <Dato etiqueta="Elo" valor={perfil.elo} />
+        <Dato etiqueta="Año de nacimiento" valor={perfil.anioNacimiento} />
+        <Dato etiqueta="ID FIDE" valor={perfil.fideId} />
+        <Dato etiqueta="Valor de mercado" valor={`${perfil.valorMercado} M`} />
+        {enLiga && (
+          <>
+            <Dato
+              etiqueta="En tu liga"
+              valor={
+                enLiga.esMiEquipo
+                  ? "En tu plantilla"
+                  : enLiga.propietario
+                    ? `Fichado por ${enLiga.propietario}`
+                    : "Libre"
+              }
+            />
+            <Dato etiqueta="Puntos Fantasy" valor={enLiga.puntosTotales} />
+          </>
+        )}
+      </dl>
+
+      {enLiga && (
+        <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+          <HistorialPuntosChart historial={enLiga.historialPuntos} />
+        </div>
+      )}
+
+      <div className="flex flex-col gap-3">
+        <h3 className="text-sm font-medium">Torneos</h3>
+
+        {torneos.length === 0 ? (
+          <p className="text-sm text-neutral-500">
+            Todavía no está inscrito en ningún torneo.
+          </p>
+        ) : (
+          <>
+            {torneos.map((t) => (
+              <TarjetaTorneo key={t.id} torneo={t} destacado={t.id === torneoContexto} />
+            ))}
+            <p className="text-xs text-neutral-500">
+              Performance Elo: media del Elo de los rivales más la diferencia que da la
+              tabla de la FIDE según el porcentaje de puntos.
+            </p>
+          </>
+        )}
       </div>
     </div>
+  );
+}
+
+export default function PerfilJugadorPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-neutral-500">Cargando jugador…</p>}>
+      <PerfilJugadorContenido />
+    </Suspense>
   );
 }

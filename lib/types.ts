@@ -27,6 +27,8 @@ export interface PuntosJornada {
   id?: string;
   torneo?: string | null;
   creada?: string;
+  // Jornada en la que el jugador quedó sin emparejar: puntúa gameConfig.puntosPorDescanso.
+  descanso?: boolean;
 }
 
 export interface PlantillaSlot {
@@ -77,4 +79,23 @@ export interface MercadoDelDia extends Jugador {
 export interface OfertaPendiente {
   jugadorId: string;
   importe: number;
+}
+
+export type TipoNotificacion = "oferta_recibida" | "fichaje" | "clausulazo";
+
+// Un aviso del panel de notificaciones (ver 0022_notificaciones.sql).
+// "actor" es quien hace la acción (ofertar, fichar, pagar cláusula);
+// "objetivo" es el otro equipo implicado: el dueño del jugador en una
+// oferta, o a quien se le ha quitado el jugador en un clausulazo.
+export interface Notificacion {
+  id: string;
+  tipo: TipoNotificacion;
+  actorId: string | null;
+  actorNombre: string;
+  objetivoId: string | null;
+  objetivoNombre: string | null;
+  jugadorId: string | null;
+  jugadorNombre: string;
+  importe: number | null;
+  creada: string;
 }

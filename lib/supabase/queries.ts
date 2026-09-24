@@ -1,10 +1,12 @@
 import type { createClient } from "@/lib/supabase/client";
+import { gameConfig } from "@/lib/gameConfig";
 import type {
   Categoria,
   ClasificacionEntry,
   EquipoManager,
   JugadorLiga,
   MercadoDelDia,
+  Notificacion,
   OfertaPendiente,
   PlantillaSlot,
   PuntosJornada,
@@ -61,6 +63,12 @@ export async function fetchMiPlantilla(
     )
     .in("player_id", playerIds);
 
+  // Jornadas en las que el jugador quedó sin emparejar: puntúan 1 punto.
+  const { data: descansos } = await supabase
+    .from("matchday_byes")
+    .select("player_id, matchdays (id, numero, created_at, tournaments (nombre))")
+    .in("player_id", playerIds);
+
   const resultadosAscendentes = (resultados ?? []).slice().sort((a: any, b: any) => {
     // Por orden de creación de la jornada: el número solo es único dentro
     // de cada torneo.
@@ -73,9 +81,8 @@ export async function fetchMiPlantilla(
       const resultadosJugador = resultadosAscendentes.filter(
         (r: any) => r.player_id === s.players.id
       );
-      const masReciente = resultadosJugador[resultadosJugador.length - 1];
 
-      const historialPuntos: PuntosJornada[] = resultadosJugador.map(
+      const puntosPartidas: PuntosJornada[] = resultadosJugador.map(
         (r: any) => ({
           jornada: r.matchdays?.numero ?? 0,
           puntos: r.puntos_fantasy,
@@ -84,6 +91,20 @@ export async function fetchMiPlantilla(
           creada: r.matchdays?.created_at,
         })
       );
+      const puntosDescansos: PuntosJornada[] = ((descansos ?? []) as any[])
+        .filter((d) => d.player_id === s.players.id)
+        .map((d) => ({
+          jornada: d.matchdays?.numero ?? 0,
+          puntos: gameConfig.puntosPorDescanso,
+          id: d.matchdays?.id,
+          torneo: d.matchdays?.tournaments?.nombre ?? null,
+          creada: d.matchdays?.created_at,
+          descanso: true,
+        }));
+      const historialPuntos: PuntosJornada[] = [...puntosPartidas, ...puntosDescansos].sort(
+        (a, b) => (a.creada ?? "").localeCompare(b.creada ?? "")
+      );
+      const masReciente = historialPuntos[historialPuntos.length - 1];
 
       return {
         jugador: {
@@ -95,7 +116,7 @@ export async function fetchMiPlantilla(
           valorMercado: Number(s.players.valor_mercado),
           activo: s.players.activo,
         },
-        puntosJornada: masReciente ? masReciente.puntos_fantasy : 0,
+        puntosJornada: masReciente ? masReciente.puntos : 0,
         valorMercadoDelta: 0,
         resultadosRecientes: resultadosJugador
           .slice(-4)
@@ -208,6 +229,50 @@ export async function fetchMisOfertas(
     jugadorId: o.player_id,
     importe: Number(o.importe),
   }));
+}
+
+export async function fetchNotificaciones(
+  supabase: Supabase,
+  leagueId: string,
+  equipoId: string
+): Promise<{ notificaciones: Notificacion[]; vistasEn: number }> {
+  const [{ data, error }, { data: equipo }] = await Promise.all([
+    supabase
+      .from("notificaciones")
+      .select(
+        "id, tipo, actor_team_id, objetivo_team_id, player_id, importe, created_at, players (nombre), actor:fantasy_teams!actor_team_id (nombre), objetivo:fantasy_teams!objetivo_team_id (nombre)"
+      )
+      .eq("league_id", leagueId)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("fantasy_teams")
+      .select("notificaciones_vistas_en")
+      .eq("id", equipoId)
+      .maybeSingle(),
+  ]);
+
+  const vistasEn = equipo?.notificaciones_vistas_en
+    ? Date.parse(equipo.notificaciones_vistas_en)
+    : Date.now();
+
+  if (error || !data) return { notificaciones: [], vistasEn };
+
+  return {
+    vistasEn,
+    notificaciones: (data as any[]).map((n) => ({
+      id: n.id,
+      tipo: n.tipo,
+      actorId: n.actor_team_id,
+      actorNombre: n.actor?.nombre ?? "Un equipo",
+      objetivoId: n.objetivo_team_id,
+      objetivoNombre: n.objetivo?.nombre ?? null,
+      jugadorId: n.player_id,
+      jugadorNombre: n.players?.nombre ?? "un jugador",
+      importe: n.importe === null ? null : Number(n.importe),
+      creada: n.created_at,
+    })),
+  };
 }
 
 export async function fetchMiRol(
@@ -347,6 +412,19 @@ export async function hacerOfertaDB(
 
   if (error) return { ok: false, mensaje: error.message };
   return { ok: true };
+}
+
+// Devuelve el instante (ms) que ha guardado el servidor como "visto".
+export async function marcarNotificacionesVistasDB(
+  supabase: Supabase,
+  leagueId: string
+): Promise<number | null> {
+  const { data, error } = await supabase.rpc("marcar_notificaciones_vistas", {
+    p_league_id: leagueId,
+  });
+
+  if (error || !data) return null;
+  return Date.parse(data as string);
 }
 
 export async function eliminarMiCuentaDB(

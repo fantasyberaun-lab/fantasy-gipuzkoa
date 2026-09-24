@@ -556,12 +556,12 @@ export default function AdminResultadosPage() {
                         <option value="victoria">Victoria</option>
                         <option value="tablas">Tablas</option>
                         <option value="derrota">Derrota</option>
-                        <option value="descanso">Sin emparejar (descansa)</option>
+                        <option value="descanso">Sin emparejar (1 pt)</option>
                       </select>
 
                       {esDescanso ? (
                         <p className="col-span-2 flex items-center text-xs text-neutral-500 sm:col-span-2">
-                          No juega en esta jornada y no suma puntos.
+                          No juega en esta jornada: no cuenta como partida y suma 1 punto Fantasy.
                         </p>
                       ) : (
                         <>
