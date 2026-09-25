@@ -11,7 +11,11 @@ alter table squad_slots add column if not exists clausula_extra numeric not null
 -- player_status: añade el total de cláusula (base 1.5x + extra del
 -- dueño actual) para que jugadores/clasificación muestren el precio
 -- real de clausulazo, no solo el 1.5x base.
-create or replace function public.player_status(p_league_id uuid)
+-- Postgres no permite cambiar las columnas de salida con CREATE OR
+-- REPLACE, así que hay que borrar la función anterior primero.
+drop function if exists public.player_status(uuid);
+
+create function public.player_status(p_league_id uuid)
 returns table (
   id uuid,
   nombre text,

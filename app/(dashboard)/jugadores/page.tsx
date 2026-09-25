@@ -16,7 +16,7 @@ export default function JugadoresPage() {
   const [busqueda, setBusqueda] = useState("");
   const [orden, setOrden] = useState<Orden>("puntos");
   const [enviando, setEnviando] = useState(false);
-  const [mensajePorJugador, setMensajePorJugador] = useState
+  const [mensajePorJugador, setMensajePorJugador] = useState<
     Record<string, { tipo: "ok" | "error"; texto: string }>
   >({});
 
