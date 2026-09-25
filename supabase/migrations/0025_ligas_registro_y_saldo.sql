@@ -23,6 +23,10 @@ $$;
 -- 2) mis_ligas() (0015) pasa a incluir el saldo de cada equipo, para
 --    que el selector de liga activa en el frontend no necesite una
 --    segunda consulta.
+-- Cambia el RETURNS TABLE (añade saldo), así que hay que borrarla antes
+-- de recrearla: CREATE OR REPLACE no permite cambiar el tipo de retorno.
+drop function if exists public.mis_ligas();
+
 create or replace function public.mis_ligas()
 returns table (
   liga_id uuid,
