@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import PasswordInput from "@/components/PasswordInput";
+import InstallPwaButton from "@/components/InstallPwaButton";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -42,6 +43,7 @@ export default function LoginPage() {
   }
 
   return (
+    <div className="flex flex-col gap-4">
     <form
       onSubmit={handleSubmit}
       className="flex flex-col gap-4 rounded-2xl border border-neutral-200 p-6 dark:border-neutral-800"
@@ -91,5 +93,8 @@ export default function LoginPage() {
         </Link>
       </p>
     </form>
+
+      <InstallPwaButton />
+    </div>
   );
 }

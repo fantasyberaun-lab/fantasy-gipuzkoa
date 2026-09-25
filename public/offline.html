@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sin conexión · Fantassy Gipuzkoa</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #050b1c;
+        color: #f4f1ea;
+        font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+        text-align: center;
+        padding: 24px;
+      }
+      .card {
+        max-width: 320px;
+      }
+      img {
+        width: 72px;
+        height: 72px;
+        border-radius: 16px;
+        margin-bottom: 16px;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0 0 8px;
+      }
+      p {
+        font-size: 14px;
+        color: #b7b2a6;
+        margin: 0;
+      }
+      button {
+        margin-top: 20px;
+        padding: 10px 20px;
+        border-radius: 10px;
+        border: none;
+        background: #7c3aed;
+        color: white;
+        font-size: 14px;
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <img src="/icons/icon-192.png" alt="Fantassy Gipuzkoa" />
+      <h1>Sin conexión</h1>
+      <p>No se ha podido cargar Fantassy Gipuzkoa. Comprueba tu conexión e inténtalo de nuevo.</p>
+      <button onclick="location.reload()">Reintentar</button>
+    </div>
+  </body>
+</html>
