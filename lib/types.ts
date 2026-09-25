@@ -101,3 +101,16 @@ export interface Notificacion {
   importe: number | null;
   creada: string;
 }
+
+// Resumen de una liga en la que el usuario tiene equipo (para el
+// selector de "liga activa" y la pantalla de crear/unirse).
+export interface LigaResumen {
+  ligaId: string;
+  nombre: string;
+  codigo: string;
+  miembros: number;
+  maxMiembros: number;
+  equipoId: string;
+  nombreEquipo: string;
+  saldo: number;
+}

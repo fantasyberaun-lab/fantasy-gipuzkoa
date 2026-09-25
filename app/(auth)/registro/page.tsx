@@ -13,7 +13,6 @@ export default function RegistroPage() {
   const supabase = createClient();
 
   const [nombre, setNombre] = useState("");
-  const [nombreEquipo, setNombreEquipo] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -51,16 +50,17 @@ export default function RegistroPage() {
       return;
     }
 
-    // "nombre" y "nombre_equipo" viajan en los metadatos del usuario;
-    // el trigger handle_new_user() (ver supabase/migrations/0002_auth.sql)
-    // los lee de ahí para crear su fila en profiles y su fantasy_team.
+    // "nombre" viaja en los metadatos del usuario; el trigger
+    // handle_new_user() (ver supabase/migrations/0025_*.sql) lo lee de
+    // ahí para crear su fila en profiles. Ya no se crea ningún equipo
+    // aquí: eso pasa después, al crear o unirse a una liga desde la
+    // pantalla que aparece nada más iniciar sesión (LigaGate).
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           nombre: nombreLimpio,
-          nombre_equipo: nombreEquipo,
         },
       },
     });
@@ -112,20 +112,6 @@ export default function RegistroPage() {
           spellCheck={false}
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
-        />
-      </div>
-
-      <div>
-        <label className="text-xs font-medium text-neutral-500">
-          Nombre de tu equipo Fantasy
-        </label>
-        <input
-          type="text"
-          required
-          value={nombreEquipo}
-          onChange={(e) => setNombreEquipo(e.target.value)}
-          placeholder="Ej. Ostadar taldea"
           className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
         />
       </div>

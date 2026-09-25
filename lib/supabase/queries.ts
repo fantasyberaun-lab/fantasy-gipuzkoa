@@ -3,8 +3,8 @@ import { gameConfig } from "@/lib/gameConfig";
 import type {
   Categoria,
   ClasificacionEntry,
-  EquipoManager,
   JugadorLiga,
+  LigaResumen,
   MercadoDelDia,
   Notificacion,
   OfertaPendiente,
@@ -18,24 +18,20 @@ type ResultadoAccion = { ok: true } | { ok: false; mensaje: string };
 
 // ---------- Lecturas ----------
 
-export async function fetchMiEquipo(
-  supabase: Supabase,
-  userId: string
-): Promise<EquipoManager | null> {
-  const { data, error } = await supabase
-    .from("fantasy_teams")
-    .select("id, league_id, nombre, presupuesto")
-    .eq("owner_id", userId)
-    .maybeSingle();
+export async function fetchMisLigas(supabase: Supabase): Promise<LigaResumen[]> {
+  const { data, error } = await supabase.rpc("mis_ligas");
+  if (error || !data) return [];
 
-  if (error || !data) return null;
-
-  return {
-    id: data.id,
-    leagueId: data.league_id,
-    nombreEquipo: data.nombre,
-    saldo: Number(data.presupuesto),
-  };
+  return (data as any[]).map((l) => ({
+    ligaId: l.liga_id,
+    nombre: l.nombre,
+    codigo: l.codigo,
+    miembros: l.miembros,
+    maxMiembros: l.max_miembros,
+    equipoId: l.equipo_id,
+    nombreEquipo: l.nombre_equipo,
+    saldo: Number(l.saldo),
+  }));
 }
 
 export async function fetchMiPlantilla(
@@ -474,4 +470,32 @@ export async function fetchClasificacion(
     esMiEquipo: miEquipoId ? e.equipo_id === miEquipoId : false,
     historialPuntos: (e.historial_puntos ?? []) as PuntosJornada[],
   }));
+}
+
+export async function crearLigaDB(
+  supabase: Supabase,
+  nombreLiga: string,
+  nombreEquipo: string
+): Promise<ResultadoAccion & { codigo?: string; liga_id?: string }> {
+  const { data, error } = await supabase.rpc("crear_liga", {
+    p_nombre_liga: nombreLiga,
+    p_nombre_equipo: nombreEquipo,
+  });
+
+  if (error) return { ok: false, mensaje: error.message };
+  return data as ResultadoAccion & { codigo?: string; liga_id?: string };
+}
+
+export async function unirseLigaDB(
+  supabase: Supabase,
+  codigo: string,
+  nombreEquipo: string
+): Promise<ResultadoAccion & { liga_id?: string }> {
+  const { data, error } = await supabase.rpc("unirse_liga", {
+    p_codigo: codigo,
+    p_nombre_equipo: nombreEquipo,
+  });
+
+  if (error) return { ok: false, mensaje: error.message };
+  return data as ResultadoAccion & { liga_id?: string };
 }

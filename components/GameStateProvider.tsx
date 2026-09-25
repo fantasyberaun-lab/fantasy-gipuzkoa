@@ -9,12 +9,13 @@ import {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
+  crearLigaDB,
   fetchClasificacion,
   fetchJugadoresLiga,
   fetchMercado,
-  fetchMiEquipo,
   fetchMiPlantilla,
   fetchMiRol,
+  fetchMisLigas,
   fetchMisOfertas,
   fetchNotificaciones,
   ficharJugadorDB,
@@ -24,12 +25,14 @@ import {
   pujarMercadoDB,
   subirClausulaDB,
   toggleTitularDB,
+  unirseLigaDB,
   venderJugadorDB,
 } from "@/lib/supabase/queries";
 import type {
   ClasificacionEntry,
   EquipoManager,
   JugadorLiga,
+  LigaResumen,
   MercadoDelDia,
   Notificacion,
   OfertaPendiente,
@@ -37,6 +40,7 @@ import type {
 } from "@/lib/types";
 
 const EQUIPO_VACIO: EquipoManager = { id: "", leagueId: "", nombreEquipo: "", saldo: 0 };
+const LIGA_ACTIVA_KEY = "liga-activa-id";
 
 export function calcularClausula(valorMercado: number) {
   return Math.ceil(valorMercado * 1.5);
@@ -49,6 +53,7 @@ interface GameState {
   tieneEquipo: boolean;
   esRoot: boolean;
   equipo: EquipoManager;
+  misLigas: LigaResumen[];
   squad: PlantillaSlot[];
   titulares: Record<string, boolean>;
   jugadoresLiga: JugadorLiga[];
@@ -56,9 +61,7 @@ interface GameState {
   ofertas: OfertaPendiente[];
   clasificacion: ClasificacionEntry[];
   notificaciones: Notificacion[];
-  // Instante (ms) de la última vez que abriste el panel de notificaciones.
   notificacionesVistasEn: number;
-  // Avisos nuevos desde entonces, sin contar los de tus propias acciones.
   notificacionesNoLeidas: number;
   marcarNotificacionesVistas: () => Promise<void>;
   toggleTitular: (id: string) => Promise<void>;
@@ -68,9 +71,31 @@ interface GameState {
   hacerOferta: (jugadorId: string, importe: number) => Promise<ResultadoAccion>;
   ficharJugador: (jugadorId: string) => Promise<ResultadoAccion>;
   pujarMercado: (listingId: string, importe: number) => Promise<ResultadoAccion>;
+  crearLiga: (
+    nombreLiga: string,
+    nombreEquipo: string
+  ) => Promise<ResultadoAccion & { codigo?: string }>;
+  unirseLiga: (codigo: string, nombreEquipo: string) => Promise<ResultadoAccion>;
+  cambiarLigaActiva: (ligaId: string) => Promise<void>;
 }
 
 const GameStateContext = createContext<GameState | null>(null);
+
+function leerLigaActivaGuardada(): string | null {
+  try {
+    return localStorage.getItem(LIGA_ACTIVA_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function guardarLigaActiva(ligaId: string) {
+  try {
+    localStorage.setItem(LIGA_ACTIVA_KEY, ligaId);
+  } catch {
+    // localStorage puede no estar disponible (modo privado, etc.) — no es crítico.
+  }
+}
 
 export function GameStateProvider({ children }: { children: ReactNode }) {
   const supabase = createClient();
@@ -79,6 +104,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const [tieneEquipo, setTieneEquipo] = useState(false);
   const [esRoot, setEsRoot] = useState(false);
   const [equipo, setEquipo] = useState<EquipoManager>(EQUIPO_VACIO);
+  const [misLigas, setMisLigas] = useState<LigaResumen[]>([]);
   const [squad, setSquad] = useState<PlantillaSlot[]>([]);
   const [titulares, setTitulares] = useState<Record<string, boolean>>({});
   const [jugadoresLiga, setJugadoresLiga] = useState<JugadorLiga[]>([]);
@@ -88,7 +114,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
   const [notificacionesVistasEn, setNotificacionesVistasEn] = useState(() => Date.now());
 
-  async function cargarTodo() {
+  async function cargarTodo(forzarLigaId?: string) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -98,21 +124,29 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const miEquipo = await fetchMiEquipo(supabase, user.id);
     const rol = await fetchMiRol(supabase, user.id);
     setEsRoot(rol === "root");
 
-    if (!miEquipo) {
-      // TODO: cuando existan varias ligas de verdad, esto pasa a
-      // significar "no tienes ningún equipo en ninguna liga todavía" —
-      // habrá que mandar a la pantalla de crear/unirse a liga en vez de
-      // solo marcar tieneEquipo = false.
+    const ligas = await fetchMisLigas(supabase);
+    setMisLigas(ligas);
+
+    if (ligas.length === 0) {
       setTieneEquipo(false);
       setCargando(false);
       return;
     }
 
+    const idGuardado = forzarLigaId ?? leerLigaActivaGuardada();
+    const ligaSeleccionada = ligas.find((l) => l.ligaId === idGuardado) ?? ligas[0];
+    guardarLigaActiva(ligaSeleccionada.ligaId);
+
     setTieneEquipo(true);
+    const miEquipo: EquipoManager = {
+      id: ligaSeleccionada.equipoId,
+      leagueId: ligaSeleccionada.ligaId,
+      nombreEquipo: ligaSeleccionada.nombreEquipo,
+      saldo: ligaSeleccionada.saldo,
+    };
     setEquipo(miEquipo);
 
     const [plantilla, ligaJugadores, misOfertas, jugadoresMercado, tabla, avisos] = await Promise.all([
@@ -284,6 +318,33 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     return resultado;
   }
 
+  async function crearLiga(
+    nombreLiga: string,
+    nombreEquipo: string
+  ): Promise<ResultadoAccion & { codigo?: string }> {
+    const resultado = await crearLigaDB(supabase, nombreLiga, nombreEquipo);
+    if (resultado.ok) {
+      if (resultado.liga_id) guardarLigaActiva(resultado.liga_id);
+      await cargarTodo(resultado.liga_id);
+    }
+    return resultado;
+  }
+
+  async function unirseLiga(codigo: string, nombreEquipo: string): Promise<ResultadoAccion> {
+    const resultado = await unirseLigaDB(supabase, codigo, nombreEquipo);
+    if (resultado.ok) {
+      if (resultado.liga_id) guardarLigaActiva(resultado.liga_id);
+      await cargarTodo(resultado.liga_id);
+    }
+    return resultado;
+  }
+
+  async function cambiarLigaActiva(ligaId: string) {
+    setCargando(true);
+    guardarLigaActiva(ligaId);
+    await cargarTodo(ligaId);
+  }
+
   return (
     <GameStateContext.Provider
       value={{
@@ -291,6 +352,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         tieneEquipo,
         esRoot,
         equipo,
+        misLigas,
         squad,
         titulares,
         jugadoresLiga,
@@ -308,6 +370,9 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         hacerOferta,
         ficharJugador,
         pujarMercado,
+        crearLiga,
+        unirseLiga,
+        cambiarLigaActiva,
       }}
     >
       {children}
