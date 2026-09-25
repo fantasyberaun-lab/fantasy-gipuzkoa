@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { PlantillaSlot } from "@/lib/types";
+import { gameConfig } from "@/lib/gameConfig";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 
 function iniciales(nombre: string) {
@@ -23,20 +24,27 @@ type Props = PlantillaSlot & {
   esTitular: boolean;
   onToggleTitular: () => void;
   onVender: () => void;
+  onSubirClausula: (importe: number) => Promise<{ ok: boolean; mensaje?: string }>;
 };
 
 export default function PlayerCard({
   jugador,
   puntosJornada,
   valorMercadoDelta,
+  clausula,
   resultadosRecientes,
   historialPuntos,
   esTitular,
   onToggleTitular,
   onVender,
+  onSubirClausula,
 }: Props) {
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
+  const [mostrarSubirClausula, setMostrarSubirClausula] = useState(false);
+  const [importeClausula, setImporteClausula] = useState("");
+  const [enviandoClausula, setEnviandoClausula] = useState(false);
+  const [errorClausula, setErrorClausula] = useState<string | null>(null);
 
   const deltaColor =
     valorMercadoDelta > 0
@@ -48,6 +56,26 @@ export default function PlayerCard({
   const confirmarVenta = () => {
     setMostrarConfirmacion(false);
     onVender();
+  };
+
+  const importeNumerico = Number(importeClausula) || 0;
+  const nuevaClausula = clausula + importeNumerico * gameConfig.subidaClausula.multiplicador;
+
+  const confirmarSubirClausula = async () => {
+    if (!importeNumerico || importeNumerico <= 0) {
+      setErrorClausula("Introduce un importe válido.");
+      return;
+    }
+    setEnviandoClausula(true);
+    setErrorClausula(null);
+    const resultado = await onSubirClausula(importeNumerico);
+    setEnviandoClausula(false);
+    if (resultado.ok) {
+      setMostrarSubirClausula(false);
+      setImporteClausula("");
+    } else {
+      setErrorClausula(resultado.mensaje ?? "No se ha podido subir la cláusula.");
+    }
   };
 
   return (
@@ -115,6 +143,13 @@ export default function PlayerCard({
         </div>
 
         <button
+          onClick={() => setMostrarSubirClausula(true)}
+          className="mt-2 w-full rounded-lg border border-sky-300 bg-white py-2 text-sm font-medium text-sky-700 hover:bg-sky-50 dark:border-sky-800 dark:bg-neutral-900 dark:text-sky-300"
+        >
+          Subir cláusula ({clausula} M)
+        </button>
+
+        <button
           onClick={() => setMostrarHistorial((prev) => !prev)}
           className="mt-2 flex w-full items-center justify-center gap-1 py-1 text-xs font-medium text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300"
         >
@@ -163,6 +198,64 @@ export default function PlayerCard({
                 className="flex-1 rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white dark:bg-white dark:text-neutral-900"
               >
                 Sí, vender
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {mostrarSubirClausula && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => {
+              setMostrarSubirClausula(false);
+              setErrorClausula(null);
+            }}
+          />
+          <div className="relative w-full max-w-sm rounded-t-2xl bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-xl dark:bg-neutral-900 sm:rounded-2xl sm:pb-5">
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-neutral-300 dark:bg-neutral-700 sm:hidden" />
+
+            <p className="text-base font-semibold">Subir cláusula de {jugador.nombre}</p>
+            <p className="mt-1 text-sm text-neutral-500">
+              Cláusula actual: {clausula} M. Cada M que pagues la sube{" "}
+              {gameConfig.subidaClausula.multiplicador} M.
+            </p>
+
+            <div className="mt-4">
+              <label className="text-xs font-medium text-neutral-500">Importe a pagar (M)</label>
+              <input
+                type="number"
+                value={importeClausula}
+                onChange={(e) => setImporteClausula(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+              />
+            </div>
+
+            {importeNumerico > 0 && (
+              <p className="mt-2 text-sm text-neutral-500">
+                Nueva cláusula: <span className="font-medium">{nuevaClausula} M</span>
+              </p>
+            )}
+
+            {errorClausula && <p className="mt-2 text-xs text-negative">{errorClausula}</p>}
+
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => {
+                  setMostrarSubirClausula(false);
+                  setErrorClausula(null);
+                }}
+                className="flex-1 rounded-lg border border-neutral-300 py-2.5 text-sm font-medium dark:border-neutral-700"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarSubirClausula}
+                disabled={enviandoClausula || !importeClausula}
+                className="flex-1 rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
+              >
+                {enviandoClausula ? "Pagando…" : "Confirmar"}
               </button>
             </div>
           </div>

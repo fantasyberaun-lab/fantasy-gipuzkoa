@@ -38,5 +38,8 @@ export const gameConfig = {
     porcentaje: 1.5, // 150% del valor de mercado
     redondeoAlMillonSuperior: true,
   },
+  subidaClausula: {
+    multiplicador: 2, // cada M pagado sube la cláusula este factor
+  },
   limiteOperacionesPorPeriodo: 3, // placeholder: lo fija la organización
 } as const;

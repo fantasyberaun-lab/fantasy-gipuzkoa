@@ -45,7 +45,7 @@ export async function fetchMiPlantilla(
   const { data: slots, error } = await supabase
     .from("squad_slots")
     .select(
-      "titular, players (id, nombre, club, categoria, elo, valor_mercado, activo)"
+      "titular, clausula_extra, players (id, nombre, club, categoria, elo, valor_mercado, activo)"
     )
     .eq("fantasy_team_id", equipoId)
     .is("fecha_salida", null);
@@ -118,6 +118,9 @@ export async function fetchMiPlantilla(
         },
         puntosJornada: masReciente ? masReciente.puntos : 0,
         valorMercadoDelta: 0,
+        clausula:
+          Math.ceil(Number(s.players.valor_mercado) * gameConfig.clausula.porcentaje) +
+          Number(s.clausula_extra ?? 0),
         resultadosRecientes: resultadosJugador
           .slice(-4)
           .map((r: any) => r.resultado as ResultadoPartida),
@@ -149,6 +152,7 @@ export async function fetchJugadoresLiga(
     puntosTotales: p.puntos_totales,
     propietario: p.propietario_nombre,
     esMiEquipo: miEquipoId ? p.propietario_team_id === miEquipoId : false,
+    clausula: Number(p.clausula),
     historialPuntos: (p.historial_puntos ?? []) as PuntosJornada[],
   }));
 }
@@ -358,6 +362,22 @@ export async function pagarClausulaDB(
   const { data, error } = await supabase.rpc("pagar_clausula", {
     p_player_id: playerId,
     p_league_id: leagueId,
+  });
+
+  if (error) return { ok: false, mensaje: error.message };
+  return data as ResultadoAccion;
+}
+
+export async function subirClausulaDB(
+  supabase: Supabase,
+  playerId: string,
+  leagueId: string,
+  importe: number
+): Promise<ResultadoAccion> {
+  const { data, error } = await supabase.rpc("subir_clausula", {
+    p_player_id: playerId,
+    p_league_id: leagueId,
+    p_importe: importe,
   });
 
   if (error) return { ok: false, mensaje: error.message };

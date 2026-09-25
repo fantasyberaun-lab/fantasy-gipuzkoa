@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { useGameState, calcularClausula } from "@/components/GameStateProvider";
+import { useGameState } from "@/components/GameStateProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 
 type Orden = "puntos" | "nombre" | "categoria";
@@ -16,7 +16,7 @@ export default function JugadoresPage() {
   const [busqueda, setBusqueda] = useState("");
   const [orden, setOrden] = useState<Orden>("puntos");
   const [enviando, setEnviando] = useState(false);
-  const [mensajePorJugador, setMensajePorJugador] = useState<
+  const [mensajePorJugador, setMensajePorJugador] = useState
     Record<string, { tipo: "ok" | "error"; texto: string }>
   >({});
 
@@ -233,7 +233,7 @@ export default function JugadoresPage() {
                           disabled={enviando}
                           className="flex-1 rounded-lg bg-neutral-900 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
                         >
-                          Pagar cláusula ({calcularClausula(jugador.valorMercado)} M)
+                          Pagar cláusula ({jugador.clausula} M)
                         </button>
                       </div>
 

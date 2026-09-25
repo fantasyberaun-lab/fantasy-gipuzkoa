@@ -35,6 +35,7 @@ export interface PlantillaSlot {
   jugador: Jugador;
   puntosJornada: number;
   valorMercadoDelta: number;
+  clausula: number;
   resultadosRecientes: ResultadoPartida[];
   esJugadorDeLaJornada?: boolean;
   historialPuntos: PuntosJornada[];
@@ -66,6 +67,7 @@ export interface JugadorLiga extends Jugador {
   puntosTotales: number;
   propietario: string | null;
   esMiEquipo?: boolean;
+  clausula: number;
   historialPuntos: PuntosJornada[];
 }
 
@@ -81,7 +83,7 @@ export interface OfertaPendiente {
   importe: number;
 }
 
-export type TipoNotificacion = "oferta_recibida" | "fichaje" | "clausulazo";
+export type TipoNotificacion = "oferta_recibida" | "fichaje" | "clausulazo" | "clausula_subida";
 
 // Un aviso del panel de notificaciones (ver 0022_notificaciones.sql).
 // "actor" es quien hace la acción (ofertar, fichar, pagar cláusula);

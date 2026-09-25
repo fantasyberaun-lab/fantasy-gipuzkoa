@@ -22,6 +22,7 @@ import {
   marcarNotificacionesVistasDB,
   pagarClausulaDB,
   pujarMercadoDB,
+  subirClausulaDB,
   toggleTitularDB,
   venderJugadorDB,
 } from "@/lib/supabase/queries";
@@ -63,6 +64,7 @@ interface GameState {
   toggleTitular: (id: string) => Promise<void>;
   venderJugador: (id: string, valorMercado: number) => Promise<ResultadoAccion>;
   pagarClausula: (jugadorId: string) => Promise<ResultadoAccion>;
+  subirClausula: (jugadorId: string, importe: number) => Promise<ResultadoAccion>;
   hacerOferta: (jugadorId: string, importe: number) => Promise<ResultadoAccion>;
   ficharJugador: (jugadorId: string) => Promise<ResultadoAccion>;
   pujarMercado: (listingId: string, importe: number) => Promise<ResultadoAccion>;
@@ -218,6 +220,25 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     return resultado;
   }
 
+  async function subirClausula(
+    jugadorId: string,
+    importe: number
+  ): Promise<ResultadoAccion> {
+    if (!equipo.leagueId) return { ok: false, mensaje: "No tienes equipo todavía." };
+    if (!Number.isFinite(importe) || importe <= 0) {
+      return { ok: false, mensaje: "Introduce un importe válido." };
+    }
+    if (importe > equipo.saldo) {
+      return {
+        ok: false,
+        mensaje: `No puedes pagar más de tu saldo disponible (${equipo.saldo} M).`,
+      };
+    }
+    const resultado = await subirClausulaDB(supabase, jugadorId, equipo.leagueId, importe);
+    if (resultado.ok) await cargarTodo();
+    return resultado;
+  }
+
   async function hacerOferta(
     jugadorId: string,
     importe: number
@@ -283,6 +304,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         toggleTitular,
         venderJugador,
         pagarClausula,
+        subirClausula,
         hacerOferta,
         ficharJugador,
         pujarMercado,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useGameState, calcularClausula } from "@/components/GameStateProvider";
+import { useGameState } from "@/components/GameStateProvider";
 
 // "total", o el id de una jornada concreta (la numeración de jornadas
 // empieza en 1 en cada torneo, así que el número solo no la identifica).
@@ -213,7 +213,7 @@ export default function ClasificacionPage() {
                             onClick={() => ejecutarClausula(jugador.id)}
                             className="flex-1 rounded-lg bg-neutral-900 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
                           >
-                            Pagar cláusula ({calcularClausula(jugador.valorMercado)} M)
+                            Pagar cláusula ({jugador.clausula} M)
                           </button>
                         </div>
 

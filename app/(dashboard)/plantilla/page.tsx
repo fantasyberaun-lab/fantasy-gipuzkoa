@@ -57,7 +57,7 @@ function ContadorSlots({
 }
 
 export default function PlantillaPage() {
-  const { squad, titulares, toggleTitular, venderJugador, cargando, tieneEquipo } =
+  const { squad, titulares, toggleTitular, venderJugador, subirClausula, cargando, tieneEquipo } =
     useGameState();
 
   if (cargando) {
@@ -121,6 +121,7 @@ export default function PlantillaPage() {
               esTitular={!!titulares[slot.jugador.id]}
               onToggleTitular={() => toggleTitular(slot.jugador.id)}
               onVender={() => venderJugador(slot.jugador.id, slot.jugador.valorMercado)}
+              onSubirClausula={(importe) => subirClausula(slot.jugador.id, importe)}
             />
           ))}
         </div>

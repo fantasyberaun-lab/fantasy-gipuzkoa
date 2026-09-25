@@ -18,6 +18,10 @@ const ETIQUETA: Record<Notificacion["tipo"], { texto: string; clases: string }> 
     texto: "Cláusula",
     clases: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
   },
+  clausula_subida: {
+    texto: "Cláusula ↑",
+    clases: "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300",
+  },
 };
 
 function hace(iso: string): string {
@@ -89,6 +93,15 @@ export default function NotificacionesPage() {
         <>
           {actor} ha fichado a {jugador(n)}
           {dinero(n)}.
+        </>
+      );
+    }
+
+    if (n.tipo === "clausula_subida") {
+      return (
+        <>
+          Has subido la cláusula de {jugador(n)}
+          {n.importe !== null ? ` en ${n.importe} M` : ""}.
         </>
       );
     }
