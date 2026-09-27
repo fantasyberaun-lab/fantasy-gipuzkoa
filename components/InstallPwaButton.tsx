@@ -11,7 +11,7 @@ import { usePwaInstall } from "./PwaProvider";
 export default function InstallPwaButton() {
   const { canInstall, isStandalone, platform, promptInstall } =
     usePwaInstall();
-  const [showIosHint, setShowIosHint] = useState(false);
+  const [showHint, setShowHint] = useState(false);
 
   if (isStandalone) return null;
 
@@ -29,23 +29,37 @@ export default function InstallPwaButton() {
     );
   }
 
-  // iOS Safari no dispara beforeinstallprompt: mostramos una pista breve.
-  if (platform === "ios") {
+  // iOS Safari no dispara beforeinstallprompt nunca. Chrome/Android sí
+  // puede hacerlo, pero depende de una heurística de "engagement" del
+  // navegador y a veces no llega a dispararse — antes, si no llegaba,
+  // el botón no aparecía en ningún sitio para Android. Para las dos
+  // plataformas mostramos el botón siempre, con instrucciones manuales
+  // como respaldo.
+  if (platform === "ios" || platform === "android") {
     return (
       <div className="mx-auto max-w-xs text-center">
         <button
           type="button"
-          onClick={() => setShowIosHint((v) => !v)}
+          onClick={() => setShowHint((v) => !v)}
           className="mx-auto flex items-center gap-1.5 rounded-full border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-500 transition hover:border-accent hover:text-accent dark:border-neutral-700 dark:text-neutral-400"
         >
           <DownloadIcon />
           Instalar app
         </button>
-        {showIosHint && (
+        {showHint && (
           <p className="mt-2 text-[11px] leading-snug text-neutral-500">
-            Pulsa el icono Compartir{" "}
-            <span aria-hidden>&#x2191;</span> de Safari y luego
-            &quot;Añadir a pantalla de inicio&quot;.
+            {platform === "ios" ? (
+              <>
+                Pulsa el icono Compartir{" "}
+                <span aria-hidden>&#x2191;</span> de Safari y luego
+                &quot;Añadir a pantalla de inicio&quot;.
+              </>
+            ) : (
+              <>
+                Abre el menú (⋮) de Chrome y toca &quot;Añadir a pantalla de
+                inicio&quot; o &quot;Instalar app&quot;.
+              </>
+            )}
           </p>
         )}
       </div>

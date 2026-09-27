@@ -62,6 +62,12 @@ export default function RegistroPage() {
         data: {
           nombre: nombreLimpio,
         },
+        // Sin esto, Supabase usa el "Site URL" configurado en el
+        // dashboard del proyecto (que en producción debe apuntar al
+        // dominio de Vercel, no a localhost) para el enlace del email
+        // de confirmación. Lo fijamos explícitamente aquí para que
+        // apunte siempre a donde se está sirviendo la app ahora mismo.
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 

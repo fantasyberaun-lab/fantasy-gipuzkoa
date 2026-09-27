@@ -3,6 +3,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { GameStateProvider } from "@/components/GameStateProvider";
 import EquipoHeader from "@/components/EquipoHeader";
 import LigaGate from "@/components/LigaGate";
+import InstallPwaButton from "@/components/InstallPwaButton";
 
 export default function DashboardLayout({
   children,
@@ -15,7 +16,10 @@ export default function DashboardLayout({
         <div className="mx-auto max-w-5xl px-4 pb-16 pt-6">
           <header className="mb-6 flex items-start justify-between gap-4">
             <EquipoHeader />
-            <ThemeToggle />
+            <div className="flex items-center gap-3">
+              <InstallPwaButton />
+              <ThemeToggle />
+            </div>
           </header>
 
           <TabNav />
