@@ -22,6 +22,7 @@ const puntoColor: Record<string, string> = {
 
 type Props = PlantillaSlot & {
   esTitular: boolean;
+  bloqueadoPorTope?: boolean;
   onToggleTitular: () => void;
   onVender: () => void;
   onSubirClausula: (importe: number) => Promise<{ ok: boolean; mensaje?: string }>;
@@ -35,6 +36,7 @@ export default function PlayerCard({
   resultadosRecientes,
   historialPuntos,
   esTitular,
+  bloqueadoPorTope = false,
   candado,
   onToggleTitular,
   onVender,
@@ -168,7 +170,13 @@ export default function PlayerCard({
         <div className="mt-3 flex gap-2">
           <button
             onClick={onToggleTitular}
-            className={`flex-1 rounded-lg border bg-white py-2 text-sm font-medium dark:bg-neutral-900 ${
+            disabled={bloqueadoPorTope}
+            title={
+              bloqueadoPorTope
+                ? "Ya tienes 3 titulares de Tercera — pasa a suplente a otro primero."
+                : undefined
+            }
+            className={`flex-1 rounded-lg border bg-white py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 dark:bg-neutral-900 ${
               esTitular
                 ? "border-red-300 text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-300"
                 : "border-green-300 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-300"

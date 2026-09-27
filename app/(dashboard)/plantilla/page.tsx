@@ -212,16 +212,25 @@ export default function PlantillaPage() {
         </p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
-          {squad.map((slot) => (
-            <PlayerCard
-              key={slot.jugador.id}
-              {...slot}
-              esTitular={!!titulares[slot.jugador.id]}
-              onToggleTitular={() => toggleTitular(slot.jugador.id)}
-              onVender={() => venderJugador(slot.jugador.id, slot.jugador.valorMercado)}
-              onSubirClausula={(importe) => subirClausula(slot.jugador.id, importe)}
-            />
-          ))}
+          {squad.map((slot) => {
+            const esTitular = !!titulares[slot.jugador.id];
+            const bloqueadoPorTope =
+              !esTitular &&
+              slot.jugador.categoria === 3 &&
+              jugadoresTerceraTitulares >= MAX_TERCERA;
+
+            return (
+              <PlayerCard
+                key={slot.jugador.id}
+                {...slot}
+                esTitular={esTitular}
+                bloqueadoPorTope={bloqueadoPorTope}
+                onToggleTitular={() => toggleTitular(slot.jugador.id)}
+                onVender={() => venderJugador(slot.jugador.id, slot.jugador.valorMercado)}
+                onSubirClausula={(importe) => subirClausula(slot.jugador.id, importe)}
+              />
+            );
+          })}
         </div>
       )}
     </div>
