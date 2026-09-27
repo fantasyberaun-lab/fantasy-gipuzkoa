@@ -41,7 +41,7 @@ export async function fetchMiPlantilla(
   const { data: slots, error } = await supabase
     .from("squad_slots")
     .select(
-      "titular, clausula_extra, players (id, nombre, club, categoria, elo, valor_mercado, activo)"
+      "titular, clausula_extra, candado, players (id, nombre, club, categoria, elo, valor_mercado, activo)"
     )
     .eq("fantasy_team_id", equipoId)
     .is("fecha_salida", null);
@@ -122,6 +122,7 @@ export async function fetchMiPlantilla(
           .map((r: any) => r.resultado as ResultadoPartida),
         historialPuntos,
         titular: Boolean(s.titular),
+        candado: Boolean(s.candado),
       };
     });
 }
@@ -149,6 +150,7 @@ export async function fetchJugadoresLiga(
     propietario: p.propietario_nombre,
     esMiEquipo: miEquipoId ? p.propietario_team_id === miEquipoId : false,
     clausula: Number(p.clausula),
+    candado: Boolean(p.candado),
     historialPuntos: (p.historial_puntos ?? []) as PuntosJornada[],
   }));
 }

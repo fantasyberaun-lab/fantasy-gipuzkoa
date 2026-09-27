@@ -39,6 +39,9 @@ export interface PlantillaSlot {
   resultadosRecientes: ResultadoPartida[];
   esJugadorDeLaJornada?: boolean;
   historialPuntos: PuntosJornada[];
+  // Fichado por clausulazo o mercado en la jornada actual: no se le puede
+  // hacer un clausulazo hasta que empiece la siguiente jornada.
+  candado?: boolean;
 }
 
 export interface MercadoListing {
@@ -68,6 +71,9 @@ export interface JugadorLiga extends Jugador {
   propietario: string | null;
   esMiEquipo?: boolean;
   clausula: number;
+  // Fichado por clausulazo o mercado en la jornada actual: no se le puede
+  // hacer un clausulazo hasta que empiece la siguiente jornada.
+  candado?: boolean;
   historialPuntos: PuntosJornada[];
 }
 

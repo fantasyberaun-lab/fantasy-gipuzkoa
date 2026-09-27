@@ -175,15 +175,38 @@ export default function JugadoresPage() {
                   <p className="text-xs text-neutral-500">
                     {jugador.club} · {jugador.categoria}ª cat. · Elo {jugador.elo}
                   </p>
-                  <p className="mt-0.5 text-xs text-neutral-500">
-                    {jugador.esMiEquipo
-                      ? "En tu plantilla"
-                      : jugador.propietario
-                        ? `Fichado por ${jugador.propietario}`
-                        : "Libre"}
-                    {ofertaActual && !jugador.esMiEquipo
-                      ? ` · Oferta enviada: ${ofertaActual.importe} M`
-                      : ""}
+                  <p className="mt-0.5 flex items-center gap-1 text-xs text-neutral-500">
+                    <span>
+                      {jugador.esMiEquipo
+                        ? "En tu plantilla"
+                        : jugador.propietario
+                          ? `Fichado por ${jugador.propietario}`
+                          : "Libre"}
+                      {ofertaActual && !jugador.esMiEquipo
+                        ? ` · Oferta enviada: ${ofertaActual.importe} M`
+                        : ""}
+                    </span>
+                    {jugador.candado && (
+                      <span
+                        title="Con candado: no se le puede hacer un clausulazo hasta la próxima jornada"
+                        className="flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
+                      >
+                        <svg
+                          className="h-2.5 w-2.5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                          />
+                        </svg>
+                        Candado
+                      </span>
+                    )}
                   </p>
                 </div>
                 <span className="text-sm font-semibold">{jugador.puntosTotales} pts</span>
@@ -230,12 +253,24 @@ export default function JugadoresPage() {
                         </button>
                         <button
                           onClick={() => onPagarClausula(jugador.id)}
-                          disabled={enviando}
+                          disabled={enviando || jugador.candado}
+                          title={
+                            jugador.candado
+                              ? "Con candado: no se le puede hacer un clausulazo hasta la próxima jornada"
+                              : undefined
+                          }
                           className="flex-1 rounded-lg bg-neutral-900 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
                         >
                           Pagar cláusula ({jugador.clausula} M)
                         </button>
                       </div>
+
+                      {jugador.candado && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                          Este jugador tiene un candado: se acaba de fichar y no se le puede
+                          hacer un clausulazo hasta la próxima jornada.
+                        </p>
+                      )}
 
                       {mensaje && (
                         <p

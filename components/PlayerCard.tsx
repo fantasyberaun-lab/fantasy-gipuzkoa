@@ -35,6 +35,7 @@ export default function PlayerCard({
   resultadosRecientes,
   historialPuntos,
   esTitular,
+  candado,
   onToggleTitular,
   onVender,
   onSubirClausula,
@@ -101,6 +102,27 @@ export default function PlayerCard({
               >
                 {esTitular ? "Titular" : "Suplente"}
               </span>
+              {candado && (
+                <span
+                  title="Con candado: no se le puede hacer un clausulazo hasta la próxima jornada"
+                  className="flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
+                >
+                  <svg
+                    className="h-3 w-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
+                  </svg>
+                  Candado
+                </span>
+              )}
             </div>
             <p className="text-sm text-neutral-500">
               {jugador.club} · {jugador.categoria}ª cat. · Elo {jugador.elo}
