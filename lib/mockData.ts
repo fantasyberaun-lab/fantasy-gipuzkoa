@@ -30,6 +30,7 @@ export const mockPlantilla: PlantillaSlot[] = [
     },
     puntosJornada: 7,
     valorMercadoDelta: 2,
+    clausula: 48,
     resultadosRecientes: ["victoria", "victoria", "victoria"],
     historialPuntos: [
       { jornada: 1, puntos: 4 },
@@ -53,6 +54,7 @@ export const mockPlantilla: PlantillaSlot[] = [
     },
     puntosJornada: 4,
     valorMercadoDelta: 1,
+    clausula: 42,
     resultadosRecientes: ["victoria", "victoria", "victoria", "tablas"],
     historialPuntos: [
       { jornada: 1, puntos: 3 },
@@ -185,6 +187,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     puntosTotales: 156,
     propietario: "Ostadar taldea",
     esMiEquipo: true,
+    clausula: 48,
     historialPuntos: [
       { jornada: 1, puntos: 4 },
       { jornada: 2, puntos: 7 },
@@ -206,6 +209,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     puntosTotales: 141,
     propietario: "Ostadar taldea",
     esMiEquipo: true,
+    clausula: 42,
     historialPuntos: [
       { jornada: 1, puntos: 3 },
       { jornada: 2, puntos: 5 },
@@ -226,6 +230,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 198,
     propietario: null,
+    clausula: 71,
     historialPuntos: [
       { jornada: 1, puntos: 7 },
       { jornada: 2, puntos: 9 },
@@ -246,6 +251,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 133,
     propietario: "Haizea BT",
+    clausula: 50,
     historialPuntos: [
       { jornada: 1, puntos: 3 },
       { jornada: 2, puntos: 4 },
@@ -266,6 +272,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 98,
     propietario: "Zurriola FC",
+    clausula: 32,
     historialPuntos: [
       { jornada: 1, puntos: 2 },
       { jornada: 2, puntos: 3 },
@@ -286,6 +293,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 62,
     propietario: null,
+    clausula: 21,
     historialPuntos: [
       { jornada: 1, puntos: 0 },
       { jornada: 2, puntos: 3 },
@@ -306,6 +314,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 128,
     propietario: "Haizea BT",
+    clausula: 45,
     historialPuntos: [
       { jornada: 1, puntos: 5 },
       { jornada: 2, puntos: 3 },
@@ -326,6 +335,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 119,
     propietario: "Haizea BT",
+    clausula: 41,
     historialPuntos: [
       { jornada: 1, puntos: 4 },
       { jornada: 2, puntos: 4 },
@@ -346,6 +356,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 87,
     propietario: "Haizea BT",
+    clausula: 29,
     historialPuntos: [
       { jornada: 1, puntos: 0 },
       { jornada: 2, puntos: 3 },
@@ -366,6 +377,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 58,
     propietario: "Haizea BT",
+    clausula: 23,
     historialPuntos: [
       { jornada: 1, puntos: 3 },
       { jornada: 2, puntos: 0 },
@@ -386,6 +398,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 51,
     propietario: "Haizea BT",
+    clausula: 20,
     historialPuntos: [
       { jornada: 1, puntos: 0 },
       { jornada: 2, puntos: 4 },
@@ -406,6 +419,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 122,
     propietario: "Zurriola FC",
+    clausula: 44,
     historialPuntos: [
       { jornada: 1, puntos: 5 },
       { jornada: 2, puntos: 5 },
@@ -426,6 +440,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 114,
     propietario: "Zurriola FC",
+    clausula: 39,
     historialPuntos: [
       { jornada: 1, puntos: 3 },
       { jornada: 2, puntos: 4 },
@@ -446,6 +461,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 82,
     propietario: "Zurriola FC",
+    clausula: 27,
     historialPuntos: [
       { jornada: 1, puntos: 0 },
       { jornada: 2, puntos: 3 },
@@ -466,6 +482,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 49,
     propietario: "Zurriola FC",
+    clausula: 18,
     historialPuntos: [
       { jornada: 1, puntos: 0 },
       { jornada: 2, puntos: 3 },
@@ -486,6 +503,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 45,
     propietario: "Zurriola FC",
+    clausula: 17,
     historialPuntos: [
       { jornada: 1, puntos: 3 },
       { jornada: 2, puntos: 0 },
@@ -506,6 +524,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 108,
     propietario: "Amaraberri",
+    clausula: 38,
     historialPuntos: [
       { jornada: 1, puntos: 3 },
       { jornada: 2, puntos: 5 },
@@ -526,6 +545,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 101,
     propietario: "Amaraberri",
+    clausula: 36,
     historialPuntos: [
       { jornada: 1, puntos: 4 },
       { jornada: 2, puntos: 0 },
@@ -546,6 +566,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 73,
     propietario: "Amaraberri",
+    clausula: 26,
     historialPuntos: [
       { jornada: 1, puntos: 0 },
       { jornada: 2, puntos: 3 },
@@ -566,6 +587,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 69,
     propietario: "Amaraberri",
+    clausula: 24,
     historialPuntos: [
       { jornada: 1, puntos: 3 },
       { jornada: 2, puntos: 0 },
@@ -586,6 +608,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 44,
     propietario: "Amaraberri",
+    clausula: 17,
     historialPuntos: [
       { jornada: 1, puntos: 0 },
       { jornada: 2, puntos: 3 },
@@ -606,6 +629,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 40,
     propietario: "Amaraberri",
+    clausula: 15,
     historialPuntos: [
       { jornada: 1, puntos: 3 },
       { jornada: 2, puntos: 0 },
@@ -626,6 +650,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 96,
     propietario: "Kresala AE",
+    clausula: 35,
     historialPuntos: [
       { jornada: 1, puntos: 3 },
       { jornada: 2, puntos: 4 },
@@ -646,6 +671,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 90,
     propietario: "Kresala AE",
+    clausula: 33,
     historialPuntos: [
       { jornada: 1, puntos: 4 },
       { jornada: 2, puntos: 0 },
@@ -666,6 +692,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 65,
     propietario: "Kresala AE",
+    clausula: 23,
     historialPuntos: [
       { jornada: 1, puntos: 0 },
       { jornada: 2, puntos: 3 },
@@ -686,6 +713,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 61,
     propietario: "Kresala AE",
+    clausula: 21,
     historialPuntos: [
       { jornada: 1, puntos: 3 },
       { jornada: 2, puntos: 0 },
@@ -706,6 +734,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 38,
     propietario: "Kresala AE",
+    clausula: 15,
     historialPuntos: [
       { jornada: 1, puntos: 0 },
       { jornada: 2, puntos: 3 },
@@ -726,6 +755,7 @@ export const mockJugadoresLiga: JugadorLiga[] = [
     activo: true,
     puntosTotales: 34,
     propietario: "Kresala AE",
+    clausula: 14,
     historialPuntos: [
       { jornada: 1, puntos: 3 },
       { jornada: 2, puntos: 0 },
