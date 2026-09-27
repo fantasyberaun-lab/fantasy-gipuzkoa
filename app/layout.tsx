@@ -3,9 +3,9 @@ import "./globals.css";
 import PwaProvider from "@/components/PwaProvider";
 
 export const metadata: Metadata = {
-  title: "Fantassy Gipuzkoa - Beraun",
+  title: "Fantasy Xake Gipuzkoa - Beraun",
   description:
-    "Fantasy de ajedrez basado en los Campeonatos de Gipuzkoa Individual.",
+    "Fantasy de ajedrez basado en los Campeonatos de Gipuzkoa",
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Fantassy Gipuzkoa",
+    title: "Beraun Fantasy",
   },
 };
 
