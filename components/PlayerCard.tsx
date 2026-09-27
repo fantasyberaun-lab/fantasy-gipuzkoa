@@ -102,7 +102,7 @@ export default function PlayerCard({
               >
                 {esTitular ? "Titular" : "Suplente"}
               </span>
-              {candado && (
+              {candado ? (
                 <span
                   title="Con candado: no se le puede hacer un clausulazo hasta la próxima jornada"
                   className="flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
@@ -121,6 +121,26 @@ export default function PlayerCard({
                     />
                   </svg>
                   Candado
+                </span>
+              ) : (
+                <span
+                  title="Clausulable: se le puede hacer un clausulazo ahora mismo"
+                  className="flex items-center gap-0.5 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800 dark:bg-sky-900/40 dark:text-sky-300"
+                >
+                  <svg
+                    className="h-3 w-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
+                    />
+                  </svg>
+                  Clausulable
                 </span>
               )}
             </div>
