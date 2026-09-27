@@ -9,6 +9,7 @@ import {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
+  aceptarOfertaDB,
   crearLigaDB,
   fetchClasificacion,
   fetchJugadoresLiga,
@@ -18,11 +19,13 @@ import {
   fetchMisLigas,
   fetchMisOfertas,
   fetchNotificaciones,
+  fetchOfertasRecibidas,
   ficharJugadorDB,
   hacerOfertaDB,
   marcarNotificacionesVistasDB,
   pagarClausulaDB,
   pujarMercadoDB,
+  rechazarOfertaDB,
   subirClausulaDB,
   toggleTitularDB,
   unirseLigaDB,
@@ -36,6 +39,7 @@ import type {
   MercadoDelDia,
   Notificacion,
   OfertaPendiente,
+  OfertaRecibida,
   PlantillaSlot,
 } from "@/lib/types";
 
@@ -59,6 +63,7 @@ interface GameState {
   jugadoresLiga: JugadorLiga[];
   mercado: MercadoDelDia[];
   ofertas: OfertaPendiente[];
+  ofertasRecibidas: OfertaRecibida[];
   clasificacion: ClasificacionEntry[];
   notificaciones: Notificacion[];
   notificacionesVistasEn: number;
@@ -69,6 +74,8 @@ interface GameState {
   pagarClausula: (jugadorId: string) => Promise<ResultadoAccion>;
   subirClausula: (jugadorId: string, importe: number) => Promise<ResultadoAccion>;
   hacerOferta: (jugadorId: string, importe: number) => Promise<ResultadoAccion>;
+  aceptarOferta: (ofertaId: string) => Promise<ResultadoAccion>;
+  rechazarOferta: (ofertaId: string) => Promise<ResultadoAccion>;
   ficharJugador: (jugadorId: string) => Promise<ResultadoAccion>;
   pujarMercado: (listingId: string, importe: number) => Promise<ResultadoAccion>;
   crearLiga: (
@@ -110,6 +117,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const [jugadoresLiga, setJugadoresLiga] = useState<JugadorLiga[]>([]);
   const [mercado, setMercado] = useState<MercadoDelDia[]>([]);
   const [ofertas, setOfertas] = useState<OfertaPendiente[]>([]);
+  const [ofertasRecibidas, setOfertasRecibidas] = useState<OfertaRecibida[]>([]);
   const [clasificacion, setClasificacion] = useState<ClasificacionEntry[]>([]);
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
   const [notificacionesVistasEn, setNotificacionesVistasEn] = useState(() => Date.now());
@@ -149,14 +157,16 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     };
     setEquipo(miEquipo);
 
-    const [plantilla, ligaJugadores, misOfertas, jugadoresMercado, tabla, avisos] = await Promise.all([
-      fetchMiPlantilla(supabase, miEquipo.id),
-      fetchJugadoresLiga(supabase, miEquipo.leagueId, miEquipo.id),
-      fetchMisOfertas(supabase, miEquipo.id),
-      fetchMercado(supabase, miEquipo.leagueId),
-      fetchClasificacion(supabase, miEquipo.leagueId, miEquipo.id),
-      fetchNotificaciones(supabase, miEquipo.leagueId, miEquipo.id),
-    ]);
+    const [plantilla, ligaJugadores, misOfertas, ofertasParaMi, jugadoresMercado, tabla, avisos] =
+      await Promise.all([
+        fetchMiPlantilla(supabase, miEquipo.id),
+        fetchJugadoresLiga(supabase, miEquipo.leagueId, miEquipo.id),
+        fetchMisOfertas(supabase, miEquipo.id),
+        fetchOfertasRecibidas(supabase, miEquipo.id),
+        fetchMercado(supabase, miEquipo.leagueId),
+        fetchClasificacion(supabase, miEquipo.leagueId, miEquipo.id),
+        fetchNotificaciones(supabase, miEquipo.leagueId, miEquipo.id),
+      ]);
 
     setSquad(plantilla.map(({ titular: _titular, ...resto }) => resto));
     setTitulares(
@@ -164,6 +174,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     );
     setJugadoresLiga(ligaJugadores);
     setOfertas(misOfertas);
+    setOfertasRecibidas(ofertasParaMi);
     setMercado(jugadoresMercado);
     setClasificacion(tabla);
     setNotificaciones(avisos.notificaciones);
@@ -292,6 +303,18 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     return resultado;
   }
 
+  async function aceptarOferta(ofertaId: string): Promise<ResultadoAccion> {
+    const resultado = await aceptarOfertaDB(supabase, ofertaId);
+    if (resultado.ok) await cargarTodo();
+    return resultado;
+  }
+
+  async function rechazarOferta(ofertaId: string): Promise<ResultadoAccion> {
+    const resultado = await rechazarOfertaDB(supabase, ofertaId);
+    if (resultado.ok) await cargarTodo();
+    return resultado;
+  }
+
   async function ficharJugador(jugadorId: string): Promise<ResultadoAccion> {
     if (!equipo.leagueId) return { ok: false, mensaje: "No tienes equipo todavía." };
     const resultado = await ficharJugadorDB(supabase, jugadorId, equipo.leagueId);
@@ -358,6 +381,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         jugadoresLiga,
         mercado,
         ofertas,
+        ofertasRecibidas,
         clasificacion,
         notificaciones,
         notificacionesVistasEn,
@@ -368,6 +392,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         pagarClausula,
         subirClausula,
         hacerOferta,
+        aceptarOferta,
+        rechazarOferta,
         ficharJugador,
         pujarMercado,
         crearLiga,

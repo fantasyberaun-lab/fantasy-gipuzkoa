@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import PlayerCard from "@/components/PlayerCard";
 import { useGameState } from "@/components/GameStateProvider";
+import type { OfertaRecibida } from "@/lib/types";
 
 const MAX_TERCERA = 3;
 const MAX_TITULARES = 6;
@@ -56,9 +58,103 @@ function ContadorSlots({
   );
 }
 
+function OfertasRecibidas({ ofertas }: { ofertas: OfertaRecibida[] }) {
+  const { aceptarOferta, rechazarOferta } = useGameState();
+  const [abierto, setAbierto] = useState(false);
+  const [enviandoId, setEnviandoId] = useState<string | null>(null);
+  const [errorPorOferta, setErrorPorOferta] = useState<Record<string, string>>({});
+
+  const onAceptar = async (id: string) => {
+    setEnviandoId(id);
+    setErrorPorOferta((prev) => ({ ...prev, [id]: "" }));
+    const resultado = await aceptarOferta(id);
+    setEnviandoId(null);
+    if (!resultado.ok) {
+      setErrorPorOferta((prev) => ({ ...prev, [id]: resultado.mensaje }));
+    }
+  };
+
+  const onRechazar = async (id: string) => {
+    setEnviandoId(id);
+    setErrorPorOferta((prev) => ({ ...prev, [id]: "" }));
+    const resultado = await rechazarOferta(id);
+    setEnviandoId(null);
+    if (!resultado.ok) {
+      setErrorPorOferta((prev) => ({ ...prev, [id]: resultado.mensaje }));
+    }
+  };
+
+  return (
+    <div className="mb-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
+      <button
+        onClick={() => setAbierto((v) => !v)}
+        className="flex w-full items-center justify-between p-3 text-left"
+      >
+        <span className="flex items-center gap-2 text-sm font-semibold">
+          Ofertas recibidas
+          {ofertas.length > 0 && (
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+              {ofertas.length}
+            </span>
+          )}
+        </span>
+        <span className="text-neutral-400">{abierto ? "▲" : "▼"}</span>
+      </button>
+
+      {abierto && (
+        <div className="flex flex-col gap-2 border-t border-neutral-200 p-3 dark:border-neutral-800">
+          {ofertas.length === 0 ? (
+            <p className="text-sm text-neutral-500">No hay ofertas recibidas.</p>
+          ) : (
+            ofertas.map((oferta) => (
+              <div
+                key={oferta.id}
+                className="flex flex-col gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-900/50 dark:bg-amber-900/10 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <p>
+                  <span className="font-medium">{oferta.equipoOferenteNombre}</span> te ofrece{" "}
+                  <span className="font-semibold">{oferta.importe} M</span> por{" "}
+                  <span className="font-medium">{oferta.jugadorNombre}</span>.
+                </p>
+                <div className="flex items-center gap-2">
+                  {errorPorOferta[oferta.id] && (
+                    <p className="text-xs text-negative">{errorPorOferta[oferta.id]}</p>
+                  )}
+                  <button
+                    onClick={() => onRechazar(oferta.id)}
+                    disabled={enviandoId === oferta.id}
+                    className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium disabled:opacity-40 dark:border-neutral-700"
+                  >
+                    Rechazar
+                  </button>
+                  <button
+                    onClick={() => onAceptar(oferta.id)}
+                    disabled={enviandoId === oferta.id}
+                    className="rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
+                  >
+                    Aceptar
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PlantillaPage() {
-  const { squad, titulares, toggleTitular, venderJugador, subirClausula, cargando, tieneEquipo } =
-    useGameState();
+  const {
+    squad,
+    titulares,
+    toggleTitular,
+    venderJugador,
+    subirClausula,
+    ofertasRecibidas,
+    cargando,
+    tieneEquipo,
+  } = useGameState();
 
   if (cargando) {
     return <p className="text-sm text-neutral-500">Cargando tu plantilla…</p>;
@@ -85,6 +181,8 @@ export default function PlantillaPage() {
 
   return (
     <div>
+      <OfertasRecibidas ofertas={ofertasRecibidas} />
+
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
         <ContadorSlots
           label="Titulares de Tercera"

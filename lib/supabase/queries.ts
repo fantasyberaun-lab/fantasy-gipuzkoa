@@ -8,6 +8,7 @@ import type {
   MercadoDelDia,
   Notificacion,
   OfertaPendiente,
+  OfertaRecibida,
   PlantillaSlot,
   PuntosJornada,
   ResultadoPartida,
@@ -233,6 +234,46 @@ export async function fetchMisOfertas(
   }));
 }
 
+// Ofertas directas que han recibido TUS jugadores (de otros equipos),
+// todavía pendientes de que decidas. Distinto de fetchMisOfertas, que
+// es al revés (lo que tú has ofertado por jugadores ajenos).
+export async function fetchOfertasRecibidas(
+  supabase: Supabase,
+  equipoId: string
+): Promise<OfertaRecibida[]> {
+  const { data: misSlots } = await supabase
+    .from("squad_slots")
+    .select("player_id")
+    .eq("fantasy_team_id", equipoId)
+    .is("fecha_salida", null);
+
+  const playerIds = (misSlots ?? []).map((s: any) => s.player_id);
+  if (playerIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from("player_offers")
+    .select(
+      "id, importe, created_at, player_id, equipo_oferente_id, players (nombre), fantasy_teams!equipo_oferente_id (nombre)"
+    )
+    .in("player_id", playerIds)
+    .eq("estado", "pendiente")
+    .order("created_at", { ascending: false });
+
+  if (error || !data) return [];
+
+  return (data as any[])
+    .filter((o) => o.players && o.fantasy_teams)
+    .map((o) => ({
+      id: o.id,
+      jugadorId: o.player_id,
+      jugadorNombre: o.players.nombre,
+      equipoOferenteId: o.equipo_oferente_id,
+      equipoOferenteNombre: o.fantasy_teams.nombre,
+      importe: Number(o.importe),
+      creada: o.created_at,
+    }));
+}
+
 export async function fetchNotificaciones(
   supabase: Supabase,
   leagueId: string,
@@ -430,6 +471,30 @@ export async function hacerOfertaDB(
 
   if (error) return { ok: false, mensaje: error.message };
   return { ok: true };
+}
+
+export async function aceptarOfertaDB(
+  supabase: Supabase,
+  ofertaId: string
+): Promise<ResultadoAccion> {
+  const { data, error } = await supabase.rpc("aceptar_oferta", {
+    p_offer_id: ofertaId,
+  });
+
+  if (error) return { ok: false, mensaje: error.message };
+  return data as ResultadoAccion;
+}
+
+export async function rechazarOfertaDB(
+  supabase: Supabase,
+  ofertaId: string
+): Promise<ResultadoAccion> {
+  const { data, error } = await supabase.rpc("rechazar_oferta", {
+    p_offer_id: ofertaId,
+  });
+
+  if (error) return { ok: false, mensaje: error.message };
+  return data as ResultadoAccion;
 }
 
 // Devuelve el instante (ms) que ha guardado el servidor como "visto".

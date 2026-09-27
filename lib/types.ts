@@ -89,7 +89,25 @@ export interface OfertaPendiente {
   importe: number;
 }
 
-export type TipoNotificacion = "oferta_recibida" | "fichaje" | "clausulazo" | "clausula_subida";
+// Oferta directa que ha recibido uno de TUS jugadores (jugador de otro
+// equipo en tu plantilla). Distinto de OfertaPendiente, que es al revés:
+// una oferta que TÚ has hecho por un jugador ajeno.
+export interface OfertaRecibida {
+  id: string;
+  jugadorId: string;
+  jugadorNombre: string;
+  equipoOferenteId: string;
+  equipoOferenteNombre: string;
+  importe: number;
+  creada: string;
+}
+
+export type TipoNotificacion =
+  | "oferta_recibida"
+  | "fichaje"
+  | "clausulazo"
+  | "clausula_subida"
+  | "oferta_rechazada";
 
 // Un aviso del panel de notificaciones (ver 0022_notificaciones.sql).
 // "actor" es quien hace la acción (ofertar, fichar, pagar cláusula);

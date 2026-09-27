@@ -22,6 +22,10 @@ const ETIQUETA: Record<Notificacion["tipo"], { texto: string; clases: string }> 
     texto: "Cláusula ↑",
     clases: "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300",
   },
+  oferta_rechazada: {
+    texto: "Oferta rechazada",
+    clases: "bg-neutral-200 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300",
+  },
 };
 
 function hace(iso: string): string {
@@ -106,6 +110,15 @@ export default function NotificacionesPage() {
       );
     }
 
+    if (n.tipo === "oferta_rechazada") {
+      return (
+        <>
+          Tu oferta por {jugador(n)}
+          {dinero(n)} ha sido rechazada.
+        </>
+      );
+    }
+
     // clausulazo
     if (yo) {
       return (
@@ -175,3 +188,4 @@ export default function NotificacionesPage() {
     </div>
   );
 }
+
