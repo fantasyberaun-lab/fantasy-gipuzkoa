@@ -7,7 +7,7 @@ export const gameConfig = {
   plantilla: {
     tamanoPlantilla: 10,
     minimoPrimeraSegunda: 7,
-    maximoTercera: 3,
+    maximoTercera: 2,
   },
   puntuacionPorDiferenciaElo: [
     { hasta: 29, victoria: 3, tablas: 1, derrota: 0 },

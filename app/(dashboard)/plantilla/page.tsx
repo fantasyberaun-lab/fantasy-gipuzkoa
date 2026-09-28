@@ -5,7 +5,7 @@ import PlayerCard from "@/components/PlayerCard";
 import { useGameState } from "@/components/GameStateProvider";
 import type { OfertaRecibida } from "@/lib/types";
 
-const MAX_TERCERA = 3;
+const MAX_TERCERA = 2;
 const MAX_TITULARES = 6;
 const MAX_PLANTILLA = 10;
 
@@ -192,7 +192,7 @@ export default function PlantillaPage() {
           label="Titulares de Tercera"
           actual={jugadoresTerceraTitulares}
           max={MAX_TERCERA}
-          avisoTope="Límite alcanzado — no puedes poner más de Tercera como titular."
+          avisoTope="Límite alcanzado — no puedes poner más jugadores de Tercera como titulares."
         />
         <ContadorSlots
           label="Titulares seleccionados"

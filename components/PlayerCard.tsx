@@ -237,7 +237,7 @@ export default function PlayerCard({
             disabled={bloqueadoPorTope}
             title={
               bloqueadoPorTope
-                ? "Ya tienes 3 titulares de Tercera — pasa a suplente a otro primero."
+                ? "Ya tienes 2 titulares de Tercera — pasa a suplente a otro primero."
                 : undefined
             }
             className={`flex-1 rounded-lg border bg-white py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 dark:bg-neutral-900 ${
