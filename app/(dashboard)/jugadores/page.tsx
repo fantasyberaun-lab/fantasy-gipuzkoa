@@ -5,7 +5,14 @@ import { useMemo, useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 
-type Orden = "puntos" | "nombre" | "categoria";
+type Orden =
+  | "puntos"
+  | "nombre"
+  | "categoria"
+  | "valor-desc"
+  | "valor-asc"
+  | "club-asc"
+  | "club-desc";
 
 export default function JugadoresPage() {
   const { jugadoresLiga, ofertas, pagarClausula, hacerOferta, cargando } =
@@ -24,7 +31,11 @@ export default function JugadoresPage() {
     const texto = busqueda.trim().toLowerCase();
 
     const filtrados = texto
-      ? jugadoresLiga.filter((j) => j.nombre.toLowerCase().includes(texto))
+      ? jugadoresLiga.filter(
+          (j) =>
+            j.nombre.toLowerCase().includes(texto) ||
+            j.club.toLowerCase().includes(texto)
+        )
       : jugadoresLiga;
 
     const copia = [...filtrados];
@@ -35,6 +46,14 @@ export default function JugadoresPage() {
       copia.sort((a, b) => a.nombre.localeCompare(b.nombre));
     } else if (orden === "categoria") {
       copia.sort((a, b) => a.categoria - b.categoria || a.nombre.localeCompare(b.nombre));
+    } else if (orden === "valor-desc") {
+      copia.sort((a, b) => b.valorMercado - a.valorMercado || a.nombre.localeCompare(b.nombre));
+    } else if (orden === "valor-asc") {
+      copia.sort((a, b) => a.valorMercado - b.valorMercado || a.nombre.localeCompare(b.nombre));
+    } else if (orden === "club-asc") {
+      copia.sort((a, b) => a.club.localeCompare(b.club) || a.nombre.localeCompare(b.nombre));
+    } else if (orden === "club-desc") {
+      copia.sort((a, b) => b.club.localeCompare(a.club) || a.nombre.localeCompare(b.nombre));
     }
 
     return copia;
@@ -103,7 +122,7 @@ export default function JugadoresPage() {
             type="text"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar jugador por nombre..."
+            placeholder="Buscar jugador o club..."
             className="w-full rounded-lg border border-neutral-300 py-2 pl-9 pr-3 text-sm dark:border-neutral-700 dark:bg-neutral-900"
           />
         </div>
@@ -116,6 +135,10 @@ export default function JugadoresPage() {
           <option value="puntos">Ordenar por puntos</option>
           <option value="nombre">Ordenar por nombre</option>
           <option value="categoria">Ordenar por categoría</option>
+          <option value="valor-desc">Valor: de mayor a menor</option>
+          <option value="valor-asc">Valor: de menor a mayor</option>
+          <option value="club-asc">Club: A → Z</option>
+          <option value="club-desc">Club: Z → A</option>
         </select>
       </div>
 
@@ -173,7 +196,7 @@ export default function JugadoresPage() {
                     </Link>
                   </p>
                   <p className="text-xs text-neutral-500">
-                    {jugador.club} · {jugador.categoria}ª cat. · Elo {jugador.elo}
+                    {jugador.club} · {jugador.categoria}ª cat. · Elo {jugador.elo} · Valor {jugador.valorMercado} M
                   </p>
                   <p className="mt-0.5 flex items-center gap-1 text-xs text-neutral-500">
                     <span>
