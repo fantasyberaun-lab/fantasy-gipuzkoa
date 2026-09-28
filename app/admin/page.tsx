@@ -273,6 +273,8 @@ export default function AdminJugadoresPage() {
                 <th className="px-3 py-2 font-medium">Cat.</th>
                 <th className="px-3 py-2 font-medium">Elo</th>
                 <th className="px-3 py-2 font-medium">Año nac.</th>
+                <th className="px-3 py-2 font-medium">Edad</th>
+                <th className="px-3 py-2 font-medium">Sexo</th>
                 <th className="px-3 py-2 font-medium">Valor (M)</th>
                 <th className="px-3 py-2 font-medium">Activo</th>
                 <th className="px-3 py-2 font-medium"></th>
@@ -349,6 +351,15 @@ export default function AdminJugadoresPage() {
                         className="w-20 rounded border border-transparent bg-transparent px-1 py-0.5 hover:border-neutral-300 focus:border-neutral-400 dark:hover:border-neutral-700"
                       />
                     </td>
+                    <td className="px-3 py-2 text-neutral-500">
+                      {(() => {
+                        const anio = valorActual(jugador, "anioNacimiento");
+                        return anio === null || anio === undefined
+                          ? "—"
+                          : new Date().getFullYear() - anio;
+                      })()}
+                    </td>
+                    <td className="px-3 py-2 text-neutral-500">{jugador.sexo ?? "—"}</td>
                     <td className="px-3 py-2">
                       <input
                         type="number"

@@ -18,9 +18,17 @@ export interface JugadorAdmin {
   categoria: Categoria;
   elo: number;
   anioNacimiento: number | null;
+  edad: number | null;
+  sexo: string | null;
   fideId: string | null;
   valorMercado: number;
   activo: boolean;
+}
+
+// Edad = año actual - año de nacimiento (misma cuenta que el Excel y que la
+// fórmula de valor de 0010).
+function edadDesdeAnio(anio: number | null): number | null {
+  return anio === null ? null : new Date().getFullYear() - anio;
 }
 
 export async function fetchTodosLosJugadores(
@@ -28,12 +36,20 @@ export async function fetchTodosLosJugadores(
 ): Promise<JugadorAdmin[]> {
   const { data, error } = await supabase
     .from("players")
-    .select(
-      "id, nombre, club, categoria, elo, anio_nacimiento, fide_id, valor_mercado, activo"
-    )
+    .select("id, nombre, club, categoria, elo, sexo, fide_id, valor_mercado, activo")
     .order("nombre");
 
   if (error || !data) return [];
+
+  // Año de nacimiento y edad ya no se pueden leer directamente de `players`
+  // (ver 0031_privacidad_menores.sql): solo la vista los devuelve, y solo a root.
+  const { data: fichas } = await supabase
+    .from("jugadores_ficha")
+    .select("id, anio_nacimiento, edad");
+  const nacimientos = new Map<string, { anio: number | null; edad: number | null }>();
+  for (const f of (fichas ?? []) as any[]) {
+    nacimientos.set(f.id, { anio: f.anio_nacimiento ?? null, edad: f.edad ?? null });
+  }
 
   return data.map((p: any) => ({
     id: p.id,
@@ -41,7 +57,9 @@ export async function fetchTodosLosJugadores(
     club: p.club ?? "",
     categoria: Number(p.categoria) as Categoria,
     elo: p.elo,
-    anioNacimiento: p.anio_nacimiento ?? null,
+    anioNacimiento: nacimientos.get(p.id)?.anio ?? null,
+    edad: nacimientos.get(p.id)?.edad ?? null,
+    sexo: p.sexo ?? null,
     fideId: p.fide_id,
     valorMercado: Number(p.valor_mercado),
     activo: p.activo,
@@ -58,8 +76,10 @@ export async function actualizarJugadorDB(
   if (cambios.club !== undefined) payload.club = cambios.club;
   if (cambios.categoria !== undefined) payload.categoria = cambios.categoria;
   if (cambios.elo !== undefined) payload.elo = cambios.elo;
-  if (cambios.anioNacimiento !== undefined)
+  if (cambios.anioNacimiento !== undefined) {
     payload.anio_nacimiento = cambios.anioNacimiento;
+    payload.edad = edadDesdeAnio(cambios.anioNacimiento);
+  }
   if (cambios.fideId !== undefined) payload.fide_id = cambios.fideId;
   if (cambios.valorMercado !== undefined)
     payload.valor_mercado = cambios.valorMercado;
@@ -96,6 +116,7 @@ export async function crearJugadorDB(
     categoria: datos.categoria,
     elo: datos.elo,
     anio_nacimiento: datos.anioNacimiento,
+    edad: edadDesdeAnio(datos.anioNacimiento),
     valor_mercado: Number(valor),
     activo: true,
   });

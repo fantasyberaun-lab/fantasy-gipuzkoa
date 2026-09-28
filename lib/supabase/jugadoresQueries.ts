@@ -36,7 +36,11 @@ export interface PerfilJugador {
   club: string;
   categoria: Categoria;
   elo: number;
-  anioNacimiento: number | null;
+  // Texto ya preparado por la base de datos (vista jugadores_ficha): "sub20"
+  // para menores de 20 años, o "2004 (22 años)" para el resto. El año de
+  // nacimiento real de un menor nunca llega al navegador.
+  nacimiento: string | null;
+  sexo: string | null;
   fideId: string | null;
   valorMercado: number;
   activo: boolean;
@@ -49,11 +53,17 @@ export async function fetchPerfilJugador(
 ): Promise<PerfilJugador | null> {
   const { data: p, error } = await supabase
     .from("players")
-    .select("id, nombre, club, categoria, elo, anio_nacimiento, fide_id, valor_mercado, activo")
+    .select("id, nombre, club, categoria, elo, sexo, fide_id, valor_mercado, activo")
     .eq("id", playerId)
     .maybeSingle();
 
   if (error || !p) return null;
+
+  const { data: ficha } = await supabase
+    .from("jugadores_ficha")
+    .select("nacimiento_texto")
+    .eq("id", playerId)
+    .maybeSingle();
 
   const [{ data: inscripciones }, { data: resultados }, { data: descansos }] =
     await Promise.all([
@@ -147,7 +157,8 @@ export async function fetchPerfilJugador(
     club: p.club ?? "",
     categoria: Number(p.categoria) as Categoria,
     elo: p.elo,
-    anioNacimiento: p.anio_nacimiento ?? null,
+    nacimiento: ficha?.nacimiento_texto ?? null,
+    sexo: p.sexo ?? null,
     fideId: p.fide_id ?? null,
     valorMercado: Number(p.valor_mercado),
     activo: p.activo,

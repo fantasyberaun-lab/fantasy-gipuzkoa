@@ -227,7 +227,8 @@ function PerfilJugadorContenido() {
         <Dato etiqueta="Club" valor={perfil.club} />
         <Dato etiqueta="Categoría" valor={`${perfil.categoria}ª`} />
         <Dato etiqueta="Elo" valor={perfil.elo} />
-        <Dato etiqueta="Año de nacimiento" valor={perfil.anioNacimiento} />
+        <Dato etiqueta="Nacimiento" valor={perfil.nacimiento} />
+        <Dato etiqueta="Sexo" valor={perfil.sexo === "F" ? "Mujer" : perfil.sexo === "M" ? "Hombre" : null} />
         <Dato etiqueta="ID FIDE" valor={perfil.fideId} />
         <Dato etiqueta="Valor de mercado" valor={`${perfil.valorMercado} M`} />
         {enLiga && (
