@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
 import LigaForm from "@/components/LigaForm";
+import CopiarCodigoButton from "@/components/CopiarCodigoButton";
 
 export default function CambiarLigaModal({ onCerrar }: { onCerrar: () => void }) {
   const { misLigas, equipo, cambiarLigaActiva } = useGameState();
@@ -33,25 +34,30 @@ export default function CambiarLigaModal({ onCerrar }: { onCerrar: () => void })
             <p className="mb-3 text-base font-semibold">Tus ligas</p>
             <div className="flex flex-col gap-2">
               {misLigas.map((liga) => (
-                <button
+                <div
                   key={liga.ligaId}
-                  onClick={() => seleccionar(liga.ligaId)}
-                  className={`flex items-center justify-between rounded-lg border px-3 py-2 text-left text-sm ${
+                  className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
                     liga.ligaId === equipo.leagueId
                       ? "border-accent bg-accent/10"
                       : "border-neutral-200 dark:border-neutral-800"
                   }`}
                 >
-                  <div>
-                    <p className="font-medium">{liga.nombre}</p>
+                  <button
+                    onClick={() => seleccionar(liga.ligaId)}
+                    className="flex-1 text-left"
+                  >
+                    <p className="font-medium">
+                      {liga.nombre}
+                      {liga.ligaId === equipo.leagueId && (
+                        <span className="ml-2 text-xs font-medium text-accent">Activa</span>
+                      )}
+                    </p>
                     <p className="text-xs text-neutral-500">
                       {liga.nombreEquipo} · {liga.miembros}/{liga.maxMiembros} · código {liga.codigo} · {liga.saldo} M
                     </p>
-                  </div>
-                  {liga.ligaId === equipo.leagueId && (
-                    <span className="text-xs font-medium text-accent">Activa</span>
-                  )}
-                </button>
+                  </button>
+                  <CopiarCodigoButton codigo={liga.codigo} />
+                </div>
               ))}
             </div>
 

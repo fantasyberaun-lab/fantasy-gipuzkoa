@@ -22,8 +22,13 @@ const puntoColor: Record<string, string> = {
 
 type Props = PlantillaSlot & {
   esTitular: boolean;
+  esCapitan?: boolean;
   bloqueadoPorTope?: boolean;
+  // Ya has blindado a otro jugador esta jornada (solo se permite uno).
+  blindajeAgotado?: boolean;
   onToggleTitular: () => void;
+  onToggleCapitan: () => Promise<{ ok: boolean; mensaje?: string }>;
+  onBlindar: () => Promise<{ ok: boolean; mensaje?: string }>;
   onVender: () => void;
   onSubirClausula: (importe: number) => Promise<{ ok: boolean; mensaje?: string }>;
 };
@@ -36,9 +41,14 @@ export default function PlayerCard({
   resultadosRecientes,
   historialPuntos,
   esTitular,
+  esCapitan = false,
   bloqueadoPorTope = false,
+  blindajeAgotado = false,
   candado,
+  blindado,
   onToggleTitular,
+  onToggleCapitan,
+  onBlindar,
   onVender,
   onSubirClausula,
 }: Props) {
@@ -48,6 +58,12 @@ export default function PlayerCard({
   const [importeClausula, setImporteClausula] = useState("");
   const [enviandoClausula, setEnviandoClausula] = useState(false);
   const [errorClausula, setErrorClausula] = useState<string | null>(null);
+  const [mostrarBlindaje, setMostrarBlindaje] = useState(false);
+  const [enviandoBlindaje, setEnviandoBlindaje] = useState(false);
+  const [errorBlindaje, setErrorBlindaje] = useState<string | null>(null);
+  const [errorCapitan, setErrorCapitan] = useState<string | null>(null);
+
+  const precioBlindaje = Math.ceil(jugador.valorMercado * gameConfig.blindaje.porcentaje);
 
   const deltaColor =
     valorMercadoDelta > 0
@@ -59,6 +75,26 @@ export default function PlayerCard({
   const confirmarVenta = () => {
     setMostrarConfirmacion(false);
     onVender();
+  };
+
+  const cambiarCapitan = async () => {
+    setErrorCapitan(null);
+    const resultado = await onToggleCapitan();
+    if (!resultado.ok) {
+      setErrorCapitan(resultado.mensaje ?? "No se ha podido cambiar el capitán.");
+    }
+  };
+
+  const confirmarBlindaje = async () => {
+    setEnviandoBlindaje(true);
+    setErrorBlindaje(null);
+    const resultado = await onBlindar();
+    setEnviandoBlindaje(false);
+    if (resultado.ok) {
+      setMostrarBlindaje(false);
+    } else {
+      setErrorBlindaje(resultado.mensaje ?? "No se ha podido blindar al jugador.");
+    }
   };
 
   const importeNumerico = Number(importeClausula) || 0;
@@ -104,7 +140,35 @@ export default function PlayerCard({
               >
                 {esTitular ? "Titular" : "Suplente"}
               </span>
-              {candado ? (
+              {esCapitan && (
+                <span
+                  title={`Capitán: puntúa x${gameConfig.capitan.multiplicador} esta jornada`}
+                  className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-bold text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300"
+                >
+                  C · x{gameConfig.capitan.multiplicador}
+                </span>
+              )}
+              {blindado ? (
+                <span
+                  title="Blindado: no se le puede hacer un clausulazo hasta la próxima jornada"
+                  className="flex items-center gap-0.5 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-800 dark:bg-violet-900/40 dark:text-violet-300"
+                >
+                  <svg
+                    className="h-3 w-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+                    />
+                  </svg>
+                  Blindado
+                </span>
+              ) : candado ? (
                 <span
                   title="Con candado: no se le puede hacer un clausulazo hasta la próxima jornada"
                   className="flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
@@ -192,6 +256,45 @@ export default function PlayerCard({
           </button>
         </div>
 
+        <div className="mt-2 flex gap-2">
+          <button
+            onClick={cambiarCapitan}
+            disabled={!esTitular}
+            title={
+              !esTitular
+                ? "Solo un titular puede ser capitán."
+                : esCapitan
+                  ? "Quitar la capitanía"
+                  : `El capitán puntúa x${gameConfig.capitan.multiplicador} esta jornada`
+            }
+            className={`flex-1 rounded-lg border py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
+              esCapitan
+                ? "border-yellow-400 bg-yellow-50 text-yellow-800 dark:border-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-300"
+                : "border-yellow-300 bg-white text-yellow-700 hover:bg-yellow-50 dark:border-yellow-800 dark:bg-neutral-900 dark:text-yellow-300"
+            }`}
+          >
+            {esCapitan ? "Quitar capitán" : "Capitán"}
+          </button>
+          <button
+            onClick={() => {
+              setErrorBlindaje(null);
+              setMostrarBlindaje(true);
+            }}
+            disabled={!!blindado || blindajeAgotado}
+            title={
+              blindado
+                ? "Ya está blindado hasta la próxima jornada"
+                : blindajeAgotado
+                  ? "Ya has blindado a otro jugador esta jornada (solo se permite uno)"
+                  : "Evita que te lo puedan clausular hasta la próxima jornada"
+            }
+            className="flex-1 rounded-lg border border-violet-300 bg-white py-2 text-sm font-medium text-violet-700 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-violet-800 dark:bg-neutral-900 dark:text-violet-300"
+          >
+            {blindado ? "Blindado" : `Blindar (${precioBlindaje} M)`}
+          </button>
+        </div>
+        {errorCapitan && <p className="mt-1 text-xs text-negative">{errorCapitan}</p>}
+
         <button
           onClick={() => setMostrarSubirClausula(true)}
           className="mt-2 w-full rounded-lg border border-sky-300 bg-white py-2 text-sm font-medium text-sky-700 hover:bg-sky-50 dark:border-sky-800 dark:bg-neutral-900 dark:text-sky-300"
@@ -248,6 +351,47 @@ export default function PlayerCard({
                 className="flex-1 rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white dark:bg-white dark:text-neutral-900"
               >
                 Sí, vender
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {mostrarBlindaje && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setMostrarBlindaje(false)}
+          />
+          <div className="relative w-full max-w-sm rounded-t-2xl bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-xl dark:bg-neutral-900 sm:rounded-2xl sm:pb-5">
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-neutral-300 dark:bg-neutral-700 sm:hidden" />
+
+            <p className="text-base font-semibold">Blindar a {jugador.nombre}</p>
+            <p className="mt-1 text-sm text-neutral-500">
+              Pagarás {precioBlindaje} M ({Math.round(gameConfig.blindaje.porcentaje * 100)} % de su
+              valor). Nadie podrá hacerle un clausulazo hasta que empiece la próxima jornada.
+            </p>
+            <p className="mt-2 rounded-lg bg-violet-50 p-3 text-xs text-violet-800 dark:bg-violet-900/20 dark:text-violet-300">
+              Solo puedes blindar a <span className="font-semibold">un jugador por jornada</span>.
+              Una vez lo blindes no podrás blindar a otro hasta que empiece la siguiente jornada,
+              aunque vendas al jugador blindado.
+            </p>
+
+            {errorBlindaje && <p className="mt-2 text-xs text-negative">{errorBlindaje}</p>}
+
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => setMostrarBlindaje(false)}
+                className="flex-1 rounded-lg border border-neutral-300 py-2.5 text-sm font-medium dark:border-neutral-700"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarBlindaje}
+                disabled={enviandoBlindaje}
+                className="flex-1 rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
+              >
+                {enviandoBlindaje ? "Pagando…" : "Confirmar"}
               </button>
             </div>
           </div>

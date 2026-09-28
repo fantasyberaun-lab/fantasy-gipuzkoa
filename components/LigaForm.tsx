@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
+import CopiarCodigoButton from "@/components/CopiarCodigoButton";
 
 type Modo = "elegir" | "crear" | "unirse";
 
@@ -58,6 +59,7 @@ export default function LigaForm({
         <p className="mt-4 rounded-xl border border-neutral-200 py-4 text-3xl font-bold tracking-widest dark:border-neutral-800">
           {codigoCreado}
         </p>
+        <CopiarCodigoButton codigo={codigoCreado} className="mt-3" />
         <button
           onClick={() => onExito?.()}
           className="mt-6 w-full rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white dark:bg-white dark:text-neutral-900"

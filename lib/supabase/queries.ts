@@ -38,11 +38,11 @@ export async function fetchMisLigas(supabase: Supabase): Promise<LigaResumen[]> 
 export async function fetchMiPlantilla(
   supabase: Supabase,
   equipoId: string
-): Promise<(PlantillaSlot & { titular: boolean })[]> {
+): Promise<(PlantillaSlot & { titular: boolean; capitan: boolean })[]> {
   const { data: slots, error } = await supabase
     .from("squad_slots")
     .select(
-      "titular, clausula_extra, candado, players (id, nombre, club, categoria, elo, valor_mercado, activo)"
+      "titular, capitan, clausula_extra, candado, blindado, players (id, nombre, club, categoria, elo, valor_mercado, activo)"
     )
     .eq("fantasy_team_id", equipoId)
     .is("fecha_salida", null);
@@ -123,7 +123,9 @@ export async function fetchMiPlantilla(
           .map((r: any) => r.resultado as ResultadoPartida),
         historialPuntos,
         titular: Boolean(s.titular),
+        capitan: Boolean(s.capitan),
         candado: Boolean(s.candado),
+        blindado: Boolean(s.blindado),
       };
     });
 }
@@ -152,6 +154,7 @@ export async function fetchJugadoresLiga(
     esMiEquipo: miEquipoId ? p.propietario_team_id === miEquipoId : false,
     clausula: Number(p.clausula),
     candado: Boolean(p.candado),
+    blindado: Boolean(p.blindado),
     historialPuntos: (p.historial_puntos ?? []) as PuntosJornada[],
   }));
 }
@@ -349,6 +352,39 @@ export async function toggleTitularDB(
 
   if (error) return { ok: false, mensaje: error.message };
   return { ok: true };
+}
+
+// Nombra (o quita) al capitán. La base de datos se encarga de que solo haya
+// uno por equipo y de que sea titular (ver validar_capitan en 0033).
+export async function toggleCapitanDB(
+  supabase: Supabase,
+  equipoId: string,
+  playerId: string,
+  nuevoValor: boolean
+): Promise<ResultadoAccion> {
+  const { error } = await supabase
+    .from("squad_slots")
+    .update({ capitan: nuevoValor })
+    .eq("fantasy_team_id", equipoId)
+    .eq("player_id", playerId)
+    .is("fecha_salida", null);
+
+  if (error) return { ok: false, mensaje: error.message };
+  return { ok: true };
+}
+
+export async function blindarJugadorDB(
+  supabase: Supabase,
+  playerId: string,
+  leagueId: string
+): Promise<ResultadoAccion> {
+  const { data, error } = await supabase.rpc("blindar_jugador", {
+    p_player_id: playerId,
+    p_league_id: leagueId,
+  });
+
+  if (error) return { ok: false, mensaje: error.message };
+  return data as ResultadoAccion;
 }
 
 export async function venderJugadorDB(

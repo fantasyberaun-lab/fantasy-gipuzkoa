@@ -41,5 +41,16 @@ export const gameConfig = {
   subidaClausula: {
     multiplicador: 2, // cada M pagado sube la cláusula este factor
   },
+  // Capitán: un titular por equipo puntúa doble en la jornada.
+  // Mantener igual que multiplicador_capitan() en 0033_capitan_y_blindaje.sql.
+  capitan: {
+    multiplicador: 2,
+  },
+  // Blindaje: el jugador no puede ser clausulado hasta la siguiente jornada.
+  // Cuesta este porcentaje del valor de mercado, redondeado al millón superior.
+  // Mantener igual que porcentaje_blindaje() en 0033_capitan_y_blindaje.sql.
+  blindaje: {
+    porcentaje: 0.1,
+  },
   limiteOperacionesPorPeriodo: 3, // placeholder: lo fija la organización
 } as const;

@@ -148,7 +148,10 @@ export default function PlantillaPage() {
   const {
     squad,
     titulares,
+    capitanId,
     toggleTitular,
+    toggleCapitan,
+    blindarJugador,
     venderJugador,
     subirClausula,
     ofertasRecibidas,
@@ -178,6 +181,7 @@ export default function PlantillaPage() {
   ).length;
 
   const totalPlantilla = squad.length;
+  const hayBlindado = squad.some((slot) => slot.blindado);
 
   return (
     <div>
@@ -224,8 +228,12 @@ export default function PlantillaPage() {
                 key={slot.jugador.id}
                 {...slot}
                 esTitular={esTitular}
+                esCapitan={capitanId === slot.jugador.id}
                 bloqueadoPorTope={bloqueadoPorTope}
+                blindajeAgotado={hayBlindado && !slot.blindado}
                 onToggleTitular={() => toggleTitular(slot.jugador.id)}
+                onToggleCapitan={() => toggleCapitan(slot.jugador.id)}
+                onBlindar={() => blindarJugador(slot.jugador.id)}
                 onVender={() => venderJugador(slot.jugador.id, slot.jugador.valorMercado)}
                 onSubirClausula={(importe) => subirClausula(slot.jugador.id, importe)}
               />

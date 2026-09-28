@@ -10,6 +10,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import {
   aceptarOfertaDB,
+  blindarJugadorDB,
   crearLigaDB,
   fetchClasificacion,
   fetchJugadoresLiga,
@@ -27,6 +28,7 @@ import {
   pujarMercadoDB,
   rechazarOfertaDB,
   subirClausulaDB,
+  toggleCapitanDB,
   toggleTitularDB,
   unirseLigaDB,
   venderJugadorDB,
@@ -60,6 +62,8 @@ interface GameState {
   misLigas: LigaResumen[];
   squad: PlantillaSlot[];
   titulares: Record<string, boolean>;
+  // Id del jugador capitán (puntúa doble), o null si no hay.
+  capitanId: string | null;
   jugadoresLiga: JugadorLiga[];
   mercado: MercadoDelDia[];
   ofertas: OfertaPendiente[];
@@ -70,6 +74,8 @@ interface GameState {
   notificacionesNoLeidas: number;
   marcarNotificacionesVistas: () => Promise<void>;
   toggleTitular: (id: string) => Promise<void>;
+  toggleCapitan: (id: string) => Promise<ResultadoAccion>;
+  blindarJugador: (jugadorId: string) => Promise<ResultadoAccion>;
   venderJugador: (id: string, valorMercado: number) => Promise<ResultadoAccion>;
   pagarClausula: (jugadorId: string) => Promise<ResultadoAccion>;
   subirClausula: (jugadorId: string, importe: number) => Promise<ResultadoAccion>;
@@ -114,6 +120,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const [misLigas, setMisLigas] = useState<LigaResumen[]>([]);
   const [squad, setSquad] = useState<PlantillaSlot[]>([]);
   const [titulares, setTitulares] = useState<Record<string, boolean>>({});
+  const [capitanId, setCapitanId] = useState<string | null>(null);
   const [jugadoresLiga, setJugadoresLiga] = useState<JugadorLiga[]>([]);
   const [mercado, setMercado] = useState<MercadoDelDia[]>([]);
   const [ofertas, setOfertas] = useState<OfertaPendiente[]>([]);
@@ -168,10 +175,13 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         fetchNotificaciones(supabase, miEquipo.leagueId, miEquipo.id),
       ]);
 
-    setSquad(plantilla.map(({ titular: _titular, ...resto }) => resto));
+    setSquad(
+      plantilla.map(({ titular: _titular, capitan: _capitan, ...resto }) => resto)
+    );
     setTitulares(
       Object.fromEntries(plantilla.map((s) => [s.jugador.id, s.titular]))
     );
+    setCapitanId(plantilla.find((s) => s.capitan)?.jugador.id ?? null);
     setJugadoresLiga(ligaJugadores);
     setOfertas(misOfertas);
     setOfertasRecibidas(ofertasParaMi);
@@ -240,12 +250,36 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
   async function toggleTitular(id: string) {
     const nuevoValor = !titulares[id];
+    const capitanAnterior = capitanId;
     setTitulares((prev) => ({ ...prev, [id]: nuevoValor }));
+    // Un capitán que pasa a suplente pierde la capitanía (lo hace también la base de datos).
+    if (!nuevoValor && capitanId === id) setCapitanId(null);
     if (!equipo.id) return;
     const resultado = await toggleTitularDB(supabase, equipo.id, id, nuevoValor);
     if (!resultado.ok) {
       setTitulares((prev) => ({ ...prev, [id]: !nuevoValor }));
+      setCapitanId(capitanAnterior);
     }
+  }
+
+  async function toggleCapitan(id: string): Promise<ResultadoAccion> {
+    if (!equipo.id) return { ok: false, mensaje: "No tienes equipo todavía." };
+    if (!titulares[id]) {
+      return { ok: false, mensaje: "El capitán tiene que ser titular." };
+    }
+    const capitanAnterior = capitanId;
+    const nuevoValor = capitanId !== id;
+    setCapitanId(nuevoValor ? id : null);
+    const resultado = await toggleCapitanDB(supabase, equipo.id, id, nuevoValor);
+    if (!resultado.ok) setCapitanId(capitanAnterior);
+    return resultado;
+  }
+
+  async function blindarJugador(jugadorId: string): Promise<ResultadoAccion> {
+    if (!equipo.leagueId) return { ok: false, mensaje: "No tienes equipo todavía." };
+    const resultado = await blindarJugadorDB(supabase, jugadorId, equipo.leagueId);
+    if (resultado.ok) await cargarTodo();
+    return resultado;
   }
 
   async function venderJugador(
@@ -378,6 +412,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         misLigas,
         squad,
         titulares,
+        capitanId,
         jugadoresLiga,
         mercado,
         ofertas,
@@ -388,6 +423,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         notificacionesNoLeidas,
         marcarNotificacionesVistas,
         toggleTitular,
+        toggleCapitan,
+        blindarJugador,
         venderJugador,
         pagarClausula,
         subirClausula,

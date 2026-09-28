@@ -187,7 +187,27 @@ export default function JugadoresPage() {
                         : ""}
                     </span>
                     {jugador.propietario !== null &&
-                      (jugador.candado ? (
+                      (jugador.blindado ? (
+                        <span
+                          title="Blindado: no se le puede hacer un clausulazo hasta la próxima jornada"
+                          className="flex items-center gap-0.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-800 dark:bg-violet-900/40 dark:text-violet-300"
+                        >
+                          <svg
+                            className="h-2.5 w-2.5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+                            />
+                          </svg>
+                          Blindado
+                        </span>
+                      ) : jugador.candado ? (
                         <span
                           title="Con candado: no se le puede hacer un clausulazo hasta la próxima jornada"
                           className="flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
@@ -274,11 +294,13 @@ export default function JugadoresPage() {
                         </button>
                         <button
                           onClick={() => onPagarClausula(jugador.id)}
-                          disabled={enviando || jugador.candado}
+                          disabled={enviando || jugador.candado || jugador.blindado}
                           title={
-                            jugador.candado
-                              ? "Con candado: no se le puede hacer un clausulazo hasta la próxima jornada"
-                              : undefined
+                            jugador.blindado
+                              ? "Blindado: no se le puede hacer un clausulazo durante esta jornada"
+                              : jugador.candado
+                                ? "Con candado: no se le puede hacer un clausulazo hasta la próxima jornada"
+                                : undefined
                           }
                           className="flex-1 rounded-lg bg-neutral-900 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
                         >
@@ -286,7 +308,14 @@ export default function JugadoresPage() {
                         </button>
                       </div>
 
-                      {jugador.candado && (
+                      {jugador.blindado && (
+                        <p className="text-xs text-violet-600 dark:text-violet-400">
+                          Este jugador está blindado: su dueño ha pagado para que no se le pueda
+                          hacer un clausulazo hasta la próxima jornada.
+                        </p>
+                      )}
+
+                      {jugador.candado && !jugador.blindado && (
                         <p className="text-xs text-amber-600 dark:text-amber-400">
                           Este jugador tiene un candado: se acaba de fichar y no se le puede
                           hacer un clausulazo hasta la próxima jornada.
