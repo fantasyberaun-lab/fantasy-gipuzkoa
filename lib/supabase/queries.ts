@@ -670,3 +670,15 @@ export async function unirseLigaPublicaDB(
   if (error) return { ok: false, mensaje: error.message };
   return data as ResultadoAccion & { liga_id?: string };
 }
+
+export async function salirLigaDB(
+  supabase: Supabase,
+  ligaId: string
+): Promise<ResultadoAccion> {
+  const { data, error } = await supabase.rpc("salir_liga", {
+    p_league_id: ligaId,
+  });
+
+  if (error) return { ok: false, mensaje: error.message };
+  return data as ResultadoAccion;
+}

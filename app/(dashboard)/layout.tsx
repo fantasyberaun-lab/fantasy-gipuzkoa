@@ -13,7 +13,7 @@ export default function DashboardLayout({
   return (
     <GameStateProvider>
       <LigaGate>
-        <div className="mx-auto max-w-5xl px-4 pb-16 pt-6">
+        <div className="mx-auto max-w-5xl px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-6 sm:pb-16">
           <header className="mb-6 flex items-start justify-between gap-4">
             <EquipoHeader />
             <div className="flex items-center gap-3">

@@ -27,6 +27,7 @@ import {
   pagarClausulaDB,
   pujarMercadoDB,
   rechazarOfertaDB,
+  salirLigaDB,
   subirClausulaDB,
   toggleCapitanDB,
   toggleTitularDB,
@@ -96,6 +97,7 @@ interface GameState {
   unirseLiga: (codigo: string, nombreEquipo: string) => Promise<ResultadoAccion>;
   unirseLigaPublica: (nombreEquipo: string) => Promise<ResultadoAccion>;
   cambiarLigaActiva: (ligaId: string) => Promise<void>;
+  salirLiga: (ligaId: string) => Promise<ResultadoAccion>;
 }
 
 const GameStateContext = createContext<GameState | null>(null);
@@ -444,6 +446,24 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     await cargarTodo(ligaId);
   }
 
+  async function salirLiga(ligaId: string): Promise<ResultadoAccion> {
+    const resultado = await salirLigaDB(supabase, ligaId);
+    if (!resultado.ok) return resultado;
+
+    // Si era la liga activa, olvidamos la guardada: cargarTodo() elegirá otra
+    // de las que queden (o mostrará la pantalla de crear/unirse si no queda ninguna).
+    if (leerLigaActivaGuardada() === ligaId) {
+      try {
+        localStorage.removeItem(LIGA_ACTIVA_KEY);
+      } catch {
+        // no es crítico
+      }
+    }
+    setCargando(true);
+    await cargarTodo();
+    return resultado;
+  }
+
   return (
     <GameStateContext.Provider
       value={{
@@ -480,6 +500,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         unirseLiga,
         unirseLigaPublica,
         cambiarLigaActiva,
+        salirLiga,
       }}
     >
       {children}
