@@ -4,12 +4,25 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
+import MercadoPublico from "@/components/MercadoPublico";
 import { proximaTandaMercado, formatearCuentaAtras } from "@/lib/mercadoCountdown";
 
 type Orden = "valor" | "puntos" | "pujas" | "nombre" | "categoria";
 type MensajePuja = { tipo: "ok" | "error"; texto: string };
 
+// Liga pública: mercado siempre abierto con compra/venta instantánea.
+// Ligas privadas: mercado por tandas con pujas.
 export default function MercadoPage() {
+  const { esLigaPublica, cargando } = useGameState();
+
+  if (cargando) {
+    return <p className="text-sm text-neutral-500">Cargando el mercado…</p>;
+  }
+
+  return esLigaPublica ? <MercadoPublico /> : <MercadoConPujas />;
+}
+
+function MercadoConPujas() {
   const { mercado, pujarMercado, equipo, cargando } = useGameState();
 
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);

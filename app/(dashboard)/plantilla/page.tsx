@@ -155,6 +155,7 @@ export default function PlantillaPage() {
     venderJugador,
     subirClausula,
     ofertasRecibidas,
+    esLigaPublica,
     cargando,
     tieneEquipo,
   } = useGameState();
@@ -185,7 +186,7 @@ export default function PlantillaPage() {
 
   return (
     <div>
-      <OfertasRecibidas ofertas={ofertasRecibidas} />
+      {!esLigaPublica && <OfertasRecibidas ofertas={ofertasRecibidas} />}
 
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
         <ContadorSlots
@@ -210,9 +211,9 @@ export default function PlantillaPage() {
 
       {squad.length === 0 ? (
         <p className="text-sm text-neutral-500">
-          Todavía no tienes jugadores en tu plantilla. Ve a la pestaña
-          Jugadores para pagar una cláusula, o espera a que haya jugadores
-          libres en el Mercado.
+          {esLigaPublica
+            ? "Todavía no tienes jugadores. Ve a la pestaña Mercado y ficha a los que quieras: todos están disponibles y el fichaje es inmediato."
+            : "Todavía no tienes jugadores en tu plantilla. Ve a la pestaña Jugadores para pagar una cláusula, o espera a que haya jugadores libres en el Mercado."}
         </p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
@@ -231,6 +232,7 @@ export default function PlantillaPage() {
                 esCapitan={capitanId === slot.jugador.id}
                 bloqueadoPorTope={bloqueadoPorTope}
                 blindajeAgotado={hayBlindado && !slot.blindado}
+                ligaPublica={esLigaPublica}
                 onToggleTitular={() => toggleTitular(slot.jugador.id)}
                 onToggleCapitan={() => toggleCapitan(slot.jugador.id)}
                 onBlindar={() => blindarJugador(slot.jugador.id)}

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
 import CopiarCodigoButton from "@/components/CopiarCodigoButton";
 
-type Modo = "elegir" | "crear" | "unirse";
+type Modo = "elegir" | "crear" | "unirse" | "publica";
 
 export default function LigaForm({
   onExito,
@@ -13,7 +13,8 @@ export default function LigaForm({
   onExito?: () => void;
   onCancelar?: () => void;
 }) {
-  const { crearLiga, unirseLiga } = useGameState();
+  const { crearLiga, unirseLiga, unirseLigaPublica, misLigas } = useGameState();
+  const yaEnLigaPublica = misLigas.some((l) => l.tipo === "publica");
 
   const [modo, setModo] = useState<Modo>("elegir");
   const [nombreLiga, setNombreLiga] = useState("");
@@ -40,6 +41,19 @@ export default function LigaForm({
     setEnviando(true);
     setError(null);
     const resultado = await unirseLiga(codigo, nombreEquipo);
+    setEnviando(false);
+
+    if (!resultado.ok) {
+      setError(resultado.mensaje);
+      return;
+    }
+    onExito?.();
+  }
+
+  async function handleUnirsePublica() {
+    setEnviando(true);
+    setError(null);
+    const resultado = await unirseLigaPublica(nombreEquipo);
     setEnviando(false);
 
     if (!resultado.ok) {
@@ -86,6 +100,14 @@ export default function LigaForm({
           >
             Unirme a una liga con un código
           </button>
+          {!yaEnLigaPublica && (
+            <button
+              onClick={() => setModo("publica")}
+              className="rounded-lg border border-accent py-2.5 text-sm font-medium text-accent"
+            >
+              Unirme a la liga pública (todos contra todos)
+            </button>
+          )}
           {onCancelar && (
             <button
               onClick={onCancelar}
@@ -128,6 +150,46 @@ export default function LigaForm({
             className="rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
           >
             Crear liga
+          </button>
+          <button
+            onClick={() => {
+              setModo("elegir");
+              setError(null);
+            }}
+            className="text-xs text-neutral-500 underline underline-offset-2"
+          >
+            Volver
+          </button>
+        </div>
+      )}
+
+      {modo === "publica" && (
+        <div className="flex flex-col gap-3">
+          <p className="text-sm text-neutral-500">
+            Liga abierta en la que compiten todos los managers. Todos empiezan con el mismo
+            presupuesto y sin plantilla: construye el mejor equipo posible fichando en el
+            Mercado, donde todos los jugadores están siempre disponibles y comprar y vender
+            es inmediato.
+          </p>
+          <div>
+            <label className="text-xs font-medium text-neutral-500">Nombre de tu equipo</label>
+            <input
+              type="text"
+              value={nombreEquipo}
+              onChange={(e) => setNombreEquipo(e.target.value)}
+              placeholder="Ostadar taldea"
+              className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+            />
+          </div>
+
+          {error && <p className="text-xs text-negative">{error}</p>}
+
+          <button
+            onClick={handleUnirsePublica}
+            disabled={!nombreEquipo || enviando}
+            className="rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
+          >
+            {enviando ? "Entrando…" : "Entrar en la liga pública"}
           </button>
           <button
             onClick={() => {

@@ -12,6 +12,7 @@ import type {
   PlantillaSlot,
   PuntosJornada,
   ResultadoPartida,
+  TipoLiga,
 } from "@/lib/types";
 
 type Supabase = ReturnType<typeof createClient>;
@@ -25,6 +26,7 @@ export async function fetchMisLigas(supabase: Supabase): Promise<LigaResumen[]> 
 
   return (data as any[]).map((l) => ({
     ligaId: l.liga_id,
+    tipo: (l.tipo === "publica" ? "publica" : "privada") as TipoLiga,
     nombre: l.nombre,
     codigo: l.codigo,
     miembros: l.miembros,
@@ -429,6 +431,23 @@ export async function venderJugadorDB(
   return { ok: true };
 }
 
+// Liga pública: vende al valor de mercado, al instante y de forma atómica
+// (ver vender_jugador en 0036_liga_publica.sql). Las ligas privadas siguen
+// usando venderJugadorDB.
+export async function venderJugadorPublicoDB(
+  supabase: Supabase,
+  playerId: string,
+  leagueId: string
+): Promise<ResultadoAccion> {
+  const { data, error } = await supabase.rpc("vender_jugador", {
+    p_player_id: playerId,
+    p_league_id: leagueId,
+  });
+
+  if (error) return { ok: false, mensaje: error.message };
+  return data as ResultadoAccion;
+}
+
 export async function pagarClausulaDB(
   supabase: Supabase,
   playerId: string,
@@ -568,6 +587,7 @@ export async function fetchClasificacion(
 
   return (data as any[]).map((e, indice: number) => ({
     posicion: indice + 1,
+    equipoId: e.equipo_id as string,
     nombreEquipo: e.nombre_equipo,
     puntos: e.puntos_totales,
     esMiEquipo: miEquipoId ? e.equipo_id === miEquipoId : false,
@@ -596,6 +616,20 @@ export async function unirseLigaDB(
 ): Promise<ResultadoAccion & { liga_id?: string }> {
   const { data, error } = await supabase.rpc("unirse_liga", {
     p_codigo: codigo,
+    p_nombre_equipo: nombreEquipo,
+  });
+
+  if (error) return { ok: false, mensaje: error.message };
+  return data as ResultadoAccion & { liga_id?: string };
+}
+
+// Entra en la liga pública "todos contra todos": mismo presupuesto para todos
+// y sin plantilla inicial.
+export async function unirseLigaPublicaDB(
+  supabase: Supabase,
+  nombreEquipo: string
+): Promise<ResultadoAccion & { liga_id?: string }> {
+  const { data, error } = await supabase.rpc("unirse_liga_publica", {
     p_nombre_equipo: nombreEquipo,
   });
 

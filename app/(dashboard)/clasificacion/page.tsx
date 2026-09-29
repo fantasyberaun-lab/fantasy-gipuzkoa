@@ -14,8 +14,15 @@ interface JornadaOpcion {
 }
 
 export default function ClasificacionPage() {
-  const { clasificacion, jugadoresLiga, equipo, hacerOferta, pagarClausula, cargando } =
-    useGameState();
+  const {
+    clasificacion,
+    jugadoresLiga,
+    equipo,
+    esLigaPublica,
+    hacerOferta,
+    pagarClausula,
+    cargando,
+  } = useGameState();
 
   const [orden, setOrden] = useState<Orden>("total");
   const [equipoAbierto, setEquipoAbierto] = useState<string | null>(null);
@@ -119,7 +126,7 @@ export default function ClasificacionPage() {
         )}
         {clasificacionOrdenada.map((entry, i) => (
           <li
-            key={entry.nombreEquipo}
+            key={entry.equipoId ?? entry.nombreEquipo}
             className={`flex items-center justify-between py-3 ${
               entry.esMiEquipo ? "rounded-lg bg-accent/10 px-3" : "px-3"
             }`}
@@ -134,7 +141,7 @@ export default function ClasificacionPage() {
                   {orden === "total" ? "este año" : etiquetaOrden}
                 </span>
               </span>
-              {!entry.esMiEquipo && (
+              {!entry.esMiEquipo && !esLigaPublica && (
                 <button
                   onClick={() => setEquipoAbierto(entry.nombreEquipo)}
                   className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium dark:border-neutral-700"

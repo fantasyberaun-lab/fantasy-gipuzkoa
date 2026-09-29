@@ -9,7 +9,8 @@ import EliminarCuentaButton from "@/components/EliminarCuentaButton";
 import CambiarLigaModal from "@/components/CambiarLigaModal";
 
 export default function EquipoHeader() {
-  const { equipo, cargando, esRoot } = useGameState();
+  const { equipo, cargando, esRoot, misLigas } = useGameState();
+  const ligaActiva = misLigas.find((l) => l.ligaId === equipo.leagueId);
   const router = useRouter();
   const supabase = createClient();
   const [mostrarModalLiga, setMostrarModalLiga] = useState(false);
@@ -29,6 +30,12 @@ export default function EquipoHeader() {
         <h1 className="text-2xl font-semibold">
           {cargando ? "Cargando…" : equipo.nombreEquipo}
         </h1>
+        {!cargando && ligaActiva && (
+          <p className="text-xs text-neutral-500">
+            {ligaActiva.nombre}
+            {ligaActiva.tipo === "publica" ? " · Todos contra todos" : ""}
+          </p>
+        )}
 
         <button
           onClick={() => setMostrarModalLiga(true)}

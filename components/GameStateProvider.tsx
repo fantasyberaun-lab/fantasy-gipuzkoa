@@ -31,7 +31,9 @@ import {
   toggleCapitanDB,
   toggleTitularDB,
   unirseLigaDB,
+  unirseLigaPublicaDB,
   venderJugadorDB,
+  venderJugadorPublicoDB,
 } from "@/lib/supabase/queries";
 import type {
   ClasificacionEntry,
@@ -58,6 +60,9 @@ interface GameState {
   cargando: boolean;
   tieneEquipo: boolean;
   esRoot: boolean;
+  // La liga activa es la pública "todos contra todos": sin plantilla inicial,
+  // todos los jugadores siempre disponibles y compra/venta instantánea.
+  esLigaPublica: boolean;
   equipo: EquipoManager;
   misLigas: LigaResumen[];
   squad: PlantillaSlot[];
@@ -89,6 +94,7 @@ interface GameState {
     nombreEquipo: string
   ) => Promise<ResultadoAccion & { codigo?: string }>;
   unirseLiga: (codigo: string, nombreEquipo: string) => Promise<ResultadoAccion>;
+  unirseLigaPublica: (nombreEquipo: string) => Promise<ResultadoAccion>;
   cambiarLigaActiva: (ligaId: string) => Promise<void>;
 }
 
@@ -116,6 +122,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const [cargando, setCargando] = useState(true);
   const [tieneEquipo, setTieneEquipo] = useState(false);
   const [esRoot, setEsRoot] = useState(false);
+  const [esLigaPublica, setEsLigaPublica] = useState(false);
   const [equipo, setEquipo] = useState<EquipoManager>(EQUIPO_VACIO);
   const [misLigas, setMisLigas] = useState<LigaResumen[]>([]);
   const [squad, setSquad] = useState<PlantillaSlot[]>([]);
@@ -155,6 +162,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     const ligaSeleccionada = ligas.find((l) => l.ligaId === idGuardado) ?? ligas[0];
     guardarLigaActiva(ligaSeleccionada.ligaId);
 
+    const esPublica = ligaSeleccionada.tipo === "publica";
+    setEsLigaPublica(esPublica);
     setTieneEquipo(true);
     const miEquipo: EquipoManager = {
       id: ligaSeleccionada.equipoId,
@@ -168,11 +177,20 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       await Promise.all([
         fetchMiPlantilla(supabase, miEquipo.id),
         fetchJugadoresLiga(supabase, miEquipo.leagueId, miEquipo.id),
-        fetchMisOfertas(supabase, miEquipo.id),
-        fetchOfertasRecibidas(supabase, miEquipo.id),
-        fetchMercado(supabase, miEquipo.leagueId),
+        // En la liga pública no hay ofertas, mercado por tandas ni avisos.
+        esPublica
+          ? Promise.resolve([] as OfertaPendiente[])
+          : fetchMisOfertas(supabase, miEquipo.id),
+        esPublica
+          ? Promise.resolve([] as OfertaRecibida[])
+          : fetchOfertasRecibidas(supabase, miEquipo.id),
+        esPublica
+          ? Promise.resolve([] as MercadoDelDia[])
+          : fetchMercado(supabase, miEquipo.leagueId),
         fetchClasificacion(supabase, miEquipo.leagueId, miEquipo.id),
-        fetchNotificaciones(supabase, miEquipo.leagueId, miEquipo.id),
+        esPublica
+          ? Promise.resolve({ notificaciones: [] as Notificacion[], vistasEn: Date.now() })
+          : fetchNotificaciones(supabase, miEquipo.leagueId, miEquipo.id),
       ]);
 
     setSquad(
@@ -182,7 +200,20 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       Object.fromEntries(plantilla.map((s) => [s.jugador.id, s.titular]))
     );
     setCapitanId(plantilla.find((s) => s.capitan)?.jugador.id ?? null);
-    setJugadoresLiga(ligaJugadores);
+    // En la pública no hay "propietario" de un jugador: lo puede tener cualquiera.
+    // Lo único que importa es si está en MI plantilla.
+    const idsMiPlantilla = new Set(plantilla.map((s) => s.jugador.id));
+    setJugadoresLiga(
+      esPublica
+        ? ligaJugadores.map((j) => ({
+            ...j,
+            propietario: null,
+            esMiEquipo: idsMiPlantilla.has(j.id),
+            candado: false,
+            blindado: false,
+          }))
+        : ligaJugadores
+    );
     setOfertas(misOfertas);
     setOfertasRecibidas(ofertasParaMi);
     setMercado(jugadoresMercado);
@@ -198,7 +229,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function recargarNotificaciones() {
-    if (!equipo.id || !equipo.leagueId) return;
+    if (!equipo.id || !equipo.leagueId || esLigaPublica) return;
     const avisos = await fetchNotificaciones(supabase, equipo.leagueId, equipo.id);
     setNotificaciones(avisos.notificaciones);
     setNotificacionesVistasEn(avisos.vistasEn);
@@ -208,7 +239,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   // hace que cada manager solo reciba los suyos). Como red de seguridad,
   // también se recargan al volver a la pestaña del navegador.
   useEffect(() => {
-    if (!equipo.id || !equipo.leagueId) return;
+    if (!equipo.id || !equipo.leagueId || esLigaPublica) return;
 
     const canal = supabase
       .channel(`notificaciones-${equipo.leagueId}`)
@@ -236,10 +267,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       document.removeEventListener("visibilitychange", alVolver);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [equipo.id, equipo.leagueId]);
+  }, [equipo.id, equipo.leagueId, esLigaPublica]);
 
   async function marcarNotificacionesVistas() {
-    if (!equipo.leagueId) return;
+    if (!equipo.leagueId || esLigaPublica) return;
     const vistasEn = await marcarNotificacionesVistasDB(supabase, equipo.leagueId);
     if (vistasEn !== null) setNotificacionesVistasEn(vistasEn);
   }
@@ -287,7 +318,9 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     valorMercado: number
   ): Promise<ResultadoAccion> {
     if (!equipo.id) return { ok: false, mensaje: "No tienes equipo todavía." };
-    const resultado = await venderJugadorDB(supabase, equipo.id, id, valorMercado);
+    const resultado = esLigaPublica
+      ? await venderJugadorPublicoDB(supabase, id, equipo.leagueId)
+      : await venderJugadorDB(supabase, equipo.id, id, valorMercado);
     if (resultado.ok) await cargarTodo();
     return resultado;
   }
@@ -396,6 +429,15 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     return resultado;
   }
 
+  async function unirseLigaPublica(nombreEquipo: string): Promise<ResultadoAccion> {
+    const resultado = await unirseLigaPublicaDB(supabase, nombreEquipo);
+    if (resultado.ok) {
+      if (resultado.liga_id) guardarLigaActiva(resultado.liga_id);
+      await cargarTodo(resultado.liga_id);
+    }
+    return resultado;
+  }
+
   async function cambiarLigaActiva(ligaId: string) {
     setCargando(true);
     guardarLigaActiva(ligaId);
@@ -408,6 +450,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         cargando,
         tieneEquipo,
         esRoot,
+        esLigaPublica,
         equipo,
         misLigas,
         squad,
@@ -435,6 +478,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         pujarMercado,
         crearLiga,
         unirseLiga,
+        unirseLigaPublica,
         cambiarLigaActiva,
       }}
     >

@@ -56,6 +56,8 @@ export interface MercadoListing {
 
 export interface ClasificacionEntry {
   posicion: number;
+  // Id del equipo (opcional para no romper los datos de prueba de mockData).
+  equipoId?: string;
   nombreEquipo: string;
   puntos: number;
   esMiEquipo?: boolean;
@@ -130,10 +132,17 @@ export interface Notificacion {
   creada: string;
 }
 
+// "privada": liga de amigos (máx. 9, plantilla inicial, mercado por tandas,
+// clausulazos). "publica": liga abierta "todos contra todos" (mismo
+// presupuesto para todos, sin plantilla inicial, todos los jugadores siempre
+// disponibles y compra/venta instantánea).
+export type TipoLiga = "privada" | "publica";
+
 // Resumen de una liga en la que el usuario tiene equipo (para el
 // selector de "liga activa" y la pantalla de crear/unirse).
 export interface LigaResumen {
   ligaId: string;
+  tipo: TipoLiga;
   nombre: string;
   codigo: string;
   miembros: number;

@@ -53,10 +53,12 @@ export default function CambiarLigaModal({ onCerrar }: { onCerrar: () => void })
                       )}
                     </p>
                     <p className="text-xs text-neutral-500">
-                      {liga.nombreEquipo} · {liga.miembros}/{liga.maxMiembros} · código {liga.codigo} · {liga.saldo} M
+                      {liga.tipo === "publica"
+                        ? `${liga.nombreEquipo} · Todos contra todos · ${liga.miembros} managers · ${liga.saldo} M`
+                        : `${liga.nombreEquipo} · ${liga.miembros}/${liga.maxMiembros} · código ${liga.codigo} · ${liga.saldo} M`}
                     </p>
                   </button>
-                  <CopiarCodigoButton codigo={liga.codigo} />
+                  {liga.tipo !== "publica" && <CopiarCodigoButton codigo={liga.codigo} />}
                 </div>
               ))}
             </div>

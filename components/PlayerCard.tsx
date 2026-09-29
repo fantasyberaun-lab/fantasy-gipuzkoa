@@ -26,6 +26,9 @@ type Props = PlantillaSlot & {
   bloqueadoPorTope?: boolean;
   // Ya has blindado a otro jugador esta jornada (solo se permite uno).
   blindajeAgotado?: boolean;
+  // Liga pública: no hay clausulazos, candados ni blindajes, así que se
+  // ocultan esas opciones.
+  ligaPublica?: boolean;
   onToggleTitular: () => void;
   onToggleCapitan: () => Promise<{ ok: boolean; mensaje?: string }>;
   onBlindar: () => Promise<{ ok: boolean; mensaje?: string }>;
@@ -44,6 +47,7 @@ export default function PlayerCard({
   esCapitan = false,
   bloqueadoPorTope = false,
   blindajeAgotado = false,
+  ligaPublica = false,
   candado,
   blindado,
   onToggleTitular,
@@ -148,7 +152,8 @@ export default function PlayerCard({
                   C · x{gameConfig.capitan.multiplicador}
                 </span>
               )}
-              {blindado ? (
+              {!ligaPublica &&
+                (blindado ? (
                 <span
                   title="Blindado: no se le puede hacer un clausulazo hasta la próxima jornada"
                   className="flex items-center gap-0.5 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-800 dark:bg-violet-900/40 dark:text-violet-300"
@@ -208,7 +213,7 @@ export default function PlayerCard({
                   </svg>
                   Clausulable
                 </span>
-              )}
+                ))}
             </div>
             <p className="text-sm text-neutral-500">
               {jugador.club} · {jugador.categoria}ª cat. · Elo {jugador.elo}
@@ -275,32 +280,36 @@ export default function PlayerCard({
           >
             {esCapitan ? "Quitar capitán" : "Capitán"}
           </button>
-          <button
-            onClick={() => {
-              setErrorBlindaje(null);
-              setMostrarBlindaje(true);
-            }}
-            disabled={!!blindado || blindajeAgotado}
-            title={
-              blindado
-                ? "Ya está blindado hasta la próxima jornada"
-                : blindajeAgotado
-                  ? "Ya has blindado a otro jugador esta jornada (solo se permite uno)"
-                  : "Evita que te lo puedan clausular hasta la próxima jornada"
-            }
-            className="flex-1 rounded-lg border border-violet-300 bg-white py-2 text-sm font-medium text-violet-700 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-violet-800 dark:bg-neutral-900 dark:text-violet-300"
-          >
-            {blindado ? "Blindado" : `Blindar (${precioBlindaje} M)`}
-          </button>
+          {!ligaPublica && (
+            <button
+              onClick={() => {
+                setErrorBlindaje(null);
+                setMostrarBlindaje(true);
+              }}
+              disabled={!!blindado || blindajeAgotado}
+              title={
+                blindado
+                  ? "Ya está blindado hasta la próxima jornada"
+                  : blindajeAgotado
+                    ? "Ya has blindado a otro jugador esta jornada (solo se permite uno)"
+                    : "Evita que te lo puedan clausular hasta la próxima jornada"
+              }
+              className="flex-1 rounded-lg border border-violet-300 bg-white py-2 text-sm font-medium text-violet-700 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-violet-800 dark:bg-neutral-900 dark:text-violet-300"
+            >
+              {blindado ? "Blindado" : `Blindar (${precioBlindaje} M)`}
+            </button>
+          )}
         </div>
         {errorCapitan && <p className="mt-1 text-xs text-negative">{errorCapitan}</p>}
 
-        <button
-          onClick={() => setMostrarSubirClausula(true)}
-          className="mt-2 w-full rounded-lg border border-sky-300 bg-white py-2 text-sm font-medium text-sky-700 hover:bg-sky-50 dark:border-sky-800 dark:bg-neutral-900 dark:text-sky-300"
-        >
-          Subir cláusula ({clausula} M)
-        </button>
+        {!ligaPublica && (
+          <button
+            onClick={() => setMostrarSubirClausula(true)}
+            className="mt-2 w-full rounded-lg border border-sky-300 bg-white py-2 text-sm font-medium text-sky-700 hover:bg-sky-50 dark:border-sky-800 dark:bg-neutral-900 dark:text-sky-300"
+          >
+            Subir cláusula ({clausula} M)
+          </button>
+        )}
 
         <button
           onClick={() => setMostrarHistorial((prev) => !prev)}

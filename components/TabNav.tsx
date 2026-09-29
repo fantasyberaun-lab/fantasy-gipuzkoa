@@ -15,11 +15,17 @@ const TABS = [
 
 export default function TabNav() {
   const pathname = usePathname();
-  const { notificacionesNoLeidas } = useGameState();
+  const { notificacionesNoLeidas, esLigaPublica } = useGameState();
+
+  // En la liga pública no hay plantillas ajenas con clausulazos ni avisos de
+  // fichajes: todo se hace desde el Mercado.
+  const tabs = esLigaPublica
+    ? TABS.filter((tab) => tab.href !== "/jugadores" && tab.href !== "/notificaciones")
+    : TABS;
 
   return (
     <nav className="flex gap-6 overflow-x-auto whitespace-nowrap border-b border-neutral-200 dark:border-neutral-800">
-      {TABS.map((tab) => {
+      {tabs.map((tab) => {
         const isActive = pathname?.startsWith(tab.href);
         const badge = tab.href === "/notificaciones" ? notificacionesNoLeidas : 0;
         return (
