@@ -595,6 +595,40 @@ export async function fetchClasificacion(
   }));
 }
 
+export interface JugadorPlantillaAjena {
+  id: string;
+  nombre: string;
+  club: string;
+  categoria: Categoria;
+  elo: number;
+  valorMercado: number;
+  puntosTotales: number;
+  historialPuntos: PuntosJornada[];
+}
+
+// Liga pública: plantilla de otro manager (ver plantilla_equipo_publica en
+// 0037). No incluye titulares ni capitán.
+export async function fetchPlantillaEquipoPublicaDB(
+  supabase: Supabase,
+  equipoId: string
+): Promise<JugadorPlantillaAjena[] | null> {
+  const { data, error } = await supabase.rpc("plantilla_equipo_publica", {
+    p_equipo_id: equipoId,
+  });
+  if (error || !data) return null;
+
+  return (data as any[]).map((p) => ({
+    id: p.id,
+    nombre: p.nombre,
+    club: p.club ?? "",
+    categoria: Number(p.categoria) as Categoria,
+    elo: p.elo,
+    valorMercado: Number(p.valor_mercado),
+    puntosTotales: p.puntos_totales,
+    historialPuntos: (p.historial_puntos ?? []) as PuntosJornada[],
+  }));
+}
+
 export async function crearLigaDB(
   supabase: Supabase,
   nombreLiga: string,

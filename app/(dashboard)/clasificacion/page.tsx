@@ -2,6 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
+import HistorialPuntosChart from "@/components/HistorialPuntosChart";
+import { createClient } from "@/lib/supabase/client";
+import {
+  fetchPlantillaEquipoPublicaDB,
+  type JugadorPlantillaAjena,
+} from "@/lib/supabase/queries";
 
 // "total", o el id de una jornada concreta (la numeración de jornadas
 // empieza en 1 en cada torneo, así que el número solo no la identifica).
@@ -35,6 +41,14 @@ export default function ClasificacionPage() {
   const [orden, setOrden] = useState<Orden>("total");
   const [busqueda, setBusqueda] = useState("");
   const [visibles, setVisibles] = useState(TAMANO_PAGINA);
+  // Liga pública: plantilla del equipo abierto (se pide a la base de datos al abrirlo).
+  const [equipoPublicoAbierto, setEquipoPublicoAbierto] = useState<{
+    id: string;
+    nombre: string;
+  } | null>(null);
+  const [plantillaPublica, setPlantillaPublica] = useState<JugadorPlantillaAjena[] | null>(null);
+  const [cargandoPlantilla, setCargandoPlantilla] = useState(false);
+  const [puntosAbiertoId, setPuntosAbiertoId] = useState<string | null>(null);
   const [equipoAbierto, setEquipoAbierto] = useState<string | null>(null);
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [montoOferta, setMontoOferta] = useState("");
@@ -99,6 +113,22 @@ export default function ClasificacionPage() {
         block: "center",
       });
     }, 50);
+  };
+
+  const abrirPlantillaPublica = async (equipoId: string, nombre: string) => {
+    setEquipoPublicoAbierto({ id: equipoId, nombre });
+    setPlantillaPublica(null);
+    setPuntosAbiertoId(null);
+    setCargandoPlantilla(true);
+    const plantilla = await fetchPlantillaEquipoPublicaDB(createClient(), equipoId);
+    setPlantillaPublica(plantilla);
+    setCargandoPlantilla(false);
+  };
+
+  const cerrarPlantillaPublica = () => {
+    setEquipoPublicoAbierto(null);
+    setPlantillaPublica(null);
+    setPuntosAbiertoId(null);
   };
 
   const cerrarPanel = () => {
@@ -223,6 +253,14 @@ export default function ClasificacionPage() {
                   Plantilla
                 </button>
               )}
+              {!entry.esMiEquipo && esLigaPublica && entry.equipoId && (
+                <button
+                  onClick={() => abrirPlantillaPublica(entry.equipoId as string, entry.nombreEquipo)}
+                  className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium dark:border-neutral-700"
+                >
+                  Plantilla
+                </button>
+              )}
             </div>
           </li>
         ))}
@@ -235,6 +273,73 @@ export default function ClasificacionPage() {
         >
           Mostrar más ({coincidencias.length - listaVisible.length} restantes)
         </button>
+      )}
+
+      {equipoPublicoAbierto && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+          <div className="absolute inset-0 bg-black/40" onClick={cerrarPlantillaPublica} />
+          <div className="relative w-full max-w-sm rounded-t-2xl bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-xl dark:bg-neutral-900 sm:rounded-2xl sm:pb-5">
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-neutral-300 dark:bg-neutral-700 sm:hidden" />
+
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-base font-semibold">{equipoPublicoAbierto.nombre}</p>
+              <button
+                onClick={cerrarPlantillaPublica}
+                className="text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300"
+              >
+                Cerrar
+              </button>
+            </div>
+
+            <div className="flex max-h-[65vh] flex-col gap-2 overflow-y-auto">
+              {cargandoPlantilla && (
+                <p className="py-4 text-center text-sm text-neutral-500">Cargando plantilla…</p>
+              )}
+              {!cargandoPlantilla && plantillaPublica === null && (
+                <p className="py-4 text-center text-sm text-negative">
+                  No se ha podido cargar la plantilla.
+                </p>
+              )}
+              {!cargandoPlantilla && plantillaPublica !== null && plantillaPublica.length === 0 && (
+                <p className="py-4 text-center text-sm text-neutral-500">
+                  Este manager todavía no ha fichado a nadie.
+                </p>
+              )}
+              {plantillaPublica?.map((jugador) => (
+                <div
+                  key={jugador.id}
+                  className="rounded-lg border border-neutral-200 dark:border-neutral-800"
+                >
+                  <div className="flex items-center justify-between gap-2 px-3 py-2">
+                    <div>
+                      <p className="text-sm font-medium">{jugador.nombre}</p>
+                      <p className="text-xs text-neutral-500">
+                        {jugador.club} · {jugador.categoria}ª cat. · Elo {jugador.elo} ·{" "}
+                        {jugador.puntosTotales} pts
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-sm font-medium">{jugador.valorMercado} M</span>
+                      <button
+                        onClick={() =>
+                          setPuntosAbiertoId((prev) => (prev === jugador.id ? null : jugador.id))
+                        }
+                        className="text-xs font-medium text-accent underline underline-offset-2"
+                      >
+                        {puntosAbiertoId === jugador.id ? "Ocultar puntos" : "Ver puntos"}
+                      </button>
+                    </div>
+                  </div>
+                  {puntosAbiertoId === jugador.id && (
+                    <div className="border-t border-neutral-200 p-3 dark:border-neutral-800">
+                      <HistorialPuntosChart historial={jugador.historialPuntos} />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
 
       {equipoAbierto && (

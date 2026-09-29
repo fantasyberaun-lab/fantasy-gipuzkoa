@@ -27,6 +27,7 @@ export default function MercadoPublico() {
   const [visibles, setVisibles] = useState(POR_PAGINA);
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [confirmandoVentaId, setConfirmandoVentaId] = useState<string | null>(null);
+  const [puntosAbiertoId, setPuntosAbiertoId] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [mensajePorJugador, setMensajePorJugador] = useState<Record<string, MensajeAccion>>({});
 
@@ -83,6 +84,7 @@ export default function MercadoPublico() {
   const toggleSeleccion = (id: string) => {
     setSeleccionadoId((prev) => (prev === id ? null : id));
     setConfirmandoVentaId(null);
+    setPuntosAbiertoId(null);
   };
 
   const mostrarMensaje = (jugadorId: string, mensaje: MensajeAccion) => {
@@ -277,8 +279,6 @@ export default function MercadoPublico() {
 
               {estaSeleccionado && (
                 <div className="flex flex-col gap-3 border-t border-neutral-200 p-3 dark:border-neutral-800">
-                  <HistorialPuntosChart historial={jugador.historialPuntos} />
-
                   {enMiPlantilla ? (
                     confirmandoVentaId === jugador.id ? (
                       <div className="flex gap-2">
@@ -318,6 +318,19 @@ export default function MercadoPublico() {
 
                   {motivoBloqueo && (
                     <p className="text-xs text-amber-600 dark:text-amber-400">{motivoBloqueo}</p>
+                  )}
+
+                  <button
+                    onClick={() =>
+                      setPuntosAbiertoId((prev) => (prev === jugador.id ? null : jugador.id))
+                    }
+                    className="rounded-lg border border-neutral-300 py-2 text-sm font-medium dark:border-neutral-700"
+                  >
+                    {puntosAbiertoId === jugador.id ? "Ocultar puntos" : "Ver puntos"}
+                  </button>
+
+                  {puntosAbiertoId === jugador.id && (
+                    <HistorialPuntosChart historial={jugador.historialPuntos} />
                   )}
 
                   {mensaje && (

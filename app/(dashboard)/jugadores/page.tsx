@@ -15,7 +15,7 @@ type Orden =
   | "club-desc";
 
 export default function JugadoresPage() {
-  const { jugadoresLiga, ofertas, pagarClausula, hacerOferta, cargando } =
+  const { jugadoresLiga, ofertas, pagarClausula, hacerOferta, cargando, esLigaPublica } =
     useGameState();
 
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
@@ -23,6 +23,7 @@ export default function JugadoresPage() {
   const [busqueda, setBusqueda] = useState("");
   const [orden, setOrden] = useState<Orden>("puntos");
   const [enviando, setEnviando] = useState(false);
+  const [puntosAbiertoId, setPuntosAbiertoId] = useState<string | null>(null);
   const [mensajePorJugador, setMensajePorJugador] = useState<
     Record<string, { tipo: "ok" | "error"; texto: string }>
   >({});
@@ -66,6 +67,7 @@ export default function JugadoresPage() {
   const toggleSeleccion = (id: string) => {
     setSeleccionadoId((prev) => (prev === id ? null : id));
     setMontoOferta("");
+    setPuntosAbiertoId(null);
   };
 
   const mostrarMensaje = (
@@ -153,7 +155,8 @@ export default function JugadoresPage() {
       <div className="flex flex-col gap-2">
         {jugadoresFiltrados.map((jugador) => {
           const estaSeleccionado = seleccionadoId === jugador.id;
-          const esFichable = jugador.propietario !== null && !jugador.esMiEquipo;
+          // En la liga pública no hay dueño único: ni ofertas ni cláusulas.
+          const esFichable = !esLigaPublica && jugador.propietario !== null && !jugador.esMiEquipo;
           const ofertaActual = ofertas.find((o) => o.jugadorId === jugador.id);
           const mensaje = mensajePorJugador[jugador.id];
 
@@ -204,7 +207,9 @@ export default function JugadoresPage() {
                         ? "En tu plantilla"
                         : jugador.propietario
                           ? `Fichado por ${jugador.propietario}`
-                          : "Libre"}
+                          : esLigaPublica
+                            ? "Disponible"
+                            : "Libre"}
                       {ofertaActual && !jugador.esMiEquipo
                         ? ` · Oferta enviada: ${ofertaActual.importe} M`
                         : ""}
@@ -278,7 +283,23 @@ export default function JugadoresPage() {
 
               {estaSeleccionado && (
                 <div className="flex flex-col gap-4 border-t border-neutral-200 p-3 dark:border-neutral-800">
-                  <HistorialPuntosChart historial={jugador.historialPuntos} />
+                  {esLigaPublica ? (
+                    <>
+                      <button
+                        onClick={() =>
+                          setPuntosAbiertoId((prev) => (prev === jugador.id ? null : jugador.id))
+                        }
+                        className="rounded-lg border border-neutral-300 py-2 text-sm font-medium dark:border-neutral-700"
+                      >
+                        {puntosAbiertoId === jugador.id ? "Ocultar puntos" : "Ver puntos"}
+                      </button>
+                      {puntosAbiertoId === jugador.id && (
+                        <HistorialPuntosChart historial={jugador.historialPuntos} />
+                      )}
+                    </>
+                  ) : (
+                    <HistorialPuntosChart historial={jugador.historialPuntos} />
+                  )}
 
                   {jugador.esMiEquipo && (
                     <p className="text-sm text-neutral-500">
