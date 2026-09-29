@@ -7,6 +7,9 @@ import { useGameState } from "@/components/GameStateProvider";
 // empieza en 1 en cada torneo, así que el número solo no la identifica).
 type Orden = "total" | string;
 
+// Cuántos equipos se pintan de golpe (con cientos de managers, la lista entera es inmanejable).
+const TAMANO_PAGINA = 50;
+
 interface JornadaOpcion {
   clave: string;
   etiqueta: string;
@@ -19,12 +22,19 @@ export default function ClasificacionPage() {
     jugadoresLiga,
     equipo,
     esLigaPublica,
+    misLigas,
     hacerOferta,
     pagarClausula,
     cargando,
   } = useGameState();
 
+  // Nº de managers de la liga (lo cuenta la base de datos en mis_ligas()).
+  const totalManagers =
+    misLigas.find((l) => l.ligaId === equipo.leagueId)?.miembros ?? clasificacion.length;
+
   const [orden, setOrden] = useState<Orden>("total");
+  const [busqueda, setBusqueda] = useState("");
+  const [visibles, setVisibles] = useState(TAMANO_PAGINA);
   const [equipoAbierto, setEquipoAbierto] = useState<string | null>(null);
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [montoOferta, setMontoOferta] = useState("");
@@ -68,6 +78,29 @@ export default function ClasificacionPage() {
     return <p className="text-sm text-neutral-500">Cargando clasificación…</p>;
   }
 
+  // La posición se calcula sobre la lista COMPLETA (no la filtrada) para que
+  // al buscar un equipo siga viéndose su puesto real.
+  const conPosicion = clasificacionOrdenada.map((entry, i) => ({ entry, posicion: i + 1 }));
+  const miPosicion = conPosicion.find((x) => x.entry.esMiEquipo)?.posicion ?? null;
+  const textoBusqueda = busqueda.trim().toLowerCase();
+  const coincidencias = textoBusqueda
+    ? conPosicion.filter((x) => x.entry.nombreEquipo.toLowerCase().includes(textoBusqueda))
+    : conPosicion;
+  const listaVisible = coincidencias.slice(0, visibles);
+
+  const irAMiEquipo = () => {
+    if (miPosicion === null) return;
+    setBusqueda("");
+    setVisibles((v) => Math.max(v, miPosicion));
+    // Espera a que se pinte la fila antes de desplazarse hasta ella.
+    setTimeout(() => {
+      document.getElementById("mi-equipo-fila")?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 50);
+  };
+
   const cerrarPanel = () => {
     setEquipoAbierto(null);
     setSeleccionadoId(null);
@@ -103,7 +136,14 @@ export default function ClasificacionPage() {
   return (
     <div>
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-lg font-semibold">Clasificación general</h2>
+        <div>
+          <h2 className="text-lg font-semibold">Clasificación general</h2>
+          {esLigaPublica && (
+            <p className="text-xs text-neutral-500">
+              {totalManagers} {totalManagers === 1 ? "manager" : "managers"} en la liga pública
+            </p>
+          )}
+        </div>
         <select
           value={orden}
           onChange={(e) => setOrden(e.target.value)}
@@ -118,21 +158,55 @@ export default function ClasificacionPage() {
         </select>
       </div>
 
+      {esLigaPublica && clasificacion.length > 0 && (
+        <div className="mb-3 flex flex-col gap-2">
+          {miPosicion !== null && (
+            <div className="flex items-center justify-between rounded-lg bg-accent/10 px-3 py-2 text-sm">
+              <span>
+                Tu posición: <strong>{miPosicion}º</strong> de {totalManagers}
+              </span>
+              <button
+                onClick={irAMiEquipo}
+                className="text-xs font-medium text-accent underline underline-offset-2"
+              >
+                Ir a mi equipo
+              </button>
+            </div>
+          )}
+          <input
+            type="search"
+            value={busqueda}
+            onChange={(e) => {
+              setBusqueda(e.target.value);
+              setVisibles(TAMANO_PAGINA);
+            }}
+            placeholder="Buscar equipo por nombre…"
+            className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+          />
+        </div>
+      )}
+
       <ol className="divide-y divide-neutral-200 dark:divide-neutral-800">
         {clasificacionOrdenada.length === 0 && (
           <li className="py-6 text-center text-sm text-neutral-500">
             Todavía no hay equipos en la clasificación.
           </li>
         )}
-        {clasificacionOrdenada.map((entry, i) => (
+        {clasificacionOrdenada.length > 0 && coincidencias.length === 0 && (
+          <li className="py-6 text-center text-sm text-neutral-500">
+            Ningún equipo coincide con «{busqueda}».
+          </li>
+        )}
+        {listaVisible.map(({ entry, posicion }) => (
           <li
             key={entry.equipoId ?? entry.nombreEquipo}
+            id={entry.esMiEquipo ? "mi-equipo-fila" : undefined}
             className={`flex items-center justify-between py-3 ${
               entry.esMiEquipo ? "rounded-lg bg-accent/10 px-3" : "px-3"
             }`}
           >
             <span>
-              {i + 1}. {entry.nombreEquipo}
+              {posicion}. {entry.nombreEquipo}
             </span>
             <div className="flex items-center gap-3">
               <span className="font-medium">
@@ -153,6 +227,15 @@ export default function ClasificacionPage() {
           </li>
         ))}
       </ol>
+
+      {coincidencias.length > listaVisible.length && (
+        <button
+          onClick={() => setVisibles((v) => v + TAMANO_PAGINA)}
+          className="mt-3 w-full rounded-lg border border-neutral-300 py-2.5 text-sm font-medium dark:border-neutral-700"
+        >
+          Mostrar más ({coincidencias.length - listaVisible.length} restantes)
+        </button>
+      )}
 
       {equipoAbierto && (
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
