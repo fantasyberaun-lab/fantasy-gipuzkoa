@@ -7,6 +7,7 @@ import {
   crearJugadorDB,
   eliminarJugadorDB,
   fetchTodosLosJugadores,
+  recalcularValorJugadorDB,
   recalcularValoresInicialesDB,
   type JugadorAdmin,
 } from "@/lib/supabase/adminQueries";
@@ -37,7 +38,10 @@ export default function AdminJugadoresPage() {
   const [nuevaCategoria, setNuevaCategoria] = useState<Categoria>(1);
   const [nuevoElo, setNuevoElo] = useState("");
   const [nuevoAnio, setNuevoAnio] = useState("");
+  const [nuevoFide, setNuevoFide] = useState("");
+  const [nuevoSexo, setNuevoSexo] = useState<"" | "M" | "F">("");
   const [creando, setCreando] = useState(false);
+  const [recalculandoId, setRecalculandoId] = useState<string | null>(null);
 
   async function cargar() {
     setCargando(true);
@@ -124,6 +128,8 @@ export default function AdminJugadoresPage() {
       categoria: nuevaCategoria,
       elo,
       anioNacimiento: nuevoAnio.trim() ? Number(nuevoAnio) : null,
+      fideId: nuevoFide.trim() || null,
+      sexo: nuevoSexo || null,
     });
     setCreando(false);
 
@@ -136,10 +142,46 @@ export default function AdminJugadoresPage() {
     setNuevoClub("");
     setNuevoElo("");
     setNuevoAnio("");
+    setNuevoFide("");
+    setNuevoSexo("");
     await cargar();
   }
 
   const totalConCambios = Object.keys(cambiosPendientes).length;
+
+  async function recalcularValorFila(jugador: JugadorAdmin) {
+    setAviso(null);
+    setMensaje(null);
+
+    if (cambiosPendientes[jugador.id]) {
+      setMensaje(
+        `Guarda antes los cambios de ${jugador.nombre} (el recálculo usa lo que hay guardado).`
+      );
+      return;
+    }
+
+    if (
+      !confirm(
+        `Se recalculará el valor de mercado de ${jugador.nombre} con la fórmula (Elo y año de nacimiento). Su valor actual (${jugador.valorMercado} M) se perderá. ¿Continuar?`
+      )
+    ) {
+      return;
+    }
+
+    setRecalculandoId(jugador.id);
+    const resultado = await recalcularValorJugadorDB(supabase, jugador.id);
+    setRecalculandoId(null);
+
+    if (!resultado.ok) {
+      setMensaje(`Error al recalcular: ${resultado.mensaje}`);
+      return;
+    }
+
+    setJugadores((prev) =>
+      prev.map((j) => (j.id === jugador.id ? { ...j, valorMercado: resultado.valor } : j))
+    );
+    setAviso(`Valor de ${jugador.nombre} recalculado: ${resultado.valor} M.`);
+  }
 
   async function recalcularValores() {
     setAviso(null);
@@ -220,6 +262,23 @@ export default function AdminJugadoresPage() {
             onChange={(e) => setNuevoAnio(e.target.value)}
             className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
           />
+          <input
+            type="text"
+            inputMode="numeric"
+            placeholder="ID FIDE"
+            value={nuevoFide}
+            onChange={(e) => setNuevoFide(e.target.value)}
+            className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+          />
+          <select
+            value={nuevoSexo}
+            onChange={(e) => setNuevoSexo(e.target.value as "" | "M" | "F")}
+            className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+          >
+            <option value="">Sexo</option>
+            <option value="M">M</option>
+            <option value="F">F</option>
+          </select>
           <button
             type="submit"
             disabled={creando || !nuevoNombre.trim() || !nuevoClub.trim()}
@@ -246,8 +305,9 @@ export default function AdminJugadoresPage() {
       <div className="flex flex-col gap-2 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-neutral-500">
           El valor inicial se calcula con el Elo y el año de nacimiento. Tras
-          cambiar Elos o años, recalcula los valores (solo antes de que haya
-          resultados).
+          cambiar Elos o años, recalcula los valores: todos a la vez (solo
+          antes de que haya resultados) o uno a uno con el botón "Recalcular"
+          de cada fila, que no toca a los demás.
         </p>
         <button
           onClick={recalcularValores}
@@ -265,13 +325,14 @@ export default function AdminJugadoresPage() {
         <p className="text-sm text-neutral-500">Cargando jugadores…</p>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-neutral-200 dark:border-neutral-800">
-          <table className="w-full min-w-[800px] text-sm">
+          <table className="w-full min-w-[950px] text-sm">
             <thead className="bg-neutral-50 text-left text-xs uppercase text-neutral-500 dark:bg-neutral-900">
               <tr>
                 <th className="px-3 py-2 font-medium">Nombre</th>
                 <th className="px-3 py-2 font-medium">Club</th>
                 <th className="px-3 py-2 font-medium">Cat.</th>
                 <th className="px-3 py-2 font-medium">Elo</th>
+                <th className="px-3 py-2 font-medium">ID FIDE</th>
                 <th className="px-3 py-2 font-medium">Año nac.</th>
                 <th className="px-3 py-2 font-medium">Edad</th>
                 <th className="px-3 py-2 font-medium">Sexo</th>
@@ -339,6 +400,21 @@ export default function AdminJugadoresPage() {
                     </td>
                     <td className="px-3 py-2">
                       <input
+                        type="text"
+                        inputMode="numeric"
+                        value={valorActual(jugador, "fideId") ?? ""}
+                        onChange={(e) =>
+                          editarCampo(
+                            jugador.id,
+                            "fideId",
+                            e.target.value.trim() === "" ? null : e.target.value.trim()
+                          )
+                        }
+                        className="w-24 rounded border border-transparent bg-transparent px-1 py-0.5 hover:border-neutral-300 focus:border-neutral-400 dark:hover:border-neutral-700"
+                      />
+                    </td>
+                    <td className="px-3 py-2">
+                      <input
                         type="number"
                         value={valorActual(jugador, "anioNacimiento") ?? ""}
                         onChange={(e) =>
@@ -391,6 +467,14 @@ export default function AdminJugadoresPage() {
                           className="rounded border border-neutral-300 px-2 py-1 text-xs font-medium disabled:opacity-30 dark:border-neutral-700"
                         >
                           {guardandoId === jugador.id ? "..." : "Guardar"}
+                        </button>
+                        <button
+                          onClick={() => recalcularValorFila(jugador)}
+                          disabled={recalculandoId === jugador.id}
+                          title="Recalcular solo el valor de este jugador con la fórmula"
+                          className="rounded border border-neutral-300 px-2 py-1 text-xs font-medium disabled:opacity-30 dark:border-neutral-700"
+                        >
+                          {recalculandoId === jugador.id ? "..." : "Recalcular"}
                         </button>
                         <button
                           onClick={() => borrarFila(jugador.id, jugador.nombre)}

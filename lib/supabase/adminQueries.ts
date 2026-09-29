@@ -99,6 +99,8 @@ export async function crearJugadorDB(
     categoria: Categoria;
     elo: number;
     anioNacimiento: number | null;
+    fideId: string | null;
+    sexo: "M" | "F" | null;
   }
 ): Promise<ResultadoAccion> {
   // El valor inicial lo calcula la base de datos con la misma fórmula que
@@ -117,6 +119,8 @@ export async function crearJugadorDB(
     elo: datos.elo,
     anio_nacimiento: datos.anioNacimiento,
     edad: edadDesdeAnio(datos.anioNacimiento),
+    fide_id: datos.fideId,
+    sexo: datos.sexo,
     valor_mercado: Number(valor),
     activo: true,
   });
@@ -144,6 +148,23 @@ export async function recalcularValoresInicialesDB(
   return data as
     | { ok: true; actualizados: number }
     | { ok: false; mensaje: string };
+}
+
+// Recalcula el valor inicial de UN solo jugador (Elo y año de nacimiento
+// guardados), sin tocar a los demás. Ver 0039.
+export async function recalcularValorJugadorDB(
+  supabase: Supabase,
+  id: string
+): Promise<{ ok: true; valor: number } | { ok: false; mensaje: string }> {
+  const { data, error } = await supabase.rpc("recalcular_valor_jugador", {
+    p_player_id: id,
+  });
+
+  if (error || !data) {
+    return { ok: false, mensaje: error?.message ?? "No se pudo recalcular el valor." };
+  }
+  if (!data.ok) return { ok: false, mensaje: data.mensaje };
+  return { ok: true, valor: Number(data.valor) };
 }
 
 // ---------- Jornadas y resultados ----------
