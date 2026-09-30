@@ -5,9 +5,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import MercadoPublico from "@/components/MercadoPublico";
+import SaldoConPujas from "@/components/SaldoConPujas";
 import { proximaTandaMercado, formatearCuentaAtras } from "@/lib/mercadoCountdown";
 
-type Orden = "valor" | "puntos" | "pujas" | "nombre" | "categoria";
+type Orden = "valor" | "elo" | "puntos" | "pujas" | "nombre" | "categoria";
 type MensajePuja = { tipo: "ok" | "error"; texto: string };
 
 // Liga pública: mercado siempre abierto con compra/venta instantánea.
@@ -23,7 +24,8 @@ export default function MercadoPage() {
 }
 
 function MercadoConPujas() {
-  const { mercado, pujasMercado, pujarMercado, equipo, cargando } = useGameState();
+  const { mercado, pujasMercado, pujarMercado, equipo, cargando, comprometidoEnPujas } =
+    useGameState();
 
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
@@ -62,6 +64,8 @@ function MercadoConPujas() {
 
     if (orden === "valor") {
       copia.sort((a, b) => b.valorMercado - a.valorMercado);
+    } else if (orden === "elo") {
+      copia.sort((a, b) => b.elo - a.elo || a.nombre.localeCompare(b.nombre));
     } else if (orden === "puntos") {
       copia.sort((a, b) => b.puntosTotales - a.puntosTotales);
     } else if (orden === "pujas") {
@@ -104,7 +108,9 @@ function MercadoConPujas() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Mercado</h2>
-        <span className="text-sm text-neutral-500">Tu saldo: {equipo.saldo} M</span>
+        <span className="text-sm text-neutral-500">
+          Tu saldo: <SaldoConPujas saldo={equipo.saldo} comprometido={comprometidoEnPujas} />
+        </span>
       </div>
 
       <p className="text-xs text-neutral-500">
@@ -141,6 +147,7 @@ function MercadoConPujas() {
           className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
         >
           <option value="valor">Ordenar por valor</option>
+          <option value="elo">Ordenar por Elo</option>
           <option value="puntos">Ordenar por puntos</option>
           <option value="pujas">Ordenar por número de pujas</option>
           <option value="nombre">Ordenar por nombre</option>

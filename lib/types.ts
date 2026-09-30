@@ -59,6 +59,8 @@ export interface ClasificacionEntry {
   // Id del equipo (opcional para no romper los datos de prueba de mockData).
   equipoId?: string;
   nombreEquipo: string;
+  // Nombre de usuario del manager (profiles.nombre).
+  nombreManager?: string;
   puntos: number;
   esMiEquipo?: boolean;
   historialPuntos: PuntosJornada[];
@@ -159,4 +161,26 @@ export interface LigaResumen {
   equipoId: string;
   nombreEquipo: string;
   saldo: number;
+}
+
+// Perfil de un manager, visto a través de su equipo en una liga.
+export interface PerfilManager {
+  equipoId: string;
+  nombreEquipo: string;
+  nombreManager: string;
+  ligaNombre: string;
+  ligaPublica: boolean;
+  miembroDesde: string; // ISO
+  ligasGanadas: number;
+  ligasJugadas: number;
+  puntosTotales: number;
+  mejorJornada: number;
+  esMio: boolean;
+}
+
+// Un día de la evolución del valor de una plantilla.
+export interface PuntoValorPlantilla {
+  dia: string; // YYYY-MM-DD
+  valor: number; // en M
+  jugadores: number;
 }

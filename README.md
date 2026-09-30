@@ -79,6 +79,16 @@ Suelo: `valor_inicial.valor_min` (10 M). Parámetros en `game_config`, clave
   (nombre de equipo e importe) por cada jugador de la tanda, vía
   `pujas_del_mercado(liga)`.
 
+## Perfil de manager (migración 0043)
+
+- `/managers/[id]` (id = equipo) enseña el nombre de usuario, "manager desde",
+  ligas ganadas y jugadas, puntos, mejor jornada y la evolución del valor de la
+  plantilla. Se abre desde la clasificación (nombre del equipo) y desde "Mi
+  perfil" en la cabecera. Solo entre managers de la misma liga.
+- `profiles.ligas_ganadas` (0 para todos) se sube a mano al terminar una liga:
+  `update profiles set ligas_ganadas = ligas_ganadas + 1 where id = '...';`
+- La clasificación devuelve ahora también `nombre_manager`.
+
 ## Puesta en marcha
 
 1. **Instalar dependencias**

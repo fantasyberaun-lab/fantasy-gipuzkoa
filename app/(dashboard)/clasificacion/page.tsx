@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
@@ -235,8 +236,24 @@ export default function ClasificacionPage() {
               entry.esMiEquipo ? "rounded-lg bg-accent/10 px-3" : "px-3"
             }`}
           >
-            <span>
-              {posicion}. {entry.nombreEquipo}
+            <span className="min-w-0">
+              {posicion}.{" "}
+              {entry.equipoId ? (
+                <Link
+                  href={`/managers/${entry.equipoId}`}
+                  className="hover:underline"
+                  title="Ver perfil del manager"
+                >
+                  {entry.nombreEquipo}
+                </Link>
+              ) : (
+                entry.nombreEquipo
+              )}
+              {entry.nombreManager && (
+                <span className="block truncate pl-5 text-xs text-neutral-500">
+                  {entry.nombreManager}
+                </span>
+              )}
             </span>
             <div className="flex items-center gap-3">
               <span className="font-medium">
@@ -312,7 +329,11 @@ export default function ClasificacionPage() {
                 >
                   <div className="flex items-center justify-between gap-2 px-3 py-2">
                     <div>
-                      <p className="text-sm font-medium">{jugador.nombre}</p>
+                      <p className="text-sm font-medium">
+                        <Link href={`/jugadores/${jugador.id}`} className="hover:underline">
+                          {jugador.nombre}
+                        </Link>
+                      </p>
                       <p className="text-xs text-neutral-500">
                         {jugador.club} · {jugador.categoria}ª cat. · Elo {jugador.elo} ·{" "}
                         {jugador.puntosTotales} pts
@@ -367,18 +388,34 @@ export default function ClasificacionPage() {
                     key={jugador.id}
                     className="rounded-lg border border-neutral-200 dark:border-neutral-800"
                   >
-                    <button
+                    <div
+                      role="button"
+                      tabIndex={0}
                       onClick={() => toggleJugador(jugador.id)}
-                      className="flex w-full items-center justify-between px-3 py-2 text-left"
+                      onKeyDown={(e) => {
+                        if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
+                          e.preventDefault();
+                          toggleJugador(jugador.id);
+                        }
+                      }}
+                      className="flex w-full cursor-pointer items-center justify-between px-3 py-2 text-left"
                     >
                       <div>
-                        <p className="text-sm font-medium">{jugador.nombre}</p>
+                        <p className="text-sm font-medium">
+                          <Link
+                            href={`/jugadores/${jugador.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="hover:underline"
+                          >
+                            {jugador.nombre}
+                          </Link>
+                        </p>
                         <p className="text-xs text-neutral-500">
                           {jugador.club} · {jugador.categoria}ª cat. · Elo {jugador.elo}
                         </p>
                       </div>
                       <span className="text-sm font-medium">{jugador.valorMercado} M</span>
-                    </button>
+                    </div>
 
                     {estaSeleccionado && (
                       <div className="flex flex-col gap-2 border-t border-neutral-200 p-3 dark:border-neutral-800">

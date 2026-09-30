@@ -29,6 +29,8 @@ export default function AdminJugadoresPage() {
     Record<string, Cambios>
   >({});
   const [guardandoId, setGuardandoId] = useState<string | null>(null);
+  // Jugadores cuyo interruptor "Activo" se está guardando (se guarda al instante).
+  const [guardandoActivoIds, setGuardandoActivoIds] = useState<Set<string>>(new Set());
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [recalculando, setRecalculando] = useState(false);
@@ -101,6 +103,35 @@ export default function AdminJugadoresPage() {
       const { [id]: _quitado, ...resto } = prev;
       return resto;
     });
+    setMensaje(null);
+  }
+
+  // Activar/desactivar se guarda en el momento, sin botón "Guardar". Solo envía
+  // el campo "activo": los demás cambios pendientes de la fila (nombre, Elo,
+  // valor...) siguen esperando a su "Guardar".
+  async function cambiarActivo(id: string, activo: boolean) {
+    const anterior = jugadores.find((j) => j.id === id)?.activo;
+    if (anterior === undefined || anterior === activo) return;
+
+    setJugadores((prev) => prev.map((j) => (j.id === id ? { ...j, activo } : j)));
+    setGuardandoActivoIds((prev) => new Set(prev).add(id));
+
+    const resultado = await actualizarJugadorDB(supabase, id, { activo });
+
+    setGuardandoActivoIds((prev) => {
+      const siguiente = new Set(prev);
+      siguiente.delete(id);
+      return siguiente;
+    });
+
+    if (!resultado.ok) {
+      // Si no se ha podido guardar, el interruptor vuelve a como estaba.
+      setJugadores((prev) =>
+        prev.map((j) => (j.id === id ? { ...j, activo: anterior } : j))
+      );
+      setMensaje(`Error al cambiar el estado: ${resultado.mensaje}`);
+      return;
+    }
     setMensaje(null);
   }
 
@@ -454,10 +485,12 @@ export default function AdminJugadoresPage() {
                     <td className="px-3 py-2 text-center">
                       <input
                         type="checkbox"
-                        checked={valorActual(jugador, "activo")}
-                        onChange={(e) =>
-                          editarCampo(jugador.id, "activo", e.target.checked)
-                        }
+                        checked={jugador.activo}
+                        disabled={guardandoActivoIds.has(jugador.id)}
+                        onChange={(e) => cambiarActivo(jugador.id, e.target.checked)}
+                        title="Se guarda al instante"
+                        aria-label={`Activo: ${jugador.nombre}`}
+                        className="disabled:opacity-50"
                       />
                     </td>
                     <td className="whitespace-nowrap px-3 py-2">
@@ -496,7 +529,8 @@ export default function AdminJugadoresPage() {
       {totalConCambios > 0 && (
         <p className="text-xs text-neutral-500">
           {totalConCambios} fila{totalConCambios === 1 ? "" : "s"} con cambios sin
-          guardar (usa el botón "Guardar" de cada fila).
+          guardar (usa el botón "Guardar" de cada fila). El interruptor "Activo"
+          se guarda solo, al instante.
         </p>
       )}
     </div>

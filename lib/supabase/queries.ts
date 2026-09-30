@@ -9,8 +9,10 @@ import type {
   Notificacion,
   OfertaPendiente,
   OfertaRecibida,
+  PerfilManager,
   PlantillaSlot,
   PujaMercado,
+  PuntoValorPlantilla,
   PuntosJornada,
   ResultadoPartida,
   TipoLiga,
@@ -611,6 +613,7 @@ export async function fetchClasificacion(
     posicion: indice + 1,
     equipoId: e.equipo_id as string,
     nombreEquipo: e.nombre_equipo,
+    nombreManager: (e.nombre_manager ?? undefined) as string | undefined,
     puntos: e.puntos_totales,
     esMiEquipo: miEquipoId ? e.equipo_id === miEquipoId : false,
     historialPuntos: (e.historial_puntos ?? []) as PuntosJornada[],
@@ -703,4 +706,47 @@ export async function salirLigaDB(
 
   if (error) return { ok: false, mensaje: error.message };
   return data as ResultadoAccion;
+}
+
+
+// Perfil de un manager (ver perfil_manager en 0043). null si no existe o si no
+// compartes liga con él.
+export async function fetchPerfilManager(
+  supabase: Supabase,
+  equipoId: string
+): Promise<PerfilManager | null> {
+  const { data, error } = await supabase.rpc("perfil_manager", { p_equipo_id: equipoId });
+  const fila = (data as any[] | null)?.[0];
+  if (error || !fila) return null;
+
+  return {
+    equipoId: fila.equipo_id,
+    nombreEquipo: fila.nombre_equipo,
+    nombreManager: fila.nombre_manager,
+    ligaNombre: fila.liga_nombre,
+    ligaPublica: Boolean(fila.liga_publica),
+    miembroDesde: fila.miembro_desde,
+    ligasGanadas: Number(fila.ligas_ganadas ?? 0),
+    ligasJugadas: Number(fila.ligas_jugadas ?? 0),
+    puntosTotales: Number(fila.puntos_totales ?? 0),
+    mejorJornada: Number(fila.mejor_jornada ?? 0),
+    esMio: Boolean(fila.es_mio),
+  };
+}
+
+// Valor de la plantilla día a día (ver evolucion_valor_plantilla en 0043).
+export async function fetchEvolucionValorPlantilla(
+  supabase: Supabase,
+  equipoId: string
+): Promise<PuntoValorPlantilla[]> {
+  const { data, error } = await supabase.rpc("evolucion_valor_plantilla", {
+    p_equipo_id: equipoId,
+  });
+  if (error || !data) return [];
+
+  return (data as any[]).map((d) => ({
+    dia: d.dia as string,
+    valor: Number(d.valor),
+    jugadores: Number(d.jugadores),
+  }));
 }

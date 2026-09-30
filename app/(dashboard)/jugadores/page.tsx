@@ -11,6 +11,8 @@ type Orden =
   | "categoria"
   | "valor-desc"
   | "valor-asc"
+  | "elo-desc"
+  | "elo-asc"
   | "club-asc"
   | "club-desc";
 
@@ -51,6 +53,10 @@ export default function JugadoresPage() {
       copia.sort((a, b) => b.valorMercado - a.valorMercado || a.nombre.localeCompare(b.nombre));
     } else if (orden === "valor-asc") {
       copia.sort((a, b) => a.valorMercado - b.valorMercado || a.nombre.localeCompare(b.nombre));
+    } else if (orden === "elo-desc") {
+      copia.sort((a, b) => b.elo - a.elo || a.nombre.localeCompare(b.nombre));
+    } else if (orden === "elo-asc") {
+      copia.sort((a, b) => a.elo - b.elo || a.nombre.localeCompare(b.nombre));
     } else if (orden === "club-asc") {
       copia.sort((a, b) => a.club.localeCompare(b.club) || a.nombre.localeCompare(b.nombre));
     } else if (orden === "club-desc") {
@@ -139,6 +145,8 @@ export default function JugadoresPage() {
           <option value="categoria">Ordenar por categoría</option>
           <option value="valor-desc">Valor: de mayor a menor</option>
           <option value="valor-asc">Valor: de menor a mayor</option>
+          <option value="elo-desc">Elo: de mayor a menor</option>
+          <option value="elo-asc">Elo: de menor a mayor</option>
           <option value="club-asc">Club: A → Z</option>
           <option value="club-desc">Club: Z → A</option>
         </select>

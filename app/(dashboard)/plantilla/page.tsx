@@ -3,6 +3,7 @@
 import { useState } from "react";
 import PlayerCard from "@/components/PlayerCard";
 import { useGameState } from "@/components/GameStateProvider";
+import { resumenPlantilla } from "@/lib/plantillaStats";
 import type { OfertaRecibida } from "@/lib/types";
 
 const MAX_TERCERA = 2;
@@ -53,6 +54,65 @@ function ContadorSlots({
 
       {alTope && avisoTope && (
         <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">{avisoTope}</p>
+      )}
+    </div>
+  );
+}
+
+function Cifra({
+  etiqueta,
+  valor,
+  detalle,
+}: {
+  etiqueta: string;
+  valor: string;
+  detalle?: string;
+}) {
+  return (
+    <div className="rounded-lg bg-neutral-50 px-3 py-2 dark:bg-neutral-900">
+      <p className="text-xs text-neutral-500">{etiqueta}</p>
+      <p className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">{valor}</p>
+      {detalle && <p className="text-[11px] text-neutral-400">{detalle}</p>}
+    </div>
+  );
+}
+
+function ResumenDePlantilla({
+  squad,
+  titulares,
+}: {
+  squad: Parameters<typeof resumenPlantilla>[0];
+  titulares: Record<string, boolean>;
+}) {
+  const r = resumenPlantilla(squad, titulares);
+  const sinTitulares = r.numTitulares === 0;
+
+  return (
+    <div className="mb-4 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <Cifra
+          etiqueta="Valor de la plantilla"
+          valor={`${r.valorPlantilla} M`}
+          detalle={`${squad.length} jugador${squad.length === 1 ? "" : "es"}`}
+        />
+        <Cifra
+          etiqueta="Valor de titulares"
+          valor={sinTitulares ? "–" : `${r.valorTitulares} M`}
+          detalle={sinTitulares ? "Sin titulares" : `${r.numTitulares} titular${r.numTitulares === 1 ? "" : "es"}`}
+        />
+        <Cifra
+          etiqueta="Elo medio plantilla"
+          valor={r.eloMedioPlantilla === null ? "–" : String(r.eloMedioPlantilla)}
+        />
+        <Cifra
+          etiqueta="Elo medio titulares"
+          valor={r.eloMedioTitulares === null ? "–" : String(r.eloMedioTitulares)}
+        />
+      </div>
+      {r.sinElo > 0 && (
+        <p className="mt-2 text-[11px] text-neutral-400">
+          Las medias de Elo no cuentan a {r.sinElo} jugador{r.sinElo === 1 ? "" : "es"} sin Elo.
+        </p>
       )}
     </div>
   );
@@ -187,6 +247,8 @@ export default function PlantillaPage() {
   return (
     <div>
       {!esLigaPublica && <OfertasRecibidas ofertas={ofertasRecibidas} />}
+
+      {squad.length > 0 && <ResumenDePlantilla squad={squad} titulares={titulares} />}
 
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
         <ContadorSlots

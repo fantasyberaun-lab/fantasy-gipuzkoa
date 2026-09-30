@@ -76,6 +76,8 @@ interface GameState {
   mercado: MercadoDelDia[];
   // Pujas (de todos los equipos de la liga) por los jugadores de la tanda abierta.
   pujasMercado: PujaMercado[];
+  // Suma de TUS pujas abiertas (dinero que se te descontaría si las ganases todas).
+  comprometidoEnPujas: number;
   ofertas: OfertaPendiente[];
   ofertasRecibidas: OfertaRecibida[];
   clasificacion: ClasificacionEntry[];
@@ -468,6 +470,11 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     return resultado;
   }
 
+  const comprometidoEnPujas =
+    Math.round(
+      pujasMercado.filter((p) => p.esMia).reduce((total, p) => total + p.importe, 0) * 100
+    ) / 100;
+
   return (
     <GameStateContext.Provider
       value={{
@@ -483,6 +490,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         jugadoresLiga,
         mercado,
         pujasMercado,
+        comprometidoEnPujas,
         ofertas,
         ofertasRecibidas,
         clasificacion,

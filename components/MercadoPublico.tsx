@@ -10,7 +10,7 @@ import { gameConfig } from "@/lib/gameConfig";
 // siempre disponibles, cualquiera puede tener al mismo jugador, y comprar o
 // vender es instantáneo al valor de mercado.
 
-type Orden = "valor-desc" | "valor-asc" | "puntos" | "nombre" | "categoria";
+type Orden = "valor-desc" | "valor-asc" | "elo-desc" | "elo-asc" | "puntos" | "nombre" | "categoria";
 type Vista = "todos" | "mios";
 type MensajeAccion = { tipo: "ok" | "error"; texto: string };
 
@@ -63,6 +63,10 @@ export default function MercadoPublico() {
       filtrados.sort((a, b) => b.valorMercado - a.valorMercado || porNombre(a, b));
     } else if (orden === "valor-asc") {
       filtrados.sort((a, b) => a.valorMercado - b.valorMercado || porNombre(a, b));
+    } else if (orden === "elo-desc") {
+      filtrados.sort((a, b) => b.elo - a.elo || porNombre(a, b));
+    } else if (orden === "elo-asc") {
+      filtrados.sort((a, b) => a.elo - b.elo || porNombre(a, b));
     } else if (orden === "puntos") {
       filtrados.sort((a, b) => b.puntosTotales - a.puntosTotales || porNombre(a, b));
     } else if (orden === "nombre") {
@@ -161,6 +165,8 @@ export default function MercadoPublico() {
         >
           <option value="valor-desc">Valor: de mayor a menor</option>
           <option value="valor-asc">Valor: de menor a mayor</option>
+          <option value="elo-desc">Elo: de mayor a menor</option>
+          <option value="elo-asc">Elo: de menor a mayor</option>
           <option value="puntos">Ordenar por puntos</option>
           <option value="nombre">Ordenar por nombre</option>
           <option value="categoria">Ordenar por categoría</option>

@@ -7,9 +7,10 @@ import { useGameState } from "@/components/GameStateProvider";
 import { createClient } from "@/lib/supabase/client";
 import EliminarCuentaButton from "@/components/EliminarCuentaButton";
 import CambiarLigaModal from "@/components/CambiarLigaModal";
+import SaldoConPujas from "@/components/SaldoConPujas";
 
 export default function EquipoHeader() {
-  const { equipo, cargando, esRoot, misLigas } = useGameState();
+  const { equipo, cargando, esRoot, misLigas, comprometidoEnPujas } = useGameState();
   const ligaActiva = misLigas.find((l) => l.ligaId === equipo.leagueId);
   const router = useRouter();
   const supabase = createClient();
@@ -65,6 +66,14 @@ export default function EquipoHeader() {
           >
             Cerrar sesión
           </button>
+          {!cargando && equipo.id && (
+            <Link
+              href={`/managers/${equipo.id}`}
+              className="font-medium text-neutral-700 underline underline-offset-2 hover:text-neutral-900 dark:text-neutral-300 dark:hover:text-white"
+            >
+              Mi perfil
+            </Link>
+          )}
           <EliminarCuentaButton />
           {esRoot && (
             <Link
@@ -82,7 +91,11 @@ export default function EquipoHeader() {
           Saldo
         </p>
         <p className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-          {cargando ? "…" : `${equipo.saldo} M`}
+          {cargando ? (
+            "…"
+          ) : (
+            <SaldoConPujas saldo={equipo.saldo} comprometido={comprometidoEnPujas} />
+          )}
         </p>
       </div>
 

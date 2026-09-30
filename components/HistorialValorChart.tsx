@@ -18,17 +18,25 @@ function formatoFecha(iso: string) {
 
 // Línea con la evolución del valor de mercado. Los puntos se reparten por
 // fecha real; los que vienen de una partida se marcan con un círculo.
-export default function HistorialValorChart({ historial }: { historial: PuntoValor[] }) {
+export default function HistorialValorChart({
+  historial,
+  titulo = "Evolución del valor",
+  textoVacio = "Todavía no hay cambios de valor. Aparecerán con la primera variación diaria o partida.",
+}: {
+  historial: PuntoValor[];
+  titulo?: string;
+  textoVacio?: string;
+}) {
   if (historial.length < 2) {
     return (
       <div>
-        <p className="mb-2 text-xs font-medium text-neutral-500">Evolución del valor</p>
-        <p className="text-xs text-neutral-500">
-          Todavía no hay cambios de valor. Aparecerán con la primera variación diaria o partida.
-        </p>
+        <p className="mb-2 text-xs font-medium text-neutral-500">{titulo}</p>
+        <p className="text-xs text-neutral-500">{textoVacio}</p>
       </div>
     );
   }
+
+  const hayPartidas = historial.some((h) => h.motivo === "resultado");
 
   const t0 = new Date(historial[0].fecha).getTime();
   const t1 = new Date(historial[historial.length - 1].fecha).getTime();
@@ -54,7 +62,7 @@ export default function HistorialValorChart({ historial }: { historial: PuntoVal
   return (
     <div>
       <div className="mb-2 flex items-baseline justify-between gap-2">
-        <p className="text-xs font-medium text-neutral-500">Evolución del valor</p>
+        <p className="text-xs font-medium text-neutral-500">{titulo}</p>
         <p
           className={`text-xs font-semibold ${
             totalPct > 0 ? "text-accent" : totalPct < 0 ? "text-red-500" : "text-neutral-500"
@@ -69,7 +77,7 @@ export default function HistorialValorChart({ historial }: { historial: PuntoVal
         viewBox={`0 0 ${ANCHO} ${ALTO}`}
         className="w-full"
         role="img"
-        aria-label={`Valor de mercado: de ${primero} M a ${ultimo} M`}
+        aria-label={`${titulo}: de ${primero} M a ${ultimo} M`}
       >
         <polyline
           points={linea}
@@ -81,7 +89,21 @@ export default function HistorialValorChart({ historial }: { historial: PuntoVal
           vectorEffect="non-scaling-stroke"
         />
         {historial.map((h, i) => {
-          if (h.motivo === "diaria" && i !== historial.length - 1) return null;
+          const detalle =
+            h.cambioPct !== null
+              ? ` (${h.cambioPct > 0 ? "+" : ""}${h.cambioPct.toFixed(2)} %, ${ETIQUETA[h.motivo]})`
+              : h.motivo === "inicial"
+                ? ` (${ETIQUETA[h.motivo]})`
+                : "";
+          // Los días normales no llevan punto visible, pero sí una zona
+          // invisible para poder ver el valor de cada día al pasar el ratón.
+          if (h.motivo === "diaria" && i !== historial.length - 1) {
+            return (
+              <circle key={i} cx={x(h.fecha)} cy={y(h.valor)} r={6} fill="transparent">
+                <title>{`${formatoFecha(h.fecha)} · ${h.valor} M${detalle}`}</title>
+              </circle>
+            );
+          }
           return (
             <circle
               key={i}
@@ -90,12 +112,7 @@ export default function HistorialValorChart({ historial }: { historial: PuntoVal
               r={h.motivo === "resultado" ? 3.5 : 3}
               className={h.motivo === "resultado" ? "fill-amber-400" : "fill-accent"}
             >
-              <title>
-                {`${formatoFecha(h.fecha)} · ${h.valor} M`}
-                {h.cambioPct !== null
-                  ? ` (${h.cambioPct > 0 ? "+" : ""}${h.cambioPct.toFixed(2)} %, ${ETIQUETA[h.motivo]})`
-                  : ` (${ETIQUETA[h.motivo]})`}
-              </title>
+              <title>{`${formatoFecha(h.fecha)} · ${h.valor} M${detalle}`}</title>
             </circle>
           );
         })}
@@ -117,10 +134,12 @@ export default function HistorialValorChart({ historial }: { historial: PuntoVal
         <span>
           Mín. {vMin} M · Máx. {vMax} M
         </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2 w-2 rounded-full bg-amber-400" />
-          Cambio por partida
-        </span>
+        {hayPartidas && (
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-2 w-2 rounded-full bg-amber-400" />
+            Cambio por partida
+          </span>
+        )}
       </p>
     </div>
   );

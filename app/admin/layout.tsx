@@ -1,5 +1,6 @@
 import Link from "next/link";
 import AdminNav from "@/components/AdminNav";
+import ThemeToggle from "@/components/ThemeToggle";
 
 // Nota: este layout NO reutiliza app/(dashboard)/layout.tsx a propósito
 // — el panel de admin es una zona aparte, sin las pestañas de manager ni
@@ -21,12 +22,15 @@ export default function AdminLayout({
           </p>
           <h1 className="text-2xl font-semibold">Administración</h1>
         </div>
-        <Link
-          href="/plantilla"
-          className="text-sm text-neutral-500 underline underline-offset-2 hover:text-neutral-800 dark:hover:text-neutral-300"
-        >
-          ← Volver a la app
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/plantilla"
+            className="text-sm text-neutral-500 underline underline-offset-2 hover:text-neutral-800 dark:hover:text-neutral-300"
+          >
+            ← Volver a la app
+          </Link>
+          <ThemeToggle />
+        </div>
       </header>
       <AdminNav />
       <div className="mt-6">{children}</div>
