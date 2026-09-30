@@ -1,9 +1,7 @@
 import TabNav from "@/components/TabNav";
-import ThemeToggle from "@/components/ThemeToggle";
 import { GameStateProvider } from "@/components/GameStateProvider";
-import EquipoHeader from "@/components/EquipoHeader";
+import EquipoHeader, { EquipoAcciones } from "@/components/EquipoHeader";
 import LigaGate from "@/components/LigaGate";
-import InstallPwaButton from "@/components/InstallPwaButton";
 
 export default function DashboardLayout({
   children,
@@ -13,14 +11,14 @@ export default function DashboardLayout({
   return (
     <GameStateProvider>
       <LigaGate>
-        <div className="mx-auto max-w-5xl px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-6 sm:pb-16">
-          <header className="mb-6 flex items-start justify-between gap-4">
+        <header className="banner-tablero">
+          <div className="mx-auto max-w-5xl px-4 pb-5 pt-[calc(env(safe-area-inset-top)+1rem)]">
             <EquipoHeader />
-            <div className="flex items-center gap-3">
-              <InstallPwaButton />
-              <ThemeToggle />
-            </div>
-          </header>
+          </div>
+        </header>
+
+        <div className="mx-auto max-w-5xl px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-4 sm:pb-16">
+          <EquipoAcciones />
 
           <TabNav />
 

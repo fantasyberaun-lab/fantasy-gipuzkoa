@@ -1,18 +1,34 @@
+import Image from "next/image";
+
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        <p className="mb-1 text-center text-xs uppercase tracking-wide text-neutral-500">
-          Fantasy
-        </p>
-        <h1 className="mb-6 text-center text-xl font-semibold">
-          Campeonatos de Gipuzkoa
+    <div className="flex min-h-screen flex-col">
+      <div className="banner-tablero px-4 pb-16 pt-[calc(env(safe-area-inset-top)+2.5rem)] text-center text-white">
+        <Image
+          src="/icons/icon-192.png"
+          alt="Escudo Beraun"
+          width={72}
+          height={72}
+          className="mx-auto mb-3 rounded-full"
+          priority
+        />
+        <h1 className="font-display text-3xl font-semibold">
+          Beraun Fantasy
         </h1>
-        {children}
+        <p className="mt-1 text-sm text-white/70">Campeonatos de Gipuzkoa</p>
+      </div>
+
+      {/* El formulario ya trae borde y esquinas redondeadas; aquí solo se
+          le añade sombra. "relative z-10" hace que quede POR ENCIMA de la
+          cabecera (que es relative) y no se le corte el borde de arriba. */}
+      <div className="relative z-10 -mt-10 flex-1 px-4 pb-10">
+        <div className="mx-auto w-full max-w-sm [&_form]:shadow-xl [&_form]:shadow-black/10">
+          {children}
+        </div>
       </div>
     </div>
   );

@@ -8,10 +8,24 @@ import { usePwaInstall } from "./PwaProvider";
  * discretos como el login. Se oculta solo si la app ya se está
  * ejecutando instalada (standalone).
  */
-export default function InstallPwaButton() {
+export default function InstallPwaButton({
+  onDark = false,
+}: {
+  // onDark: para usarlo sobre la cabecera morada.
+  onDark?: boolean;
+}) {
   const { canInstall, isStandalone, platform, promptInstall } =
     usePwaInstall();
   const [showHint, setShowHint] = useState(false);
+
+  const botonClase = `flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+    onDark
+      ? "border-white/25 text-white/80 hover:border-gold hover:text-gold"
+      : "mx-auto border-neutral-300 text-neutral-500 hover:border-accent hover:text-accent dark:border-neutral-700 dark:text-neutral-400"
+  }`;
+  const pistaClase = `mt-2 text-[11px] leading-snug ${
+    onDark ? "text-white/70" : "text-neutral-500"
+  }`;
 
   if (isStandalone) return null;
 
@@ -21,7 +35,7 @@ export default function InstallPwaButton() {
       <button
         type="button"
         onClick={promptInstall}
-        className="mx-auto flex items-center gap-1.5 rounded-full border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-500 transition hover:border-accent hover:text-accent dark:border-neutral-700 dark:text-neutral-400"
+        className={botonClase}
       >
         <DownloadIcon />
         Instalar app
@@ -37,17 +51,17 @@ export default function InstallPwaButton() {
   // como respaldo.
   if (platform === "ios" || platform === "android") {
     return (
-      <div className="mx-auto max-w-xs text-center">
+      <div className={onDark ? "max-w-xs" : "mx-auto max-w-xs text-center"}>
         <button
           type="button"
           onClick={() => setShowHint((v) => !v)}
-          className="mx-auto flex items-center gap-1.5 rounded-full border border-neutral-300 px-3 py-1.5 text-xs font-medium text-neutral-500 transition hover:border-accent hover:text-accent dark:border-neutral-700 dark:text-neutral-400"
+          className={botonClase}
         >
           <DownloadIcon />
           Instalar app
         </button>
         {showHint && (
-          <p className="mt-2 text-[11px] leading-snug text-neutral-500">
+          <p className={pistaClase}>
             {platform === "ios" ? (
               <>
                 Pulsa el icono Compartir{" "}

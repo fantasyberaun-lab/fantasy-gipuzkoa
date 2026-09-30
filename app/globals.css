@@ -3,7 +3,9 @@
 @tailwind utilities;
 
 :root {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  /* Morado del club (RGB separado para poder usar bg-accent/10, etc.) */
+  --accent: 109 34 224;
+  --accent-hover: 90 23 189;
 }
 
 html {
@@ -12,8 +14,69 @@ html {
 
 html.dark {
   color-scheme: dark;
+  /* Un punto más claro para que el texto morado se lea sobre fondo oscuro */
+  --accent: 149 80 251;
+  --accent-hover: 176 120 255;
 }
 
-body {
-  @apply bg-board-light text-neutral-900 dark:bg-board-dark dark:text-neutral-100;
+@layer base {
+  body {
+    @apply bg-board-light text-neutral-900 dark:bg-board-dark dark:text-neutral-100;
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1,
+  h2 {
+    font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
+    letter-spacing: 0.01em;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--accent));
+    outline-offset: 2px;
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: none;
+    border-color: rgb(var(--accent));
+    box-shadow: 0 0 0 3px rgb(var(--accent) / 0.2);
+  }
+}
+
+@layer components {
+  /* Tarjetas: todo lo que ya era "rounded-xl/2xl + border" pasa a tener
+     fondo propio (blanco en claro, tono elevado en oscuro). Con :where()
+     la especificidad es 0, así que cualquier bg-* explícito sigue ganando. */
+  :where(.rounded-xl.border, .rounded-2xl.border) {
+    background-color: #ffffff;
+  }
+  :where(.dark .rounded-xl.border, .dark .rounded-2xl.border) {
+    background-color: #15122a;
+  }
+
+  /* Cabecera con tablero de ajedrez sutil y filo amarillo */
+  .banner-tablero {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background: linear-gradient(135deg, #1e0d55 0%, #0d0828 100%);
+    border-bottom: 3px solid #ffd426;
+  }
+  .banner-tablero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: conic-gradient(
+        rgba(255, 255, 255, 0.05) 25%,
+        transparent 0 50%,
+        rgba(255, 255, 255, 0.05) 0 75%,
+        transparent 0
+      )
+      0 0 / 48px 48px;
+    -webkit-mask-image: linear-gradient(to left, #000 0%, transparent 65%);
+    mask-image: linear-gradient(to left, #000 0%, transparent 65%);
+  }
 }

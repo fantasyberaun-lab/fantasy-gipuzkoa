@@ -70,12 +70,22 @@ const TABS: Tab[] = [
   },
 ];
 
-function Badge({ n, className = "" }: { n: number; className?: string }) {
+function Badge({
+  n,
+  className = "",
+  onDark = false,
+}: {
+  n: number;
+  className?: string;
+  onDark?: boolean; // sobre la barra oscura del móvil: amarillo
+}) {
   if (n <= 0) return null;
   return (
     <span
       aria-label={`${n} sin leer`}
-      className={`rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white ${className}`}
+      className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none ${
+        onDark ? "bg-gold text-brand-950" : "bg-accent text-white"
+      } ${className}`}
     >
       {n > 9 ? "9+" : n}
     </span>
@@ -103,9 +113,9 @@ export default function TabNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`-mb-px flex items-center gap-1.5 whitespace-nowrap border-b-2 pb-3 text-sm font-medium transition-colors ${
+              className={`-mb-px flex items-center gap-1.5 whitespace-nowrap border-b-[3px] pb-3 text-[15px] font-semibold transition-colors ${
                 isActive
-                  ? "border-accent text-accent"
+                  ? "border-gold text-accent"
                   : "border-transparent text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
               }`}
             >
@@ -119,7 +129,7 @@ export default function TabNav() {
       {/* Móvil: barra fija abajo, todas las pestañas visibles sin deslizar. */}
       <nav
         aria-label="Navegación principal"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-neutral-200 bg-[#EDEAE3]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur dark:border-neutral-800 dark:bg-[#141416]/95 sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#120a38]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden"
       >
         <ul className="mx-auto flex max-w-md">
           {tabs.map((tab) => {
@@ -131,19 +141,20 @@ export default function TabNav() {
                   href={tab.href}
                   aria-current={isActive ? "page" : undefined}
                   className={`relative flex flex-col items-center gap-0.5 px-0.5 pb-2 pt-2 text-[10px] font-medium transition-colors ${
-                    isActive ? "text-accent" : "text-neutral-500"
+                    isActive ? "text-gold" : "text-white/60"
                   }`}
                 >
                   <span className="relative">
                     {tab.icono}
                     <Badge
                       n={badge}
+                      onDark
                       className="absolute -right-2.5 -top-1.5 px-1 py-[3px] text-[9px]"
                     />
                   </span>
                   <span className="w-full truncate text-center">{tab.label}</span>
                   {isActive && (
-                    <span className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-accent" />
+                    <span className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-gold" />
                   )}
                 </Link>
               </li>

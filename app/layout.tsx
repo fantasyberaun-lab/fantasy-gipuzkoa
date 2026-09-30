@@ -1,9 +1,25 @@
 import type { Metadata, Viewport } from "next";
+import { Barlow, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
 import PwaProvider from "@/components/PwaProvider";
 
+const fontSans = Barlow({
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+// Para títulos y cifras grandes (nombre del equipo, saldo).
+const fontDisplay = Barlow_Condensed({
+  subsets: ["latin", "latin-ext"],
+  weight: ["500", "600", "700"],
+  variable: "--font-display",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "Fantasy Xake Gipuzkoa - Beraun",
+  title: "Beraun Fantasy",
   description:
     "Fantasy de ajedrez basado en los Campeonatos de Gipuzkoa",
   manifest: "/manifest.json",
@@ -26,10 +42,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#EDEAE3" },
-    { media: "(prefers-color-scheme: dark)", color: "#141416" },
-  ],
+  themeColor: "#1E0D55", // morado de la cabecera
 };
 
 export default function RootLayout({
@@ -40,7 +53,11 @@ export default function RootLayout({
   return (
     // suppressHydrationWarning: la clase "dark" la añade el ThemeToggle
     // en cliente a partir de localStorage / prefers-color-scheme.
-    <html lang="es" suppressHydrationWarning>
+    <html
+      lang="es"
+      className={`${fontSans.variable} ${fontDisplay.variable}`}
+      suppressHydrationWarning
+    >
       <body className="min-h-screen font-sans antialiased">
         <PwaProvider>{children}</PwaProvider>
       </body>
