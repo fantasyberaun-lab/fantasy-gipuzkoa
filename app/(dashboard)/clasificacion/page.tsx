@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { redondear2 } from "@/lib/saldo";
 import { useMemo, useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
@@ -460,7 +461,7 @@ export default function ClasificacionPage() {
             </div>
 
             <p className="mt-3 text-xs text-neutral-400">
-              Tu saldo: {equipo.saldo} M
+              Tu saldo: {redondear2(equipo.saldo)} M
             </p>
           </div>
         </div>

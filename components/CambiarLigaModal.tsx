@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { redondear2 } from "@/lib/saldo";
 import { useGameState } from "@/components/GameStateProvider";
 import LigaForm from "@/components/LigaForm";
 import type { LigaResumen } from "@/lib/types";
@@ -117,8 +118,8 @@ export default function CambiarLigaModal({ onCerrar }: { onCerrar: () => void })
                     </p>
                     <p className="text-xs text-neutral-500">
                       {liga.tipo === "publica"
-                        ? `${liga.nombreEquipo} · Todos contra todos · ${liga.miembros} managers · ${liga.saldo} M`
-                        : `${liga.nombreEquipo} · ${liga.miembros}/${liga.maxMiembros} · código ${liga.codigo} · ${liga.saldo} M`}
+                        ? `${liga.nombreEquipo} · Todos contra todos · ${liga.miembros} managers · ${redondear2(liga.saldo)} M`
+                        : `${liga.nombreEquipo} · ${liga.miembros}/${liga.maxMiembros} · código ${liga.codigo} · ${redondear2(liga.saldo)} M`}
                     </p>
                   </button>
                   {liga.tipo !== "publica" && <CopiarCodigoButton codigo={liga.codigo} />}

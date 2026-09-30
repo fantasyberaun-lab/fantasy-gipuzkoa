@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { redondear2 } from "@/lib/saldo";
 import {
   aceptarOfertaDB,
   blindarJugadorDB,
@@ -78,6 +79,9 @@ interface GameState {
   pujasMercado: PujaMercado[];
   // Suma de TUS pujas abiertas (dinero que se te descontaría si las ganases todas).
   comprometidoEnPujas: number;
+  // Saldo futuro = saldo - lo comprometido en tus pujas abiertas. Es el que hay
+  // que mirar para saber si te llega el dinero para fichar/ofertar.
+  saldoFuturo: number;
   ofertas: OfertaPendiente[];
   ofertasRecibidas: OfertaRecibida[];
   clasificacion: ClasificacionEntry[];
@@ -178,7 +182,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       id: ligaSeleccionada.equipoId,
       leagueId: ligaSeleccionada.ligaId,
       nombreEquipo: ligaSeleccionada.nombreEquipo,
-      saldo: ligaSeleccionada.saldo,
+      saldo: redondear2(ligaSeleccionada.saldo),
     };
     setEquipo(miEquipo);
 
@@ -338,6 +342,11 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     return resultado;
   }
 
+  const comprometidoEnPujas = redondear2(
+    pujasMercado.filter((p) => p.esMia).reduce((total, p) => total + p.importe, 0)
+  );
+  const saldoFuturo = redondear2(equipo.saldo - comprometidoEnPujas);
+
   async function pagarClausula(jugadorId: string): Promise<ResultadoAccion> {
     if (!equipo.leagueId) return { ok: false, mensaje: "No tienes equipo todavía." };
     const resultado = await pagarClausulaDB(supabase, jugadorId, equipo.leagueId);
@@ -353,10 +362,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     if (!Number.isFinite(importe) || importe <= 0) {
       return { ok: false, mensaje: "Introduce un importe válido." };
     }
-    if (importe > equipo.saldo) {
+    if (importe > saldoFuturo) {
       return {
         ok: false,
-        mensaje: `No puedes pagar más de tu saldo disponible (${equipo.saldo} M).`,
+        mensaje: `No puedes pagar más de tu saldo futuro (${saldoFuturo} M).`,
       };
     }
     const resultado = await subirClausulaDB(supabase, jugadorId, equipo.leagueId, importe);
@@ -372,10 +381,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     if (!Number.isFinite(importe) || importe <= 0) {
       return { ok: false, mensaje: "Introduce un importe válido." };
     }
-    if (importe > equipo.saldo) {
+    if (importe > saldoFuturo) {
       return {
         ok: false,
-        mensaje: `No puedes ofertar más de tu saldo disponible (${equipo.saldo} M).`,
+        mensaje: `No puedes ofertar más de tu saldo futuro (${saldoFuturo} M).`,
       };
     }
     const resultado = await hacerOfertaDB(supabase, equipo.id, jugadorId, importe);
@@ -470,10 +479,6 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     return resultado;
   }
 
-  const comprometidoEnPujas =
-    Math.round(
-      pujasMercado.filter((p) => p.esMia).reduce((total, p) => total + p.importe, 0) * 100
-    ) / 100;
 
   return (
     <GameStateContext.Provider
@@ -491,6 +496,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         mercado,
         pujasMercado,
         comprometidoEnPujas,
+        saldoFuturo,
         ofertas,
         ofertasRecibidas,
         clasificacion,

@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import { gameConfig } from "@/lib/gameConfig";
+import { redondear2 } from "@/lib/saldo";
 
 // Mercado de la liga pública "todos contra todos": todos los jugadores están
 // siempre disponibles, cualquiera puede tener al mismo jugador, y comprar o
@@ -17,7 +18,7 @@ type MensajeAccion = { tipo: "ok" | "error"; texto: string };
 const POR_PAGINA = 50;
 
 export default function MercadoPublico() {
-  const { jugadoresLiga, squad, equipo, ficharJugador, venderJugador } = useGameState();
+  const { jugadoresLiga, squad, saldoFuturo, ficharJugador, venderJugador } = useGameState();
 
   const [busqueda, setBusqueda] = useState("");
   const [categoria, setCategoria] = useState<"todas" | "1" | "2" | "3">("todas");
@@ -45,7 +46,7 @@ export default function MercadoPublico() {
       if (!j.activo) return false;
       if (vista === "mios" && !idsMiPlantilla.has(j.id)) return false;
       if (categoria !== "todas" && String(j.categoria) !== categoria) return false;
-      if (soloAsequibles && !idsMiPlantilla.has(j.id) && j.valorMercado > equipo.saldo) {
+      if (soloAsequibles && !idsMiPlantilla.has(j.id) && j.valorMercado > saldoFuturo) {
         return false;
       }
       if (texto) {
@@ -76,7 +77,7 @@ export default function MercadoPublico() {
     }
 
     return filtrados;
-  }, [jugadoresLiga, busqueda, categoria, vista, orden, soloAsequibles, idsMiPlantilla, equipo.saldo]);
+  }, [jugadoresLiga, busqueda, categoria, vista, orden, soloAsequibles, idsMiPlantilla, saldoFuturo]);
 
   const jugadoresMostrados = jugadoresFiltrados.slice(0, visibles);
 
@@ -125,7 +126,7 @@ export default function MercadoPublico() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Mercado</h2>
         <span className="text-sm text-neutral-500">
-          Saldo: {equipo.saldo} M · Plantilla: {squad.length}/{maxPlantilla}
+          Saldo: {redondear2(saldoFuturo)} M · Plantilla: {squad.length}/{maxPlantilla}
         </span>
       </div>
 
@@ -219,13 +220,13 @@ export default function MercadoPublico() {
           const estaSeleccionado = seleccionadoId === jugador.id;
           const enMiPlantilla = idsMiPlantilla.has(jugador.id);
           const mensaje = mensajePorJugador[jugador.id];
-          const sinSaldo = !enMiPlantilla && jugador.valorMercado > equipo.saldo;
+          const sinSaldo = !enMiPlantilla && jugador.valorMercado > saldoFuturo;
           const motivoBloqueo = enMiPlantilla
             ? null
             : plantillaCompleta
               ? `Tu plantilla ya tiene los ${maxPlantilla} jugadores permitidos: vende a alguno primero.`
               : sinSaldo
-                ? `Te faltan ${Math.round((jugador.valorMercado - equipo.saldo) * 100) / 100} M para poder ficharlo.`
+                ? `Te faltan ${redondear2(jugador.valorMercado - saldoFuturo)} M para poder ficharlo.`
                 : null;
 
           return (

@@ -1,3 +1,5 @@
+import { redondear2 } from "@/lib/saldo";
+
 export default function SaldoCard({ saldo }: { saldo: number }) {
   return (
     <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
@@ -5,7 +7,7 @@ export default function SaldoCard({ saldo }: { saldo: number }) {
         Saldo
       </p>
       <p className="mt-1 text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
-        {saldo} M
+        {redondear2(saldo)} M
       </p>
     </div>
   );
