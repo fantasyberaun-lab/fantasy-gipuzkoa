@@ -61,6 +61,23 @@ export default function EquipoHeader() {
               <SaldoConPujas saldo={equipo.saldo} comprometido={comprometidoEnPujas} />
             )}
           </p>
+          {!cargando && equipo.saldo < 0 && (
+            <p
+              role="status"
+              title="Con el saldo en negativo no puntúas en la jornada. Vende un jugador o espera a recuperar saldo antes de que empiece."
+              className="mt-1 flex max-w-[11.5rem] items-start gap-1 text-[10.5px] leading-snug text-red-200/90"
+            >
+              <svg
+                className="mt-[1px] h-3 w-3 shrink-0"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M10 2 1 18h18L10 2Zm-1 6h2v5H9V8Zm0 6h2v2H9v-2Z" />
+              </svg>
+              <span>No puntuarás si sigues en negativo cuando empiece la jornada</span>
+            </p>
+          )}
         </div>
       </div>
     </div>
