@@ -10,6 +10,7 @@ import type {
   OfertaPendiente,
   OfertaRecibida,
   PlantillaSlot,
+  PujaMercado,
   PuntosJornada,
   ResultadoPartida,
   TipoLiga,
@@ -219,6 +220,27 @@ export async function fetchMercado(
         numeroPujas: pujasPorListing.get(l.id) ?? 0,
       };
     });
+}
+
+// Pujas de todos los equipos de la liga por los jugadores de la tanda actual,
+// de mayor a menor importe. Solo devuelve algo a los miembros de la liga.
+export async function fetchPujasMercado(
+  supabase: Supabase,
+  leagueId: string
+): Promise<PujaMercado[]> {
+  const { data, error } = await supabase.rpc("pujas_del_mercado", {
+    p_league_id: leagueId,
+  });
+
+  if (error || !data) return [];
+
+  return (data as any[]).map((b) => ({
+    listingId: b.market_listing_id,
+    equipoId: b.fantasy_team_id,
+    nombreEquipo: b.nombre_equipo,
+    importe: Number(b.importe),
+    esMia: Boolean(b.es_mia),
+  }));
 }
 
 export async function fetchMisOfertas(

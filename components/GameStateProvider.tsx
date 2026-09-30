@@ -21,6 +21,7 @@ import {
   fetchMisOfertas,
   fetchNotificaciones,
   fetchOfertasRecibidas,
+  fetchPujasMercado,
   ficharJugadorDB,
   hacerOfertaDB,
   marcarNotificacionesVistasDB,
@@ -46,6 +47,7 @@ import type {
   OfertaPendiente,
   OfertaRecibida,
   PlantillaSlot,
+  PujaMercado,
 } from "@/lib/types";
 
 const EQUIPO_VACIO: EquipoManager = { id: "", leagueId: "", nombreEquipo: "", saldo: 0 };
@@ -72,6 +74,8 @@ interface GameState {
   capitanId: string | null;
   jugadoresLiga: JugadorLiga[];
   mercado: MercadoDelDia[];
+  // Pujas (de todos los equipos de la liga) por los jugadores de la tanda abierta.
+  pujasMercado: PujaMercado[];
   ofertas: OfertaPendiente[];
   ofertasRecibidas: OfertaRecibida[];
   clasificacion: ClasificacionEntry[];
@@ -132,6 +136,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const [capitanId, setCapitanId] = useState<string | null>(null);
   const [jugadoresLiga, setJugadoresLiga] = useState<JugadorLiga[]>([]);
   const [mercado, setMercado] = useState<MercadoDelDia[]>([]);
+  const [pujasMercado, setPujasMercado] = useState<PujaMercado[]>([]);
   const [ofertas, setOfertas] = useState<OfertaPendiente[]>([]);
   const [ofertasRecibidas, setOfertasRecibidas] = useState<OfertaRecibida[]>([]);
   const [clasificacion, setClasificacion] = useState<ClasificacionEntry[]>([]);
@@ -175,7 +180,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     };
     setEquipo(miEquipo);
 
-    const [plantilla, ligaJugadores, misOfertas, ofertasParaMi, jugadoresMercado, tabla, avisos] =
+    const [plantilla, ligaJugadores, misOfertas, ofertasParaMi, jugadoresMercado, pujas, tabla, avisos] =
       await Promise.all([
         fetchMiPlantilla(supabase, miEquipo.id),
         fetchJugadoresLiga(supabase, miEquipo.leagueId, miEquipo.id),
@@ -189,6 +194,9 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         esPublica
           ? Promise.resolve([] as MercadoDelDia[])
           : fetchMercado(supabase, miEquipo.leagueId),
+        esPublica
+          ? Promise.resolve([] as PujaMercado[])
+          : fetchPujasMercado(supabase, miEquipo.leagueId),
         fetchClasificacion(supabase, miEquipo.leagueId, miEquipo.id),
         esPublica
           ? Promise.resolve({ notificaciones: [] as Notificacion[], vistasEn: Date.now() })
@@ -219,6 +227,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     setOfertas(misOfertas);
     setOfertasRecibidas(ofertasParaMi);
     setMercado(jugadoresMercado);
+    setPujasMercado(pujas);
     setClasificacion(tabla);
     setNotificaciones(avisos.notificaciones);
     setNotificacionesVistasEn(avisos.vistasEn);
@@ -473,6 +482,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         capitanId,
         jugadoresLiga,
         mercado,
+        pujasMercado,
         ofertas,
         ofertasRecibidas,
         clasificacion,

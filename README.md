@@ -55,6 +55,30 @@ Este esquema es un punto de partida para poder empezar a construir ya;
 seguramente habrá que ajustar cosas (sobre todo las políticas de RLS)
 según vayamos avanzando.
 
+## Valor de mercado dinámico (migración 0041)
+
+El valor de un jugador cambia de dos formas, ambas con histórico en
+`player_value_history` (es lo que pinta la gráfica de la ficha):
+
+- **Por partida**: al guardar un resultado, `cambio % = K x (resultado - E)`
+  con `E = 1/(1+10^((Elo rival - Elo jugador)/400))` y K = 4 %. Un Elo de 0 se
+  trata como 1400. Corregir o borrar un resultado deshace su cambio.
+- **Diaria** (`variacion_diaria_valores()`, pg_cron): +-0,1 % a +-1,5 %, con un
+  sesgo hacia el valor de fórmula (`calcular_valor_inicial`) para que no derive.
+
+Suelo: `valor_inicial.valor_min` (10 M). Parámetros en `game_config`, clave
+`variacion_valor`. La migración **no** programa el cron: ver el final de
+`0041_variacion_valor_mercado.sql` (conviene lanzarlo unos minutos después de
+`procesar_mercado_diario`).
+
+### Pujas y cambios de valor (migración 0042)
+
+- Una puja **se mantiene aunque el valor del jugador suba** por encima de ella:
+  compite con su importe y se paga lo pujado. El mínimo solo se exige al pujar.
+- En el Mercado se ve **tu puja** y las **pujas del resto de equipos de la liga**
+  (nombre de equipo e importe) por cada jugador de la tanda, vía
+  `pujas_del_mercado(liga)`.
+
 ## Puesta en marcha
 
 1. **Instalar dependencias**

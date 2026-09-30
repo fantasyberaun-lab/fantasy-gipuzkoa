@@ -23,7 +23,7 @@ export default function MercadoPage() {
 }
 
 function MercadoConPujas() {
-  const { mercado, pujarMercado, equipo, cargando } = useGameState();
+  const { mercado, pujasMercado, pujarMercado, equipo, cargando } = useGameState();
 
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
@@ -42,6 +42,15 @@ function MercadoConPujas() {
     const proxima = proximaTandaMercado(ahora);
     return formatearCuentaAtras(proxima.getTime() - ahora.getTime());
   }, [ahora]);
+
+  // Pujas por listing, ya ordenadas de mayor a menor importe.
+  const pujasPorListing = useMemo(() => {
+    const mapa = new Map<string, typeof pujasMercado>();
+    for (const p of pujasMercado) {
+      mapa.set(p.listingId, [...(mapa.get(p.listingId) ?? []), p]);
+    }
+    return mapa;
+  }, [pujasMercado]);
 
   const jugadoresFiltrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
@@ -151,6 +160,13 @@ function MercadoConPujas() {
         {jugadoresFiltrados.map((jugador) => {
           const estaSeleccionado = seleccionadoId === jugador.id;
           const mensaje = mensajePorJugador[jugador.id];
+          const pujas = pujasPorListing.get(jugador.listingId) ?? [];
+          const miPuja = pujas.find((p) => p.esMia) ?? null;
+          const pujasOtros = pujas.filter((p) => !p.esMia);
+          const pujaMasAlta = pujas[0] ?? null;
+          // Tu puja se mantiene aunque el valor haya subido por encima de ella,
+          // pero para mejorarla tienes que llegar al valor actual.
+          const miPujaPorDebajo = !!miPuja && miPuja.importe < jugador.valorMercado;
 
           return (
             <div
@@ -200,6 +216,11 @@ function MercadoConPujas() {
                 <div className="text-right">
                   <p className="text-sm font-semibold">{jugador.valorMercado} M</p>
                   <p className="text-xs text-neutral-500">{jugador.numeroPujas} pujas</p>
+                  {miPuja && (
+                    <p className="text-xs font-medium text-accent">
+                      Tu puja: {miPuja.importe} M
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -207,9 +228,63 @@ function MercadoConPujas() {
                 <div className="flex flex-col gap-3 border-t border-neutral-200 p-3 dark:border-neutral-800">
                   <HistorialPuntosChart historial={jugador.historialPuntos} />
 
+                  <div className="rounded-lg bg-neutral-50 p-3 text-sm dark:bg-neutral-900">
+                    <p className="mb-2 text-xs font-medium text-neutral-500">
+                      Pujas por este jugador
+                    </p>
+
+                    {pujas.length === 0 ? (
+                      <p className="text-xs text-neutral-500">
+                        Nadie ha pujado todavía. Con la puja mínima ({jugador.valorMercado} M) te
+                        lo llevarías si nadie puja más.
+                      </p>
+                    ) : (
+                      <ul className="flex flex-col gap-1">
+                        {miPuja && (
+                          <li className="flex items-center justify-between gap-2 font-medium">
+                            <span>
+                              Tu puja
+                              {pujaMasAlta?.esMia && (
+                                <span className="ml-2 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-white">
+                                  la más alta
+                                </span>
+                              )}
+                            </span>
+                            <span>{miPuja.importe} M</span>
+                          </li>
+                        )}
+                        {pujasOtros.map((p) => (
+                          <li
+                            key={p.equipoId}
+                            className="flex items-center justify-between gap-2 text-neutral-600 dark:text-neutral-300"
+                          >
+                            <span className="truncate">
+                              {p.nombreEquipo}
+                              {pujaMasAlta?.equipoId === p.equipoId && (
+                                <span className="ml-2 rounded-full border border-neutral-300 px-2 py-0.5 text-[10px] text-neutral-500 dark:border-neutral-700">
+                                  la más alta
+                                </span>
+                              )}
+                            </span>
+                            <span>{p.importe} M</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {miPujaPorDebajo && (
+                      <p className="mt-2 text-xs text-neutral-500">
+                        El valor del jugador ha subido a {jugador.valorMercado} M, pero tu puja de{" "}
+                        {miPuja!.importe} M se mantiene. Compite con su importe: si alguien puja
+                        ahora, tendrá que llegar al valor actual.
+                      </p>
+                    )}
+                  </div>
+
                   <div>
                     <label className="text-xs font-medium text-neutral-500">
-                      Importe de la puja (M) — mínimo {jugador.valorMercado} M
+                      {miPuja ? "Mejorar tu puja" : "Importe de la puja"} (M) — mínimo{" "}
+                      {jugador.valorMercado} M
                     </label>
                     <input
                       type="number"

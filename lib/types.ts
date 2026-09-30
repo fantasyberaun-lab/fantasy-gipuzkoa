@@ -90,6 +90,15 @@ export interface MercadoDelDia extends Jugador {
   numeroPujas: number;
 }
 
+// Puja de un equipo por un jugador de la tanda de mercado abierta.
+export interface PujaMercado {
+  listingId: string;
+  equipoId: string;
+  nombreEquipo: string;
+  importe: number;
+  esMia: boolean;
+}
+
 export interface OfertaPendiente {
   jugadorId: string;
   importe: number;

@@ -6,9 +6,12 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useGameState } from "@/components/GameStateProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
+import HistorialValorChart from "@/components/HistorialValorChart";
 import {
+  fetchHistorialValor,
   fetchPerfilJugador,
   type PerfilJugador,
+  type PuntoValor,
   type TorneoPerfil,
 } from "@/lib/supabase/jugadoresQueries";
 import { estadoTorneo, formatearPuntos, MARCADOR, rangoFechas } from "@/lib/torneos";
@@ -158,12 +161,18 @@ function PerfilJugadorContenido() {
   const { jugadoresLiga } = useGameState();
 
   const [perfil, setPerfil] = useState<PerfilJugador | null>(null);
+  const [historialValor, setHistorialValor] = useState<PuntoValor[]>([]);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
     (async () => {
       setCargando(true);
-      setPerfil(await fetchPerfilJugador(supabase, id));
+      const [p, hv] = await Promise.all([
+        fetchPerfilJugador(supabase, id),
+        fetchHistorialValor(supabase, id),
+      ]);
+      setPerfil(p);
+      setHistorialValor(hv);
       setCargando(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -247,6 +256,10 @@ function PerfilJugadorContenido() {
           </>
         )}
       </dl>
+
+      <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+        <HistorialValorChart historial={historialValor} />
+      </div>
 
       {enLiga && enLiga.historialPuntos.length > 0 && (
         <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">

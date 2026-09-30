@@ -26,14 +26,6 @@ export const gameConfig = {
     tablas: 1,
     derrota: 0,
   },
-  variacionValorMercado: [
-    { hasta: 0, variacion: -2 },
-    { hasta: 1, variacion: -1 },
-    { hasta: 3, variacion: 0 },
-    { hasta: 5, variacion: 1 },
-    { hasta: 7, variacion: 2 },
-    { hasta: 11, variacion: 3 },
-  ],
   clausula: {
     porcentaje: 1.5, // 150% del valor de mercado
     redondeoAlMillonSuperior: true,

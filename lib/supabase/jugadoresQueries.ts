@@ -165,3 +165,32 @@ export async function fetchPerfilJugador(
     torneos,
   };
 }
+
+export interface PuntoValor {
+  fecha: string; // ISO
+  valor: number; // en M
+  cambioPct: number | null;
+  motivo: "inicial" | "diaria" | "resultado" | "correccion" | "ajuste";
+}
+
+// Evolución del valor de mercado de un jugador (tabla player_value_history,
+// lectura pública). Orden cronológico.
+export async function fetchHistorialValor(
+  supabase: Supabase,
+  playerId: string
+): Promise<PuntoValor[]> {
+  const { data, error } = await supabase
+    .from("player_value_history")
+    .select("valor, cambio_pct, motivo, created_at")
+    .eq("player_id", playerId)
+    .order("created_at", { ascending: true });
+
+  if (error || !data) return [];
+
+  return (data as any[]).map((h) => ({
+    fecha: h.created_at as string,
+    valor: Number(h.valor),
+    cambioPct: h.cambio_pct === null ? null : Number(h.cambio_pct),
+    motivo: h.motivo,
+  }));
+}
