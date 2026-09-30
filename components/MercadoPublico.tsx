@@ -219,7 +219,7 @@ export default function MercadoPublico() {
             : plantillaCompleta
               ? `Tu plantilla ya tiene los ${maxPlantilla} jugadores permitidos: vende a alguno primero.`
               : sinSaldo
-                ? `Te faltan ${jugador.valorMercado - equipo.saldo} M para poder ficharlo.`
+                ? `Te faltan ${Math.round((jugador.valorMercado - equipo.saldo) * 100) / 100} M para poder ficharlo.`
                 : null;
 
           return (

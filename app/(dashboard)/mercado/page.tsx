@@ -213,6 +213,7 @@ function MercadoConPujas() {
                     </label>
                     <input
                       type="number"
+                      step="0.01"
                       min={jugador.valorMercado}
                       value={montoPuja}
                       onChange={(e) => setMontoPuja(e.target.value)}

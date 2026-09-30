@@ -321,6 +321,7 @@ export default function JugadoresPage() {
                         </label>
                         <input
                           type="number"
+                          step="0.01"
                           value={montoOferta}
                           onChange={(e) => setMontoOferta(e.target.value)}
                           placeholder={`${jugador.valorMercado}`}

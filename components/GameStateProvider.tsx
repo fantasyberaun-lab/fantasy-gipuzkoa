@@ -399,12 +399,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     if (!Number.isFinite(importe) || importe <= 0) {
       return { ok: false, mensaje: "Introduce un importe válido." };
     }
-    if (importe > equipo.saldo) {
-      return {
-        ok: false,
-        mensaje: `No puedes pujar más de tu saldo disponible (${equipo.saldo} M).`,
-      };
-    }
+    // El límite (saldo + deuda máxima - otras pujas) lo valida el servidor.
     const resultado = await pujarMercadoDB(supabase, listingId, importe, equipo.leagueId);
     if (resultado.ok) await cargarTodo();
     return resultado;
