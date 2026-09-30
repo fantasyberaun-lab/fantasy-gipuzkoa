@@ -1,4 +1,5 @@
 import Image from "next/image";
+import EnlacesLegales from "@/components/legal/EnlacesLegales";
 
 export default function AuthLayout({
   children,
@@ -29,6 +30,7 @@ export default function AuthLayout({
         <div className="mx-auto w-full max-w-sm [&_form]:shadow-xl [&_form]:shadow-black/10">
           {children}
         </div>
+        <EnlacesLegales className="mt-6" />
       </div>
     </div>
   );

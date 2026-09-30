@@ -2,6 +2,8 @@ import TabNav from "@/components/TabNav";
 import { GameStateProvider } from "@/components/GameStateProvider";
 import EquipoHeader, { EquipoAcciones } from "@/components/EquipoHeader";
 import LigaGate from "@/components/LigaGate";
+import LegalGate from "@/components/legal/LegalGate";
+import EnlacesLegales from "@/components/legal/EnlacesLegales";
 
 export default function DashboardLayout({
   children,
@@ -9,6 +11,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
+    <LegalGate>
     <GameStateProvider>
       <LigaGate>
         <header className="banner-tablero">
@@ -23,8 +26,11 @@ export default function DashboardLayout({
           <TabNav />
 
           <main className="mt-6">{children}</main>
+
+          <EnlacesLegales className="mt-10" />
         </div>
       </LigaGate>
     </GameStateProvider>
+    </LegalGate>
   );
 }

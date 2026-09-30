@@ -4,6 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import PasswordInput from "@/components/PasswordInput";
+import AceptacionLegalFields, {
+  ACEPTACION_INICIAL,
+  aceptacionCompleta,
+  type AceptacionLegal,
+} from "@/components/legal/AceptacionLegalFields";
+import InfoBasicaRGPD from "@/components/legal/InfoBasicaRGPD";
+import { VERSION_CONDICIONES, VERSION_PRIVACIDAD } from "@/lib/legal/config";
 
 // Letras, números, punto, guion y guion bajo; sin espacios ni "@" (así se
 // distingue de un email en el login).
@@ -18,10 +25,18 @@ export default function RegistroPage() {
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
   const [registrado, setRegistrado] = useState(false);
+  const [aceptacion, setAceptacion] = useState<AceptacionLegal>(ACEPTACION_INICIAL);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (!aceptacionCompleta(aceptacion)) {
+      setError(
+        "Para registrarte tienes que aceptar las Condiciones de Uso, leer la Política de Privacidad y confirmar que tienes 14 años o más."
+      );
+      return;
+    }
 
     const nombreLimpio = nombre.trim();
     if (!FORMATO_NOMBRE_USUARIO.test(nombreLimpio)) {
@@ -61,6 +76,12 @@ export default function RegistroPage() {
       options: {
         data: {
           nombre: nombreLimpio,
+          // Aceptaciones: el trigger handle_new_user() las guarda en la tabla
+          // `consentimientos` con la fecha/hora del servidor (ver 0045).
+          acepta_legal: true,
+          version_condiciones: VERSION_CONDICIONES,
+          version_privacidad: VERSION_PRIVACIDAD,
+          acepta_comunicaciones: aceptacion.comunicaciones,
         },
         // Sin esto, Supabase usa el "Site URL" configurado en el
         // dashboard del proyecto (que en producción debe apuntar al
@@ -146,11 +167,15 @@ export default function RegistroPage() {
         />
       </div>
 
+      <InfoBasicaRGPD conEnlace />
+
+      <AceptacionLegalFields valor={aceptacion} onChange={setAceptacion} disabled={cargando} />
+
       {error && <p className="text-sm text-negative">{error}</p>}
 
       <button
         type="submit"
-        disabled={cargando}
+        disabled={cargando || !aceptacionCompleta(aceptacion)}
         className="rounded-lg bg-accent py-2.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
       >
         {cargando ? "Creando cuenta..." : "Crear cuenta"}
