@@ -291,21 +291,15 @@ export default function JugadoresPage() {
 
               {estaSeleccionado && (
                 <div className="flex flex-col gap-4 border-t border-neutral-200 p-3 dark:border-neutral-800">
-                  {esLigaPublica ? (
-                    <>
-                      <button
-                        onClick={() =>
-                          setPuntosAbiertoId((prev) => (prev === jugador.id ? null : jugador.id))
-                        }
-                        className="rounded-lg border border-neutral-300 py-2 text-sm font-medium dark:border-neutral-700"
-                      >
-                        {puntosAbiertoId === jugador.id ? "Ocultar puntos" : "Ver puntos"}
-                      </button>
-                      {puntosAbiertoId === jugador.id && (
-                        <HistorialPuntosChart historial={jugador.historialPuntos} />
-                      )}
-                    </>
-                  ) : (
+                  <button
+                    onClick={() =>
+                      setPuntosAbiertoId((prev) => (prev === jugador.id ? null : jugador.id))
+                    }
+                    className="rounded-lg border border-neutral-300 py-2 text-sm font-medium dark:border-neutral-700"
+                  >
+                    {puntosAbiertoId === jugador.id ? "Ocultar puntos" : "Ver puntos por jornada"}
+                  </button>
+                  {puntosAbiertoId === jugador.id && (
                     <HistorialPuntosChart historial={jugador.historialPuntos} />
                   )}
 

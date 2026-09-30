@@ -32,6 +32,7 @@ function MercadoConPujas() {
   const [orden, setOrden] = useState<Orden>("valor");
   const [montoPuja, setMontoPuja] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [puntosAbiertoId, setPuntosAbiertoId] = useState<string | null>(null);
   const [mensajePorJugador, setMensajePorJugador] = useState<Record<string, MensajePuja>>({});
   const [ahora, setAhora] = useState(() => new Date());
 
@@ -86,6 +87,7 @@ function MercadoConPujas() {
   const toggleSeleccion = (id: string) => {
     setSeleccionadoId((prev) => (prev === id ? null : id));
     setMontoPuja("");
+    setPuntosAbiertoId(null);
   };
 
   const enviarPuja = async (listingId: string, jugadorId: string) => {
@@ -233,7 +235,17 @@ function MercadoConPujas() {
 
               {estaSeleccionado && (
                 <div className="flex flex-col gap-3 border-t border-neutral-200 p-3 dark:border-neutral-800">
-                  <HistorialPuntosChart historial={jugador.historialPuntos} />
+                  <button
+                    onClick={() =>
+                      setPuntosAbiertoId((prev) => (prev === jugador.id ? null : jugador.id))
+                    }
+                    className="rounded-lg border border-neutral-300 py-2 text-sm font-medium dark:border-neutral-700"
+                  >
+                    {puntosAbiertoId === jugador.id ? "Ocultar puntos" : "Ver puntos por jornada"}
+                  </button>
+                  {puntosAbiertoId === jugador.id && (
+                    <HistorialPuntosChart historial={jugador.historialPuntos} />
+                  )}
 
                   <div className="rounded-lg bg-neutral-50 p-3 text-sm dark:bg-neutral-900">
                     <p className="mb-2 text-xs font-medium text-neutral-500">
