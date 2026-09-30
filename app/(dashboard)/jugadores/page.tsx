@@ -17,7 +17,15 @@ type Orden =
   | "club-desc";
 
 export default function JugadoresPage() {
-  const { jugadoresLiga, ofertas, pagarClausula, hacerOferta, cargando, esLigaPublica } =
+  const {
+    jugadoresLiga,
+    ofertas,
+    pagarClausula,
+    hacerOferta,
+    cancelarOferta,
+    cargando,
+    esLigaPublica,
+  } =
     useGameState();
 
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
@@ -94,6 +102,19 @@ export default function JugadoresPage() {
     } else {
       mostrarMensaje(jugadorId, "error", resultado.mensaje);
     }
+  };
+
+  const onCancelarOferta = async (jugadorId: string, ofertaId: string) => {
+    setEnviando(true);
+    const resultado = await cancelarOferta(ofertaId);
+    setEnviando(false);
+    mostrarMensaje(
+      jugadorId,
+      resultado.ok ? "ok" : "error",
+      resultado.ok
+        ? "Oferta cancelada. Tu saldo no se ha visto afectado."
+        : resultado.mensaje
+    );
   };
 
   const onHacerOferta = async (jugadorId: string) => {
@@ -354,6 +375,16 @@ export default function JugadoresPage() {
                           Pagar cláusula ({jugador.clausula} M)
                         </button>
                       </div>
+
+                      {ofertaActual && (
+                        <button
+                          onClick={() => onCancelarOferta(jugador.id, ofertaActual.id)}
+                          disabled={enviando}
+                          className="rounded-lg border border-neutral-300 py-2 text-sm font-medium text-negative disabled:opacity-40 dark:border-neutral-700"
+                        >
+                          Cancelar mi oferta ({ofertaActual.importe} M)
+                        </button>
+                      )}
 
                       {jugador.blindado && (
                         <p className="text-xs text-violet-600 dark:text-violet-400">

@@ -37,7 +37,7 @@ export interface PerfilJugador {
   categoria: Categoria;
   elo: number;
   // Texto ya preparado por la base de datos (vista jugadores_ficha): "sub20"
-  // para menores de 20 años, o "2004 (22 años)" para el resto. El año de
+  // para menores de 20 años, o "2004" (solo el año, la edad se descarta en cliente) para el resto. El año de
   // nacimiento real de un menor nunca llega al navegador.
   nacimiento: string | null;
   sexo: string | null;
@@ -45,6 +45,15 @@ export interface PerfilJugador {
   valorMercado: number;
   activo: boolean;
   torneos: TorneoPerfil[];
+}
+
+// La vista devuelve "2004 (22 años)" o "sub20": nos quedamos solo con el año
+// (o "sub20") y descartamos la edad.
+function soloAnioNacimiento(texto: string | null): string | null {
+  if (!texto) return null;
+  if (texto === "sub20") return texto;
+  const m = texto.match(/^(\d{4})/);
+  return m ? m[1] : null;
 }
 
 export async function fetchPerfilJugador(
@@ -157,7 +166,7 @@ export async function fetchPerfilJugador(
     club: p.club ?? "",
     categoria: Number(p.categoria) as Categoria,
     elo: p.elo,
-    nacimiento: ficha?.nacimiento_texto ?? null,
+    nacimiento: soloAnioNacimiento(ficha?.nacimiento_texto ?? null),
     sexo: p.sexo ?? null,
     fideId: p.fide_id ?? null,
     valorMercado: Number(p.valor_mercado),

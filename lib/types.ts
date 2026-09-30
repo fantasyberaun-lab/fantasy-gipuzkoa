@@ -102,6 +102,7 @@ export interface PujaMercado {
 }
 
 export interface OfertaPendiente {
+  id: string;
   jugadorId: string;
   importe: number;
 }

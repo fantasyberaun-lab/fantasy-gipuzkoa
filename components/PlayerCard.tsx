@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import type { PlantillaSlot } from "@/lib/types";
 import { gameConfig } from "@/lib/gameConfig";
@@ -134,7 +135,11 @@ export default function PlayerCard({
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <p className="font-medium">{jugador.nombre}</p>
+              <p className="font-medium">
+                <Link href={`/jugadores/${jugador.id}`} className="hover:underline">
+                  {jugador.nombre}
+                </Link>
+              </p>
               <span
                 className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                   esTitular

@@ -24,8 +24,15 @@ export default function MercadoPage() {
 }
 
 function MercadoConPujas() {
-  const { mercado, pujasMercado, pujarMercado, equipo, cargando, comprometidoEnPujas } =
-    useGameState();
+  const {
+    mercado,
+    pujasMercado,
+    pujarMercado,
+    cancelarPuja,
+    equipo,
+    cargando,
+    comprometidoEnPujas,
+  } = useGameState();
 
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
@@ -104,6 +111,19 @@ function MercadoConPujas() {
     }));
 
     if (resultado.ok) setMontoPuja("");
+  };
+
+  const quitarPuja = async (listingId: string, jugadorId: string) => {
+    setEnviando(true);
+    const resultado = await cancelarPuja(listingId);
+    setEnviando(false);
+
+    setMensajePorJugador((prev) => ({
+      ...prev,
+      [jugadorId]: resultado.ok
+        ? { tipo: "ok", texto: "Puja cancelada. Tu saldo no se ha visto afectado." }
+        : { tipo: "error", texto: resultado.mensaje },
+    }));
   };
 
   return (
@@ -323,6 +343,16 @@ function MercadoConPujas() {
                   >
                     Pujar
                   </button>
+
+                  {miPuja && (
+                    <button
+                      onClick={() => quitarPuja(jugador.listingId, jugador.id)}
+                      disabled={enviando}
+                      className="rounded-lg border border-neutral-300 py-2 text-sm font-medium text-negative disabled:opacity-40 dark:border-neutral-700"
+                    >
+                      Cancelar mi puja ({miPuja.importe} M)
+                    </button>
+                  )}
 
                   {mensaje && (
                     <p

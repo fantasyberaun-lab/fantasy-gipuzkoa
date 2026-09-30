@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { redondear2 } from "@/lib/saldo";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import { createClient } from "@/lib/supabase/client";
@@ -10,6 +10,21 @@ import {
   fetchPlantillaEquipoPublicaDB,
   type JugadorPlantillaAjena,
 } from "@/lib/supabase/queries";
+
+// Estado de la pantalla que se guarda al ir al perfil de un jugador para
+// recuperarlo al volver (se consume una sola vez).
+const CLAVE_ESTADO = "clasificacion:estado-al-volver";
+
+interface EstadoGuardado {
+  orden: string;
+  busqueda: string;
+  visibles: number;
+  equipoAbierto: string | null;
+  equipoPublicoAbierto: { id: string; nombre: string } | null;
+  puntosAbiertoId: string | null;
+  seleccionadoId: string | null;
+  scrollY: number;
+}
 
 // "total", o el id de una jornada concreta (la numeración de jornadas
 // empieza en 1 en cada torneo, así que el número solo no la identifica).
@@ -32,6 +47,8 @@ export default function ClasificacionPage() {
     esLigaPublica,
     misLigas,
     hacerOferta,
+    cancelarOferta,
+    ofertas,
     pagarClausula,
     cargando,
   } = useGameState();
@@ -56,6 +73,63 @@ export default function ClasificacionPage() {
   const [montoOferta, setMontoOferta] = useState("");
   const [mensaje, setMensaje] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+
+  const estadoRef = useRef<EstadoGuardado | null>(null);
+  estadoRef.current = {
+    orden,
+    busqueda,
+    visibles,
+    equipoAbierto,
+    equipoPublicoAbierto,
+    puntosAbiertoId,
+    seleccionadoId,
+    scrollY: 0,
+  };
+
+  // Guarda el estado justo antes de navegar al perfil de un jugador.
+  const guardarEstado = () => {
+    try {
+      if (!estadoRef.current) return;
+      sessionStorage.setItem(
+        CLAVE_ESTADO,
+        JSON.stringify({ ...estadoRef.current, scrollY: window.scrollY })
+      );
+    } catch {
+      // sin sessionStorage simplemente no se restaura
+    }
+  };
+
+  // Al montar: si venimos de volver desde un perfil, recupera el estado.
+  useEffect(() => {
+    let guardado: EstadoGuardado | null = null;
+    try {
+      const raw = sessionStorage.getItem(CLAVE_ESTADO);
+      if (raw) {
+        guardado = JSON.parse(raw) as EstadoGuardado;
+        sessionStorage.removeItem(CLAVE_ESTADO);
+      }
+    } catch {
+      return;
+    }
+    if (!guardado) return;
+    setOrden(guardado.orden);
+    setBusqueda(guardado.busqueda);
+    setVisibles(guardado.visibles);
+    setEquipoAbierto(guardado.equipoAbierto);
+    setSeleccionadoId(guardado.seleccionadoId);
+    if (guardado.equipoPublicoAbierto) {
+      const { id, nombre } = guardado.equipoPublicoAbierto;
+      setEquipoPublicoAbierto({ id, nombre });
+      setCargandoPlantilla(true);
+      fetchPlantillaEquipoPublicaDB(createClient(), id).then((plantilla) => {
+        setPlantillaPublica(plantilla);
+        setPuntosAbiertoId(guardado?.puntosAbiertoId ?? null);
+        setCargandoPlantilla(false);
+      });
+    }
+    const y = guardado.scrollY;
+    setTimeout(() => window.scrollTo(0, y), 100);
+  }, []);
 
   // Jornadas que aparecen en el historial de algún equipo, por orden de
   // creación (sin repetir).
@@ -156,6 +230,17 @@ export default function ClasificacionPage() {
     const resultado = await hacerOferta(jugadorId, importe);
     setEnviando(false);
     setMensaje(resultado.ok ? "Oferta enviada." : resultado.mensaje);
+  };
+
+  const quitarOferta = async (ofertaId: string) => {
+    setEnviando(true);
+    const resultado = await cancelarOferta(ofertaId);
+    setEnviando(false);
+    setMensaje(
+      resultado.ok
+        ? "Oferta cancelada. Tu saldo no se ha visto afectado."
+        : resultado.mensaje
+    );
   };
 
   const ejecutarClausula = async (jugadorId: string) => {
@@ -331,7 +416,11 @@ export default function ClasificacionPage() {
                   <div className="flex items-center justify-between gap-2 px-3 py-2">
                     <div>
                       <p className="text-sm font-medium">
-                        <Link href={`/jugadores/${jugador.id}`} className="hover:underline">
+                        <Link
+                          href={`/jugadores/${jugador.id}`}
+                          onClick={guardarEstado}
+                          className="hover:underline"
+                        >
                           {jugador.nombre}
                         </Link>
                       </p>
@@ -405,7 +494,10 @@ export default function ClasificacionPage() {
                         <p className="text-sm font-medium">
                           <Link
                             href={`/jugadores/${jugador.id}`}
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              guardarEstado();
+                            }}
                             className="hover:underline"
                           >
                             {jugador.nombre}
@@ -449,6 +541,19 @@ export default function ClasificacionPage() {
                             Pagar cláusula ({jugador.clausula} M)
                           </button>
                         </div>
+
+                        {(() => {
+                          const ofertaActual = ofertas.find((o) => o.jugadorId === jugador.id);
+                          return ofertaActual ? (
+                            <button
+                              disabled={enviando}
+                              onClick={() => quitarOferta(ofertaActual.id)}
+                              className="rounded-lg border border-neutral-300 py-2 text-sm font-medium text-negative disabled:opacity-40 dark:border-neutral-700"
+                            >
+                              Cancelar mi oferta ({ofertaActual.importe} M)
+                            </button>
+                          ) : null;
+                        })()}
 
                         {mensaje && (
                           <p className="text-xs text-neutral-500">{mensaje}</p>

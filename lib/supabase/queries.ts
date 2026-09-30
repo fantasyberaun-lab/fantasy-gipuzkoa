@@ -251,13 +251,14 @@ export async function fetchMisOfertas(
 ): Promise<OfertaPendiente[]> {
   const { data, error } = await supabase
     .from("player_offers")
-    .select("player_id, importe")
+    .select("id, player_id, importe")
     .eq("equipo_oferente_id", equipoId)
     .eq("estado", "pendiente");
 
   if (error || !data) return [];
 
   return data.map((o: any) => ({
+    id: o.id,
     jugadorId: o.player_id,
     importe: Number(o.importe),
   }));
@@ -526,6 +527,32 @@ export async function pujarMercadoDB(
     p_listing_id: listingId,
     p_importe: importe,
     p_league_id: leagueId,
+  });
+
+  if (error) return { ok: false, mensaje: error.message };
+  return data as ResultadoAccion;
+}
+
+export async function cancelarPujaMercadoDB(
+  supabase: Supabase,
+  listingId: string,
+  leagueId: string
+): Promise<ResultadoAccion> {
+  const { data, error } = await supabase.rpc("cancelar_puja_mercado", {
+    p_listing_id: listingId,
+    p_league_id: leagueId,
+  });
+
+  if (error) return { ok: false, mensaje: error.message };
+  return data as ResultadoAccion;
+}
+
+export async function cancelarOfertaDB(
+  supabase: Supabase,
+  ofertaId: string
+): Promise<ResultadoAccion> {
+  const { data, error } = await supabase.rpc("cancelar_oferta", {
+    p_offer_id: ofertaId,
   });
 
   if (error) return { ok: false, mensaje: error.message };

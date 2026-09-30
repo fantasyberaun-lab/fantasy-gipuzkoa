@@ -25,6 +25,8 @@ import {
   fetchPujasMercado,
   ficharJugadorDB,
   hacerOfertaDB,
+  cancelarOfertaDB,
+  cancelarPujaMercadoDB,
   marcarNotificacionesVistasDB,
   pagarClausulaDB,
   pujarMercadoDB,
@@ -100,6 +102,8 @@ interface GameState {
   rechazarOferta: (ofertaId: string) => Promise<ResultadoAccion>;
   ficharJugador: (jugadorId: string) => Promise<ResultadoAccion>;
   pujarMercado: (listingId: string, importe: number) => Promise<ResultadoAccion>;
+  cancelarPuja: (listingId: string) => Promise<ResultadoAccion>;
+  cancelarOferta: (ofertaId: string) => Promise<ResultadoAccion>;
   crearLiga: (
     nombreLiga: string,
     nombreEquipo: string
@@ -425,6 +429,19 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     return resultado;
   }
 
+  async function cancelarPuja(listingId: string): Promise<ResultadoAccion> {
+    if (!equipo.leagueId) return { ok: false, mensaje: "No tienes equipo todavía." };
+    const resultado = await cancelarPujaMercadoDB(supabase, listingId, equipo.leagueId);
+    if (resultado.ok) await cargarTodo();
+    return resultado;
+  }
+
+  async function cancelarOferta(ofertaId: string): Promise<ResultadoAccion> {
+    const resultado = await cancelarOfertaDB(supabase, ofertaId);
+    if (resultado.ok) await cargarTodo();
+    return resultado;
+  }
+
   async function crearLiga(
     nombreLiga: string,
     nombreEquipo: string
@@ -515,6 +532,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         rechazarOferta,
         ficharJugador,
         pujarMercado,
+        cancelarPuja,
+        cancelarOferta,
         crearLiga,
         unirseLiga,
         unirseLigaPublica,
