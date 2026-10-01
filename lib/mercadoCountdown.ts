@@ -68,3 +68,13 @@ export function clausulazosCerrados(ahora: Date = new Date()): boolean {
   if (dia === "Sat") return hora >= 12;
   return false;
 }
+
+// Igual que formatearCuentaAtras pero con segundos (para el contador del Mercado).
+export function formatearCuentaAtrasConSegundos(msRestantes: number): string {
+  const totalSegundos = Math.max(0, Math.floor(msRestantes / 1000));
+  const horas = Math.floor(totalSegundos / 3600);
+  const minutos = Math.floor((totalSegundos % 3600) / 60);
+  const segundos = totalSegundos % 60;
+  const dos = (n: number) => String(n).padStart(2, "0");
+  return `${dos(horas)}:${dos(minutos)}:${dos(segundos)}`;
+}

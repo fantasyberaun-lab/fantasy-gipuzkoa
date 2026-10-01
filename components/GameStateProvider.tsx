@@ -9,6 +9,7 @@ import {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { redondear2 } from "@/lib/saldo";
+import { clausulazosCerrados, MENSAJE_CLAUSULAZOS_CERRADOS } from "@/lib/mercadoCountdown";
 import {
   aceptarOfertaDB,
   blindarJugadorDB,
@@ -91,7 +92,7 @@ interface GameState {
   notificacionesVistasEn: number;
   notificacionesNoLeidas: number;
   marcarNotificacionesVistas: () => Promise<void>;
-  toggleTitular: (id: string) => Promise<void>;
+  toggleTitular: (id: string) => Promise<ResultadoAccion>;
   toggleCapitan: (id: string) => Promise<ResultadoAccion>;
   blindarJugador: (jugadorId: string) => Promise<ResultadoAccion>;
   venderJugador: (id: string, valorMercado: number) => Promise<ResultadoAccion>;
@@ -300,18 +301,19 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     (n) => n.actorId !== equipo.id && Date.parse(n.creada) > notificacionesVistasEn
   ).length;
 
-  async function toggleTitular(id: string) {
+  async function toggleTitular(id: string): Promise<ResultadoAccion> {
     const nuevoValor = !titulares[id];
     const capitanAnterior = capitanId;
     setTitulares((prev) => ({ ...prev, [id]: nuevoValor }));
     // Un capitán que pasa a suplente pierde la capitanía (lo hace también la base de datos).
     if (!nuevoValor && capitanId === id) setCapitanId(null);
-    if (!equipo.id) return;
+    if (!equipo.id) return { ok: true };
     const resultado = await toggleTitularDB(supabase, equipo.id, id, nuevoValor);
     if (!resultado.ok) {
       setTitulares((prev) => ({ ...prev, [id]: !nuevoValor }));
       setCapitanId(capitanAnterior);
     }
+    return resultado;
   }
 
   async function toggleCapitan(id: string): Promise<ResultadoAccion> {
@@ -353,6 +355,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
   async function pagarClausula(jugadorId: string): Promise<ResultadoAccion> {
     if (!equipo.leagueId) return { ok: false, mensaje: "No tienes equipo todavía." };
+    // Aviso inmediato; la base de datos lo vuelve a comprobar (clausulazos_cerrados).
+    if (!esLigaPublica && clausulazosCerrados()) {
+      return { ok: false, mensaje: MENSAJE_CLAUSULAZOS_CERRADOS };
+    }
     const resultado = await pagarClausulaDB(supabase, jugadorId, equipo.leagueId);
     if (resultado.ok) await cargarTodo();
     return resultado;

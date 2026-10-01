@@ -25,6 +25,8 @@ type Props = PlantillaSlot & {
   esTitular: boolean;
   esCapitan?: boolean;
   bloqueadoPorTope?: boolean;
+  // Texto que explica por qué no se puede poner de titular (tope de titulares por torneo).
+  motivoBloqueo?: string;
   // Ya has blindado a otro jugador esta jornada (solo se permite uno).
   blindajeAgotado?: boolean;
   // Liga pública: no hay clausulazos, candados ni blindajes, así que se
@@ -47,6 +49,7 @@ export default function PlayerCard({
   esTitular,
   esCapitan = false,
   bloqueadoPorTope = false,
+  motivoBloqueo,
   blindajeAgotado = false,
   ligaPublica = false,
   candado,
@@ -247,7 +250,7 @@ export default function PlayerCard({
             disabled={bloqueadoPorTope}
             title={
               bloqueadoPorTope
-                ? "Ya tienes 2 titulares de Tercera — pasa a suplente a otro primero."
+                ? (motivoBloqueo ?? `Ya tienes ${gameConfig.plantilla.maximoTitularesPorTorneo} titulares en ese torneo — pasa a suplente a otro primero.`)
                 : undefined
             }
             className={`flex-1 rounded-lg border bg-white py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 dark:bg-neutral-900 ${

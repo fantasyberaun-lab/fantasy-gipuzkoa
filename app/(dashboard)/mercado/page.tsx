@@ -8,7 +8,7 @@ import MercadoPublico from "@/components/MercadoPublico";
 import SaldoConPujas from "@/components/SaldoConPujas";
 import {
   proximaTandaMercado,
-  formatearCuentaAtras,
+  formatearCuentaAtrasConSegundos,
   pujasOcultas,
   msHastaOcultarPujas,
 } from "@/lib/mercadoCountdown";
@@ -49,13 +49,13 @@ function MercadoConPujas() {
   const [ahora, setAhora] = useState(() => new Date());
 
   useEffect(() => {
-    const id = setInterval(() => setAhora(new Date()), 30_000);
+    const id = setInterval(() => setAhora(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
 
   const cuentaAtras = useMemo(() => {
     const proxima = proximaTandaMercado(ahora);
-    return formatearCuentaAtras(proxima.getTime() - ahora.getTime());
+    return formatearCuentaAtrasConSegundos(proxima.getTime() - ahora.getTime());
   }, [ahora]);
 
   // Las últimas 2 h antes de la tanda las pujas de los demás no se ven: solo
@@ -63,7 +63,7 @@ function MercadoConPujas() {
   // filtran por si la pantalla llevaba abierta desde antes de que empezara.
   const ocultas = pujasOcultas(ahora);
   const cuentaAtrasOcultar = useMemo(
-    () => formatearCuentaAtras(msHastaOcultarPujas(ahora)),
+    () => formatearCuentaAtrasConSegundos(msHastaOcultarPujas(ahora)),
     [ahora]
   );
 
@@ -149,22 +149,33 @@ function MercadoConPujas() {
         </span>
       </div>
 
-      <p className="text-xs text-neutral-500">
-        {mercado.length} jugadores en la tanda de hoy — se resuelve en {cuentaAtras}.
-      </p>
+      <div className="grid grid-cols-2 gap-2">
+        <div
+          className={`rounded-xl border p-3 ${
+            ocultas
+              ? "border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20"
+              : "border-neutral-200 dark:border-neutral-800"
+          }`}
+        >
+          <p className="text-xs text-neutral-500">
+            {ocultas ? "Pujas ocultas" : "Las pujas se ocultan en"}
+          </p>
+          <p className="mt-0.5 text-2xl font-semibold tabular-nums">
+            {ocultas ? "Ocultas" : cuentaAtrasOcultar}
+          </p>
+        </div>
+        <div className="rounded-xl border border-neutral-200 p-3 dark:border-neutral-800">
+          <p className="text-xs text-neutral-500">El mercado se actualiza en</p>
+          <p className="mt-0.5 text-2xl font-semibold tabular-nums">{cuentaAtras}</p>
+        </div>
+      </div>
 
-      {ocultas ? (
-        <p className="rounded-lg bg-neutral-100 px-3 py-2 text-xs text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
-          Pujas ocultas: en las últimas 2 horas solo ves cuánta gente ha pujado, no los
-          importes. Se resuelve en {cuentaAtras}.
-        </p>
-      ) : (
-        <p className="rounded-lg bg-neutral-100 px-3 py-2 text-xs text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
-          Las pujas se ocultan en <span className="font-semibold">{cuentaAtrasOcultar}</span>{" "}
-          (2 h antes de que se resuelva la tanda): a partir de entonces solo verás cuánta
-          gente ha pujado, no el precio.
-        </p>
-      )}
+      <p className="text-xs text-neutral-500">
+        {mercado.length} jugadores en la tanda de hoy.{" "}
+        {ocultas
+          ? "En las últimas 2 horas solo ves cuánta gente ha pujado, no los importes."
+          : "2 horas antes de que se actualice el mercado dejarán de verse las pujas de los demás: solo verás cuánta gente ha pujado, no el precio."}
+      </p>
 
       <div className="flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
@@ -310,7 +321,7 @@ function MercadoConPujas() {
                               miPuja
                                 ? ` (${otrasPujas === 0 ? "solo la tuya" : `la tuya y ${otrasPujas} más`})`
                                 : ""
-                            }. Los importes están ocultos hasta que se resuelva la tanda.`}
+                            }. Los importes están ocultos hasta que se actualice el mercado.`}
                       </p>
                     )}
 

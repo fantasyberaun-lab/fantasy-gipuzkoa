@@ -136,7 +136,7 @@ export default function InfoReglasButton({ onDark = false }: { onDark?: boolean 
                 </p>
                 <p>
                   <span className="font-medium">Pujas ocultas.</span> Durante las 2 últimas horas
-                  antes de que se resuelva la tanda dejan de verse las pujas de los demás: solo ves
+                  antes de que se actualice el mercado dejan de verse las pujas de los demás: solo ves
                   cuánta gente ha pujado por cada jugador, no el precio ni quién. Tu propia puja sí la ves.
                   En el Mercado hay un contador que te dice cuánto falta para que se oculten.
                 </p>
