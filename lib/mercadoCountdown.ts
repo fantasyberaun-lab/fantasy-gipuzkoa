@@ -5,6 +5,11 @@
 // que coincida.
 const HORAS_UTC = [0, 8, 16];
 
+// Las pujas se ocultan estas horas antes de cada tanda (solo ves cuánta gente
+// ha pujado, no los importes). Mantener igual que pujas_ocultas() en
+// 0047_pujas_ocultas_clausulazos_superveteranos.sql.
+export const HORAS_OCULTAS = 2;
+
 export function proximaTandaMercado(ahora: Date = new Date()): Date {
   const inicioDeHoy = new Date(
     Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate())
@@ -21,6 +26,18 @@ export function proximaTandaMercado(ahora: Date = new Date()): Date {
   manana.setUTCDate(manana.getUTCDate() + 1);
   manana.setUTCHours(HORAS_UTC[0], 0, 0, 0);
   return manana;
+}
+
+// ¿Estamos en las últimas HORAS_OCULTAS horas antes de la tanda?
+export function pujasOcultas(ahora: Date = new Date()): boolean {
+  const msHastaTanda = proximaTandaMercado(ahora).getTime() - ahora.getTime();
+  return msHastaTanda <= HORAS_OCULTAS * 3600_000;
+}
+
+// Cuánto falta para que las pujas dejen de verse (0 si ya están ocultas).
+export function msHastaOcultarPujas(ahora: Date = new Date()): number {
+  const msHastaTanda = proximaTandaMercado(ahora).getTime() - ahora.getTime();
+  return Math.max(0, msHastaTanda - HORAS_OCULTAS * 3600_000);
 }
 
 export function formatearCuentaAtras(msRestantes: number): string {

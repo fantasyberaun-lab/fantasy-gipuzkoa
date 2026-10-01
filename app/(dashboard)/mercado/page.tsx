@@ -6,7 +6,12 @@ import { useGameState } from "@/components/GameStateProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import MercadoPublico from "@/components/MercadoPublico";
 import SaldoConPujas from "@/components/SaldoConPujas";
-import { proximaTandaMercado, formatearCuentaAtras } from "@/lib/mercadoCountdown";
+import {
+  proximaTandaMercado,
+  formatearCuentaAtras,
+  pujasOcultas,
+  msHastaOcultarPujas,
+} from "@/lib/mercadoCountdown";
 
 type Orden = "valor" | "elo" | "puntos" | "pujas" | "nombre" | "categoria";
 type MensajePuja = { tipo: "ok" | "error"; texto: string };
@@ -52,6 +57,15 @@ function MercadoConPujas() {
     const proxima = proximaTandaMercado(ahora);
     return formatearCuentaAtras(proxima.getTime() - ahora.getTime());
   }, [ahora]);
+
+  // Las últimas 2 h antes de la tanda las pujas de los demás no se ven: solo
+  // el número de pujas. La base de datos ya no las envía, pero aquí también se
+  // filtran por si la pantalla llevaba abierta desde antes de que empezara.
+  const ocultas = pujasOcultas(ahora);
+  const cuentaAtrasOcultar = useMemo(
+    () => formatearCuentaAtras(msHastaOcultarPujas(ahora)),
+    [ahora]
+  );
 
   // Pujas por listing, ya ordenadas de mayor a menor importe.
   const pujasPorListing = useMemo(() => {
@@ -139,6 +153,19 @@ function MercadoConPujas() {
         {mercado.length} jugadores en la tanda de hoy — se resuelve en {cuentaAtras}.
       </p>
 
+      {ocultas ? (
+        <p className="rounded-lg bg-neutral-100 px-3 py-2 text-xs text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
+          Pujas ocultas: en las últimas 2 horas solo ves cuánta gente ha pujado, no los
+          importes. Se resuelve en {cuentaAtras}.
+        </p>
+      ) : (
+        <p className="rounded-lg bg-neutral-100 px-3 py-2 text-xs text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">
+          Las pujas se ocultan en <span className="font-semibold">{cuentaAtrasOcultar}</span>{" "}
+          (2 h antes de que se resuelva la tanda): a partir de entonces solo verás cuánta
+          gente ha pujado, no el precio.
+        </p>
+      )}
+
       <div className="flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
           <svg
@@ -191,8 +218,9 @@ function MercadoConPujas() {
           const mensaje = mensajePorJugador[jugador.id];
           const pujas = pujasPorListing.get(jugador.listingId) ?? [];
           const miPuja = pujas.find((p) => p.esMia) ?? null;
-          const pujasOtros = pujas.filter((p) => !p.esMia);
-          const pujaMasAlta = pujas[0] ?? null;
+          const pujasOtros = ocultas ? [] : pujas.filter((p) => !p.esMia);
+          const pujaMasAlta = ocultas ? null : pujas[0] ?? null;
+          const otrasPujas = Math.max(0, jugador.numeroPujas - (miPuja ? 1 : 0));
           // Tu puja se mantiene aunque el valor haya subido por encima de ella,
           // pero para mejorarla tienes que llegar al valor actual.
           const miPujaPorDebajo = !!miPuja && miPuja.importe < jugador.valorMercado;
@@ -272,11 +300,27 @@ function MercadoConPujas() {
                       Pujas por este jugador
                     </p>
 
-                    {pujas.length === 0 ? (
-                      <p className="text-xs text-neutral-500">
-                        Nadie ha pujado todavía. Con la puja mínima ({jugador.valorMercado} M) te
-                        lo llevarías si nadie puja más.
+                    {ocultas && (
+                      <p className="mb-2 text-xs text-neutral-500">
+                        {jugador.numeroPujas === 0
+                          ? "Nadie ha pujado por ahora."
+                          : `${jugador.numeroPujas} ${
+                              jugador.numeroPujas === 1 ? "puja" : "pujas"
+                            } en total${
+                              miPuja
+                                ? ` (${otrasPujas === 0 ? "solo la tuya" : `la tuya y ${otrasPujas} más`})`
+                                : ""
+                            }. Los importes están ocultos hasta que se resuelva la tanda.`}
                       </p>
+                    )}
+
+                    {pujas.length === 0 ? (
+                      !ocultas || jugador.numeroPujas === 0 ? (
+                        <p className="text-xs text-neutral-500">
+                          Nadie ha pujado todavía. Con la puja mínima ({jugador.valorMercado} M) te
+                          lo llevarías si nadie puja más.
+                        </p>
+                      ) : null
                     ) : (
                       <ul className="flex flex-col gap-1">
                         {miPuja && (

@@ -112,7 +112,7 @@ export default function InfoReglasButton({ onDark = false }: { onDark?: boolean 
                 </div>
                 <p>
                   <span className="font-medium">Bonus por victoria.</span> Según el torneo, ganar da
-                  puntos extra: Tercera y Cadete, ninguno; Segunda y Open de Gros,{" "}
+                  puntos extra: Tercera y Cadete, ninguno; Segunda, Open de Gros y Superveteranos,{" "}
                   <span className="font-medium">+2</span>; Absoluto, <span className="font-medium">+3</span>.
                   Solo se aplica a las victorias (no a tablas ni derrotas).
                 </p>
@@ -121,8 +121,24 @@ export default function InfoReglasButton({ onDark = false }: { onDark?: boolean 
                   una jornada, suma {gameConfig.puntosPorDescanso} punto.
                 </p>
                 <p>
-                  Máximo {gameConfig.plantilla.maximoTercera} titulares de Tercera por jornada. Con el
+                  Límite de titulares: como máximo {gameConfig.plantilla.maximoTitularesPorTorneo} de tus
+                  titulares pueden estar inscritos en el mismo torneo. Si un jugador juega varios
+                  torneos, cuenta en cada uno. En Plantilla ves cuántos llevas por torneo. Con el
                   saldo en negativo no puntúas.
+                </p>
+              </Seccion>
+
+              <Seccion titulo="Mercado y pujas (ligas privadas)">
+                <p>
+                  El mercado se renueva cada 8 horas; el contador de la pantalla Mercado te dice
+                  cuánto falta. Al resolverse, el jugador es para quien haya hecho la puja más alta,
+                  que paga lo que pujó. Si hay empate, gana quien pujó antes.
+                </p>
+                <p>
+                  <span className="font-medium">Pujas ocultas.</span> Durante las 2 últimas horas
+                  antes de que se resuelva la tanda dejan de verse las pujas de los demás: solo ves
+                  cuánta gente ha pujado por cada jugador, no el precio ni quién. Tu propia puja sí la ves.
+                  En el Mercado hay un contador que te dice cuánto falta para que se oculten.
                 </p>
               </Seccion>
 
@@ -152,6 +168,11 @@ export default function InfoReglasButton({ onDark = false }: { onDark?: boolean 
                 <p>
                   <span className="font-medium">Candado.</span> Un jugador recién fichado (por puja o
                   por clausulazo) no se puede clausular hasta que empiece la siguiente jornada.
+                </p>
+                <p>
+                  <span className="font-medium">Cierre de clausulazos.</span> No se pueden hacer
+                  desde el sábado a las 12:00 hasta el lunes a las 00:00 (hora de España). Si lo
+                  intentas en ese tramo, la app te avisa y no se paga nada.
                 </p>
                 <p>En la liga pública no hay clausulazos: fichas y vendes al instante en el Mercado.</p>
               </Seccion>
