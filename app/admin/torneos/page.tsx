@@ -20,6 +20,7 @@ import type { Categoria } from "@/lib/types";
 interface FormTorneo {
   nombre: string;
   categoria: "" | "1" | "2" | "3";
+  bonusVictoria: string;
   observaciones: string;
   organizador: string;
   federacion: string;
@@ -45,6 +46,7 @@ interface FormTorneo {
 const FORM_VACIO: FormTorneo = {
   nombre: "",
   categoria: "",
+  bonusVictoria: "0",
   observaciones: "",
   organizador: "",
   federacion: "",
@@ -77,6 +79,7 @@ function formADatos(f: FormTorneo): DatosTorneo {
   return {
     nombre: f.nombre.trim(),
     categoria: f.categoria ? (Number(f.categoria) as Categoria) : null,
+    bonusVictoria: Number.isFinite(Number(f.bonusVictoria)) ? Math.max(0, Math.round(Number(f.bonusVictoria))) : 0,
     observaciones: vacioANull(f.observaciones),
     organizador: vacioANull(f.organizador),
     federacion: vacioANull(f.federacion),
@@ -104,6 +107,7 @@ function torneoAForm(t: Torneo): FormTorneo {
   return {
     nombre: t.nombre,
     categoria: t.categoria ? (String(t.categoria) as FormTorneo["categoria"]) : "",
+    bonusVictoria: String(t.bonusVictoria ?? 0),
     observaciones: t.observaciones ?? "",
     organizador: t.organizador ?? "",
     federacion: t.federacion ?? "",
@@ -429,6 +433,20 @@ export default function AdminTorneosPage() {
                 <option value="2">2ª categoría</option>
                 <option value="3">3ª categoría</option>
               </select>
+            </Campo>
+            <Campo etiqueta="Bonus por victoria (puntos extra al ganar)">
+              <input
+                type="number"
+                min={0}
+                step={1}
+                value={form.bonusVictoria}
+                onChange={(e) => campo("bonusVictoria", e.target.value)}
+                className={INPUT}
+              />
+              <p className="mt-1 text-xs text-neutral-500">
+                0 = sin bonus. Tercera y Cadete: 0 · Segunda y Open de Gros: 2 · Absoluto: 3.
+                Al cambiarlo se recalculan los puntos de los resultados ya guardados.
+              </p>
             </Campo>
             <Campo etiqueta="Observaciones (bases, premios, notas…)" className="sm:col-span-2">
               <textarea

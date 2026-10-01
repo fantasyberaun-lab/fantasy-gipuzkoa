@@ -49,6 +49,10 @@ export default function FichaTorneo({ torneo: t }: { torneo: Torneo }) {
           </dd>
         </div>
       )}
+      <Dato
+        etiqueta="Bonus por victoria"
+        valor={t.bonusVictoria > 0 ? `+${t.bonusVictoria} puntos por cada victoria` : null}
+      />
       <Dato etiqueta="Observaciones" valor={t.observaciones} />
     </dl>
   );

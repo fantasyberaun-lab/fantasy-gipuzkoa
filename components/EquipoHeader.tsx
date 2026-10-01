@@ -11,6 +11,7 @@ import CambiarLigaModal from "@/components/CambiarLigaModal";
 import SaldoConPujas from "@/components/SaldoConPujas";
 import ThemeToggle from "@/components/ThemeToggle";
 import InstallPwaButton from "@/components/InstallPwaButton";
+import InfoReglasButton from "@/components/InfoReglasButton";
 
 // Contenido de la cabecera morada: escudo, nombre del equipo, liga y saldo.
 export default function EquipoHeader() {
@@ -35,6 +36,7 @@ export default function EquipoHeader() {
         </div>
         <div className="flex items-center gap-2">
           <InstallPwaButton onDark />
+          <InfoReglasButton onDark />
           <ThemeToggle onDark />
         </div>
       </div>

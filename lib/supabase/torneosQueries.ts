@@ -15,6 +15,7 @@ function filaATorneo(t: any): Torneo {
     id: t.id,
     nombre: t.nombre,
     categoria: t.categoria ? (Number(t.categoria) as Categoria) : null,
+    bonusVictoria: Number(t.bonus_victoria ?? 0),
     observaciones: t.observaciones,
     organizador: t.organizador,
     federacion: t.federacion,

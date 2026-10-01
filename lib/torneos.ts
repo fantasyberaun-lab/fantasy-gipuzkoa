@@ -10,6 +10,8 @@ export interface DatosTorneo {
   // General
   nombre: string;
   categoria: Categoria | null;
+  // Puntos Fantasy extra por cada victoria en este torneo (0 = sin bonus).
+  bonusVictoria: number;
   observaciones: string | null;
   // Organización
   organizador: string | null;

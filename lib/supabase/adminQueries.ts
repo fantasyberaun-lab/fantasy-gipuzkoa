@@ -378,6 +378,7 @@ function torneoAFila(t: DatosTorneo) {
   return {
     nombre: t.nombre,
     categoria: t.categoria,
+    bonus_victoria: t.bonusVictoria,
     observaciones: t.observaciones,
     organizador: t.organizador,
     federacion: t.federacion,
