@@ -8,6 +8,9 @@ export const gameConfig = {
     tamanoPlantilla: 10,
     minimoPrimeraSegunda: 7,
     maximoTercera: 2,
+    // Máximo de titulares inscritos en un mismo torneo. Mantener igual que
+    // validar_titulares_por_torneo() en 0048_limite_titulares_por_torneo.sql.
+    maximoTitularesPorTorneo: 4,
   },
   puntuacionPorDiferenciaElo: [
     { hasta: 29, victoria: 3, tablas: 1, derrota: 0 },

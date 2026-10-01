@@ -71,6 +71,12 @@ export async function fetchMiPlantilla(
     .select("player_id, matchdays (id, numero, created_at, tournaments (nombre))")
     .in("player_id", playerIds);
 
+  // Torneos en los que juega cada jugador (límite de titulares por torneo).
+  const { data: inscripciones } = await supabase
+    .from("tournament_players")
+    .select("player_id, tournaments (id, nombre)")
+    .in("player_id", playerIds);
+
   const resultadosAscendentes = (resultados ?? []).slice().sort((a: any, b: any) => {
     // Por orden de creación de la jornada: el número solo es único dentro
     // de cada torneo.
@@ -131,6 +137,9 @@ export async function fetchMiPlantilla(
         capitan: Boolean(s.capitan),
         candado: Boolean(s.candado),
         blindado: Boolean(s.blindado),
+        torneos: ((inscripciones ?? []) as any[])
+          .filter((i) => i.player_id === s.players.id && i.tournaments)
+          .map((i) => ({ id: i.tournaments.id as string, nombre: i.tournaments.nombre as string })),
       };
     });
 }

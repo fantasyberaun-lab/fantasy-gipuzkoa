@@ -45,6 +45,9 @@ export interface PlantillaSlot {
   // Blindado (pagado por su dueño): no se le puede hacer un clausulazo
   // hasta que empiece la siguiente jornada.
   blindado?: boolean;
+  // Torneos en los que está inscrito el jugador (para el límite de titulares
+  // por torneo).
+  torneos?: { id: string; nombre: string }[];
 }
 
 export interface MercadoListing {

@@ -48,3 +48,23 @@ export function formatearCuentaAtras(msRestantes: number): string {
   if (horas === 0) return `${minutos}m`;
   return `${horas}h ${minutos}m`;
 }
+
+// Clausulazos cerrados: desde el sábado a las 12:00 hasta el lunes a las 00:00
+// (hora de Madrid). Mantener igual que clausulazos_cerrados() en
+// 0047_pujas_ocultas_clausulazos_superveteranos.sql.
+export const MENSAJE_CLAUSULAZOS_CERRADOS =
+  "Los clausulazos están cerrados: no se pueden hacer desde el sábado a las 12:00 hasta el lunes a las 00:00.";
+
+export function clausulazosCerrados(ahora: Date = new Date()): boolean {
+  const partes = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Madrid",
+    weekday: "short",
+    hour: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(ahora);
+  const dia = partes.find((p) => p.type === "weekday")?.value;
+  const hora = Number(partes.find((p) => p.type === "hour")?.value);
+  if (dia === "Sun") return true;
+  if (dia === "Sat") return hora >= 12;
+  return false;
+}

@@ -4,9 +4,11 @@ import { useState } from "react";
 import PlayerCard from "@/components/PlayerCard";
 import { useGameState } from "@/components/GameStateProvider";
 import { resumenPlantilla } from "@/lib/plantillaStats";
-import type { OfertaRecibida } from "@/lib/types";
+import { gameConfig } from "@/lib/gameConfig";
+import type { OfertaRecibida, PlantillaSlot } from "@/lib/types";
 
 const MAX_TERCERA = 2;
+const MAX_POR_TORNEO = gameConfig.plantilla.maximoTitularesPorTorneo;
 const MAX_TITULARES = 6;
 const MAX_PLANTILLA = 10;
 
@@ -57,6 +59,51 @@ function ContadorSlots({
       )}
     </div>
   );
+}
+
+// Titulares de tu equipo en cada torneo (máximo MAX_POR_TORNEO por torneo).
+function TitularesPorTorneo({
+  porTorneo,
+}: {
+  porTorneo: { id: string; nombre: string; titulares: number }[];
+}) {
+  if (porTorneo.length === 0) return null;
+  return (
+    <div className="mb-4 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+      <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+        Titulares por torneo (máximo {MAX_POR_TORNEO} en cada uno)
+      </p>
+      <ul className="mt-2 flex flex-col gap-1.5">
+        {porTorneo.map((t) => {
+          const alTope = t.titulares >= MAX_POR_TORNEO;
+          return (
+            <li key={t.id} className="flex items-center justify-between gap-3 text-sm">
+              <span className="truncate">{t.nombre}</span>
+              <span
+                className={`font-semibold ${
+                  alTope ? "text-amber-600 dark:text-amber-400" : "text-neutral-900 dark:text-neutral-100"
+                }`}
+              >
+                {t.titulares} / {MAX_POR_TORNEO}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+// Torneos (con su nombre) que bloquean poner de titular a un jugador: aquellos
+// donde ya tienes MAX_POR_TORNEO titulares. Misma regla que
+// validar_titulares_por_torneo() en 0048_limite_titulares_por_torneo.sql.
+function torneosLlenos(
+  slot: PlantillaSlot,
+  titularesPorTorneo: Map<string, number>
+): string[] {
+  return (slot.torneos ?? [])
+    .filter((t) => (titularesPorTorneo.get(t.id) ?? 0) >= MAX_POR_TORNEO)
+    .map((t) => t.nombre);
 }
 
 function Cifra({
@@ -220,6 +267,8 @@ export default function PlantillaPage() {
     tieneEquipo,
   } = useGameState();
 
+  const [avisoTitular, setAvisoTitular] = useState<string | null>(null);
+
   if (cargando) {
     return <p className="text-sm text-neutral-500">Cargando tu plantilla…</p>;
   }
@@ -240,6 +289,28 @@ export default function PlantillaPage() {
   const titularesSeleccionados = squad.filter(
     (slot) => titulares[slot.jugador.id]
   ).length;
+
+  // Titulares que tienes en cada torneo (un jugador que juega varios torneos
+  // cuenta en cada uno).
+  const titularesPorTorneo = new Map<string, number>();
+  const torneosDePlantilla = new Map<string, { id: string; nombre: string }>();
+  for (const slot of squad) {
+    for (const t of slot.torneos ?? []) {
+      torneosDePlantilla.set(t.id, t);
+      if (titulares[slot.jugador.id]) {
+        titularesPorTorneo.set(t.id, (titularesPorTorneo.get(t.id) ?? 0) + 1);
+      }
+    }
+  }
+  const resumenTorneos = [...torneosDePlantilla.values()]
+    .map((t) => ({ ...t, titulares: titularesPorTorneo.get(t.id) ?? 0 }))
+    .sort((a, b) => b.titulares - a.titulares || a.nombre.localeCompare(b.nombre));
+
+  const onToggleTitular = async (id: string) => {
+    setAvisoTitular(null);
+    const resultado = await toggleTitular(id);
+    if (!resultado.ok) setAvisoTitular(resultado.mensaje);
+  };
 
   const totalPlantilla = squad.length;
   const hayBlindado = squad.some((slot) => slot.blindado);
@@ -271,6 +342,14 @@ export default function PlantillaPage() {
         />
       </div>
 
+      <TitularesPorTorneo porTorneo={resumenTorneos} />
+
+      {avisoTitular && (
+        <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+          {avisoTitular}
+        </p>
+      )}
+
       {squad.length === 0 ? (
         <p className="text-sm text-neutral-500">
           {esLigaPublica
@@ -281,10 +360,17 @@ export default function PlantillaPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           {squad.map((slot) => {
             const esTitular = !!titulares[slot.jugador.id];
-            const bloqueadoPorTope =
+            const topeTercera =
               !esTitular &&
               slot.jugador.categoria === 3 &&
               jugadoresTerceraTitulares >= MAX_TERCERA;
+            const llenos = esTitular ? [] : torneosLlenos(slot, titularesPorTorneo);
+            const bloqueadoPorTope = topeTercera || llenos.length > 0;
+            const motivoBloqueo = topeTercera
+              ? `Ya tienes ${MAX_TERCERA} titulares de Tercera — pasa a suplente a otro primero.`
+              : llenos.length > 0
+                ? `Ya tienes ${MAX_POR_TORNEO} titulares en ${llenos.join(", ")} — pasa a suplente a otro primero.`
+                : undefined;
 
             return (
               <PlayerCard
@@ -293,9 +379,10 @@ export default function PlantillaPage() {
                 esTitular={esTitular}
                 esCapitan={capitanId === slot.jugador.id}
                 bloqueadoPorTope={bloqueadoPorTope}
+                motivoBloqueo={motivoBloqueo}
                 blindajeAgotado={hayBlindado && !slot.blindado}
                 ligaPublica={esLigaPublica}
-                onToggleTitular={() => toggleTitular(slot.jugador.id)}
+                onToggleTitular={() => onToggleTitular(slot.jugador.id)}
                 onToggleCapitan={() => toggleCapitan(slot.jugador.id)}
                 onBlindar={() => blindarJugador(slot.jugador.id)}
                 onVender={() => venderJugador(slot.jugador.id, slot.jugador.valorMercado)}
