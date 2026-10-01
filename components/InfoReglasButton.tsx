@@ -130,7 +130,7 @@ export default function InfoReglasButton({ onDark = false }: { onDark?: boolean 
 
               <Seccion titulo="Mercado y pujas (ligas privadas)">
                 <p>
-                  El mercado se renueva cada 8 horas; el contador de la pantalla Mercado te dice
+                  El mercado se renueva a las 8:00, 17:00 y 23:00 (hora de España); el contador de la pantalla Mercado te dice
                   cuánto falta. Al resolverse, el jugador es para quien haya hecho la puja más alta,
                   que paga lo que pujó. Si hay empate, gana quien pujó antes.
                 </p>
@@ -171,7 +171,7 @@ export default function InfoReglasButton({ onDark = false }: { onDark?: boolean 
                 </p>
                 <p>
                   <span className="font-medium">Cierre de clausulazos.</span> No se pueden hacer
-                  desde el sábado a las 12:00 hasta el lunes a las 00:00 (hora de España). Si lo
+                  desde el viernes a las 16:00 hasta el sábado a las 18:00 (hora de España). Si lo
                   intentas en ese tramo, la app te avisa y no se paga nada.
                 </p>
                 <p>En la liga pública no hay clausulazos: fichas y vendes al instante en el Mercado.</p>

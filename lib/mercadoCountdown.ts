@@ -1,31 +1,36 @@
-// Calcula cuándo se resuelve la próxima tanda del mercado, a partir de
-// las mismas horas UTC que usa el cron en Supabase (0, 8, 16 UTC — ver
-// 'mercado-cada-8h' programado desde el SQL Editor). Si algún día se
-// cambia la frecuencia del cron, hay que actualizar HORAS_UTC aquí para
-// que coincida.
-const HORAS_UTC = [0, 8, 16];
+// Calcula cuándo se resuelve la próxima tanda del mercado. Las tandas son a
+// las 8:00, 17:00 y 23:00 (hora de España, Europe/Madrid), así que cambian de
+// hora UTC con el horario de verano; por eso se calcula en hora de Madrid y no
+// con horas UTC fijas. Mantener igual que procesar_mercado_si_toca() en
+// 0050_horarios_mercado_y_clausulazos.sql.
+export const HORAS_TANDA_MADRID = [8, 17, 23];
 
 // Las pujas se ocultan estas horas antes de cada tanda (solo ves cuánta gente
 // ha pujado, no los importes). Mantener igual que pujas_ocultas() en
-// 0047_pujas_ocultas_clausulazos_superveteranos.sql.
+// 0050_horarios_mercado_y_clausulazos.sql.
 export const HORAS_OCULTAS = 2;
 
+const formatoHoraMadrid = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/Madrid",
+  hour: "2-digit",
+  hourCycle: "h23",
+});
+
+function horaEnMadrid(ms: number): number {
+  const partes = formatoHoraMadrid.formatToParts(new Date(ms));
+  return Number(partes.find((p) => p.type === "hour")?.value);
+}
+
 export function proximaTandaMercado(ahora: Date = new Date()): Date {
-  const inicioDeHoy = new Date(
-    Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), ahora.getUTCDate())
-  );
-
-  for (const hora of HORAS_UTC) {
-    const candidato = new Date(inicioDeHoy);
-    candidato.setUTCHours(hora, 0, 0, 0);
-    if (candidato.getTime() > ahora.getTime()) return candidato;
+  const HORA_MS = 3600_000;
+  // Madrid va siempre a horas enteras respecto a UTC, así que basta con ir
+  // avanzando de hora en hora hasta dar con una hora de tanda.
+  let t = Math.floor(ahora.getTime() / HORA_MS) * HORA_MS + HORA_MS;
+  for (let i = 0; i < 48; i++, t += HORA_MS) {
+    if (HORAS_TANDA_MADRID.includes(horaEnMadrid(t))) return new Date(t);
   }
-
-  // Ya ha pasado la última hora de hoy (16 UTC) → primera hora de mañana.
-  const manana = new Date(inicioDeHoy);
-  manana.setUTCDate(manana.getUTCDate() + 1);
-  manana.setUTCHours(HORAS_UTC[0], 0, 0, 0);
-  return manana;
+  // No debería pasar nunca (en 48 h siempre hay tanda).
+  return new Date(ahora.getTime() + 8 * HORA_MS);
 }
 
 // ¿Estamos en las últimas HORAS_OCULTAS horas antes de la tanda?
@@ -49,11 +54,11 @@ export function formatearCuentaAtras(msRestantes: number): string {
   return `${horas}h ${minutos}m`;
 }
 
-// Clausulazos cerrados: desde el sábado a las 12:00 hasta el lunes a las 00:00
-// (hora de Madrid). Mantener igual que clausulazos_cerrados() en
-// 0047_pujas_ocultas_clausulazos_superveteranos.sql.
+// Clausulazos cerrados: desde el viernes a las 16:00 (un día antes de que
+// empiece la jornada) hasta el sábado a las 18:00 (hora de Madrid). Mantener
+// igual que clausulazos_cerrados() en 0050_horarios_mercado_y_clausulazos.sql.
 export const MENSAJE_CLAUSULAZOS_CERRADOS =
-  "Los clausulazos están cerrados: no se pueden hacer desde el sábado a las 12:00 hasta el lunes a las 00:00.";
+  "Los clausulazos están cerrados: no se pueden hacer desde el viernes a las 16:00 hasta el sábado a las 18:00.";
 
 export function clausulazosCerrados(ahora: Date = new Date()): boolean {
   const partes = new Intl.DateTimeFormat("en-GB", {
@@ -64,8 +69,8 @@ export function clausulazosCerrados(ahora: Date = new Date()): boolean {
   }).formatToParts(ahora);
   const dia = partes.find((p) => p.type === "weekday")?.value;
   const hora = Number(partes.find((p) => p.type === "hour")?.value);
-  if (dia === "Sun") return true;
-  if (dia === "Sat") return hora >= 12;
+  if (dia === "Fri") return hora >= 16;
+  if (dia === "Sat") return hora < 18;
   return false;
 }
 
