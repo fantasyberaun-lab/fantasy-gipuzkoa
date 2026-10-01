@@ -10,11 +10,9 @@ import AceptacionLegalFields, {
   type AceptacionLegal,
 } from "@/components/legal/AceptacionLegalFields";
 import InfoBasicaRGPD from "@/components/legal/InfoBasicaRGPD";
+import { FORMATO_NOMBRE_USUARIO, MENSAJE_FORMATO_NOMBRE_USUARIO, MIN_PASSWORD } from "@/lib/cuenta";
 import { VERSION_CONDICIONES, VERSION_PRIVACIDAD } from "@/lib/legal/config";
 
-// Letras, números, punto, guion y guion bajo; sin espacios ni "@" (así se
-// distingue de un email en el login).
-const FORMATO_NOMBRE_USUARIO = /^[A-Za-z0-9_.-]{3,20}$/;
 
 export default function RegistroPage() {
   const supabase = createClient();
@@ -40,9 +38,7 @@ export default function RegistroPage() {
 
     const nombreLimpio = nombre.trim();
     if (!FORMATO_NOMBRE_USUARIO.test(nombreLimpio)) {
-      setError(
-        "El nombre de usuario debe tener de 3 a 20 caracteres: letras, números, punto, guion o guion bajo (sin espacios)."
-      );
+      setError(MENSAJE_FORMATO_NOMBRE_USUARIO);
       return;
     }
 
@@ -160,7 +156,7 @@ export default function RegistroPage() {
         </label>
         <PasswordInput
           required
-          minLength={6}
+          minLength={MIN_PASSWORD}
           autoComplete="new-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}

@@ -7,6 +7,9 @@ export const gameConfig = {
   plantilla: {
     tamanoPlantilla: 10,
     minimoPrimeraSegunda: 7,
+    // Máximo de titulares por equipo. Mantener igual que validar_max_titulares()
+    // en 0050_limite_titulares_cambio_nombre_clubs_unicos.sql.
+    maximoTitulares: 6,
     // Máximo de titulares inscritos en un mismo torneo. Mantener igual que
     // validar_titulares_por_torneo() en 0048_limite_titulares_por_torneo.sql.
     maximoTitularesPorTorneo: 4,

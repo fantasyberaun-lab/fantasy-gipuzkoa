@@ -786,3 +786,47 @@ export async function fetchEvolucionValorPlantilla(
     jugadores: Number(d.jugadores),
   }));
 }
+
+
+// ---------- Cuenta: nombre de usuario y contraseña ----------
+
+// Cuándo podrá volver a cambiar su nombre el usuario (null = ya puede).
+// Ver proximo_cambio_nombre_usuario en 0050.
+export async function fetchProximoCambioNombre(supabase: Supabase): Promise<Date | null> {
+  const { data, error } = await supabase.rpc("proximo_cambio_nombre_usuario");
+  if (error || !data) return null;
+  return new Date(data as string);
+}
+
+// Cambia el nombre de usuario. La base de datos valida formato, unicidad (sin
+// distinguir mayúsculas) y el máximo de un cambio por semana (0050).
+export async function cambiarNombreUsuarioDB(
+  supabase: Supabase,
+  nombre: string
+): Promise<(ResultadoAccion & { nombre?: string; puede_cambiar_desde?: string })> {
+  const { data, error } = await supabase.rpc("cambiar_nombre_usuario", { p_nombre: nombre });
+  if (error) return { ok: false, mensaje: error.message };
+  return data as ResultadoAccion & { nombre?: string; puede_cambiar_desde?: string };
+}
+
+// Cambia la contraseña tras comprobar la actual (así una sesión abierta y
+// olvidada en otro dispositivo no basta para quedarse con la cuenta).
+export async function cambiarPasswordDB(
+  supabase: Supabase,
+  actual: string,
+  nueva: string
+): Promise<ResultadoAccion> {
+  const { data: usuario } = await supabase.auth.getUser();
+  const email = usuario.user?.email;
+  if (!email) return { ok: false, mensaje: "No has iniciado sesión." };
+
+  const { error: errorActual } = await supabase.auth.signInWithPassword({
+    email,
+    password: actual,
+  });
+  if (errorActual) return { ok: false, mensaje: "La contraseña actual no es correcta." };
+
+  const { error } = await supabase.auth.updateUser({ password: nueva });
+  if (error) return { ok: false, mensaje: error.message };
+  return { ok: true };
+}

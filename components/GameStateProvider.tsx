@@ -9,6 +9,7 @@ import {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { redondear2 } from "@/lib/saldo";
+import { motivoBloqueoTitular } from "@/lib/titulares";
 import { clausulazosCerrados, MENSAJE_CLAUSULAZOS_CERRADOS } from "@/lib/mercadoCountdown";
 import {
   aceptarOfertaDB,
@@ -303,6 +304,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
   async function toggleTitular(id: string): Promise<ResultadoAccion> {
     const nuevoValor = !titulares[id];
+    if (nuevoValor) {
+      const motivo = motivoBloqueoTitular(squad, titulares, id);
+      if (motivo) return { ok: false, mensaje: motivo };
+    }
     const capitanAnterior = capitanId;
     setTitulares((prev) => ({ ...prev, [id]: nuevoValor }));
     // Un capitán que pasa a suplente pierde la capitanía (lo hace también la base de datos).

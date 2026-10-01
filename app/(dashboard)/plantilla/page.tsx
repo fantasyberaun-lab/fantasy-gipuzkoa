@@ -5,11 +5,12 @@ import PlayerCard from "@/components/PlayerCard";
 import { useGameState } from "@/components/GameStateProvider";
 import { resumenPlantilla } from "@/lib/plantillaStats";
 import { gameConfig } from "@/lib/gameConfig";
-import type { OfertaRecibida, PlantillaSlot } from "@/lib/types";
+import { motivoBloqueoTitular, titularesPorTorneo } from "@/lib/titulares";
+import type { OfertaRecibida } from "@/lib/types";
 
 const MAX_POR_TORNEO = gameConfig.plantilla.maximoTitularesPorTorneo;
-const MAX_TITULARES = 6;
-const MAX_PLANTILLA = 10;
+const MAX_TITULARES = gameConfig.plantilla.maximoTitulares;
+const MAX_PLANTILLA = gameConfig.plantilla.tamanoPlantilla;
 
 function ContadorSlots({
   label,
@@ -63,18 +64,6 @@ function ContadorSlots({
       )}
     </div>
   );
-}
-
-// Torneos (con su nombre) que bloquean poner de titular a un jugador: aquellos
-// donde ya tienes MAX_POR_TORNEO titulares. Misma regla que
-// validar_titulares_por_torneo() en 0048_limite_titulares_por_torneo.sql.
-function torneosLlenos(
-  slot: PlantillaSlot,
-  titularesPorTorneo: Map<string, number>
-): string[] {
-  return (slot.torneos ?? [])
-    .filter((t) => (titularesPorTorneo.get(t.id) ?? 0) >= MAX_POR_TORNEO)
-    .map((t) => t.nombre);
 }
 
 function Cifra({
@@ -259,18 +248,13 @@ export default function PlantillaPage() {
 
   // Titulares que tienes en cada torneo (un jugador que juega varios torneos
   // cuenta en cada uno).
-  const titularesPorTorneo = new Map<string, number>();
+  const porTorneo = titularesPorTorneo(squad, titulares);
   const torneosDePlantilla = new Map<string, { id: string; nombre: string }>();
   for (const slot of squad) {
-    for (const t of slot.torneos ?? []) {
-      torneosDePlantilla.set(t.id, t);
-      if (titulares[slot.jugador.id]) {
-        titularesPorTorneo.set(t.id, (titularesPorTorneo.get(t.id) ?? 0) + 1);
-      }
-    }
+    for (const t of slot.torneos ?? []) torneosDePlantilla.set(t.id, t);
   }
   const resumenTorneos = [...torneosDePlantilla.values()]
-    .map((t) => ({ ...t, titulares: titularesPorTorneo.get(t.id) ?? 0 }))
+    .map((t) => ({ ...t, titulares: porTorneo.get(t.id) ?? 0 }))
     .sort((a, b) => b.titulares - a.titulares || a.nombre.localeCompare(b.nombre));
 
   // Torneo en el que tienes más titulares: es el que se acerca al límite.
@@ -308,7 +292,7 @@ export default function PlantillaPage() {
           label="Titulares seleccionados"
           actual={titularesSeleccionados}
           max={MAX_TITULARES}
-          avisoTope="Once completo."
+          avisoTope="Límite alcanzado — no puedes poner más titulares."
         />
         <ContadorSlots
           label="Jugadores en plantilla"
@@ -334,11 +318,8 @@ export default function PlantillaPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           {squad.map((slot) => {
             const esTitular = !!titulares[slot.jugador.id];
-            const llenos = esTitular ? [] : torneosLlenos(slot, titularesPorTorneo);
-            const bloqueadoPorTope = llenos.length > 0;
-            const motivoBloqueo = bloqueadoPorTope
-              ? `Ya tienes ${MAX_POR_TORNEO} titulares en ${llenos.join(", ")} — pasa a suplente a otro primero.`
-              : undefined;
+            const motivoBloqueo = motivoBloqueoTitular(squad, titulares, slot.jugador.id) ?? undefined;
+            const bloqueadoPorTope = motivoBloqueo !== undefined;
 
             return (
               <PlayerCard

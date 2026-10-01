@@ -3,6 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import AjustesCuenta from "@/components/AjustesCuenta";
 import HistorialValorChart from "@/components/HistorialValorChart";
 import {
   fetchEvolucionValorPlantilla,
@@ -154,6 +155,15 @@ export default function PerfilManagerPage() {
           textoVacio="Todavía no hay suficientes días de historial para dibujar la evolución."
         />
       </div>
+
+      {perfil.esMio && (
+        <AjustesCuenta
+          nombreActual={perfil.nombreManager}
+          onNombreCambiado={(nuevo) =>
+            setPerfil((prev) => (prev ? { ...prev, nombreManager: nuevo } : prev))
+          }
+        />
+      )}
     </div>
   );
 }
