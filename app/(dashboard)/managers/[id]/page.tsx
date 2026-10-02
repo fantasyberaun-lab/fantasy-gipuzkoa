@@ -1,7 +1,7 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import AjustesCuenta from "@/components/AjustesCuenta";
 import AlineacionesJornadas from "@/components/AlineacionesJornadas";
@@ -43,7 +43,7 @@ function fechaLarga(iso: string) {
 // Perfil de un manager. El id de la ruta es el del EQUIPO (así se sabe en qué
 // liga se mira), y solo se abre si compartes liga con él (lo comprueba la base
 // de datos en perfil_manager).
-export default function PerfilManagerPage() {
+function PerfilManagerContenido() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const supabase = createClient();
@@ -51,14 +51,11 @@ export default function PerfilManagerPage() {
   const [perfil, setPerfil] = useState<PerfilManager | null>(null);
   const [evolucion, setEvolucion] = useState<PuntoValorPlantilla[]>([]);
   const [cargando, setCargando] = useState(true);
-  const [pestana, setPestana] = useState<"resumen" | "jornadas">("resumen");
-
   // Si se llega desde el botón "Jornadas" de Clasificación (?tab=jornadas).
-  useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("tab") === "jornadas") {
-      setPestana("jornadas");
-    }
-  }, [id]);
+  const searchParams = useSearchParams();
+  const [pestana, setPestana] = useState<"resumen" | "jornadas">(
+    searchParams.get("tab") === "jornadas" ? "jornadas" : "resumen"
+  );
 
   useEffect(() => {
     (async () => {
@@ -201,5 +198,13 @@ export default function PerfilManagerPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function PerfilManagerPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-neutral-500">Cargando perfil…</p>}>
+      <PerfilManagerContenido />
+    </Suspense>
   );
 }
