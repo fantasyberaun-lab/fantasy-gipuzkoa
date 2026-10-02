@@ -50,22 +50,24 @@ const num = (t: string): number | null => {
   return n != null && n > 0 ? n : null;
 };
 
+const ES_NOMBRE = /^(name|nombre|player|jugador|jugadora)/;
+const ES_RANK = /^(ran|rk|no|n|#|seed|id)$|^(ran|rk)/;
+
 export function parsearRankingInfo64(pagina: Pagina): JugadorOrigen[] {
-  const tabla = localizarTabla(
-    pagina,
-    (h) =>
-      h.some((x) => /^name/.test(x)) &&
-      h.some((x) => /^ran/.test(x)) &&
-      !h.some((x) => /^white/.test(x))
-  );
+  const sinPartidas = (h: string[]) => !h.some((x) => /^white|^black|^blancas|^negras/.test(x));
+
+  // 1) Tabla con nombre y número de ranking; 2) si no hay, solo con nombre.
+  const tabla =
+    localizarTabla(pagina, (h) => h.some((x) => ES_NOMBRE.test(x)) && h.some((x) => ES_RANK.test(x)) && sinPartidas(h)) ??
+    localizarTabla(pagina, (h) => h.some((x) => ES_NOMBRE.test(x)) && sinPartidas(h));
   if (!tabla) return [];
 
   const h = tabla.cabeceras;
   const iId = h.findIndex((x) => /^fide\s*-?id/.test(x));
-  const iRank = h.findIndex((x) => /^ran/.test(x));
-  const iNombre = h.findIndex((x) => /^name/.test(x));
-  const iElo = h.findIndex((x, i) => i !== iId && /^(fide|elo|rtg)/.test(x));
-  const iClub = h.findIndex((x) => /^(origin|origen|club)/.test(x));
+  const iRank = h.findIndex((x) => ES_RANK.test(x));
+  const iNombre = h.findIndex((x) => ES_NOMBRE.test(x));
+  const iElo = h.findIndex((x, i) => i !== iId && /^(fide|elo|rtg|rating)/.test(x));
+  const iClub = h.findIndex((x) => /^(origin|origen|club|team|equipo)/.test(x));
 
   const jugadores: JugadorOrigen[] = [];
   for (const fila of tabla.datos) {
@@ -96,6 +98,15 @@ export function parsearTorneoInfo64(
   const avisos: string[] = [];
   if (jugadores.length === 0) {
     avisos.push("No he encontrado la lista de jugadores en la página de Info64.");
+    // Diagnóstico: qué tablas ve el importador (cabeceras de cada una).
+    if (pagina.tablas.length === 0) {
+      avisos.push("La página no contiene ninguna tabla en el HTML (¿se carga con JavaScript?).");
+    } else {
+      pagina.tablas.slice(0, 6).forEach((t, i) => {
+        const cab = t.filas[0].celdas.map((c) => c.texto).join(" | ");
+        avisos.push(`Tabla ${i + 1} (${t.filas.length} filas): ${cab.slice(0, 160)}`);
+      });
+    }
   }
 
   let lugar: string | null = null;
