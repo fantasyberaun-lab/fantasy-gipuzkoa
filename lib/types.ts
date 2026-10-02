@@ -31,6 +31,20 @@ export interface PuntosJornada {
   descanso?: boolean;
 }
 
+// Próxima partida de un jugador según los emparejamientos publicados de la
+// última jornada de su torneo (matchday_pairings) que aún no tiene resultado.
+// Si "descansa" es true, el jugador queda sin emparejar esa jornada.
+export interface ProximoRival {
+  jornada: number;
+  torneo: string | null;
+  tablero: number | null;
+  descansa: boolean;
+  rivalId: string | null; // null = rival que no está en la base
+  rivalNombre: string;
+  rivalElo: number | null;
+  color: "blancas" | "negras" | null; // color del jugador, no del rival
+}
+
 export interface PlantillaSlot {
   jugador: Jugador;
   puntosJornada: number;
@@ -48,6 +62,8 @@ export interface PlantillaSlot {
   // Torneos en los que está inscrito el jugador (para el límite de titulares
   // por torneo).
   torneos?: { id: string; nombre: string }[];
+  // Próximo rival (uno por torneo en el que tenga partida pendiente).
+  proximosRivales?: ProximoRival[];
 }
 
 export interface MercadoListing {
@@ -88,6 +104,7 @@ export interface JugadorLiga extends Jugador {
   // Inscrito en algún torneo. Solo los inscritos salen en el mercado de la
   // liga pública (false = no se puede fichar; undefined se trata como true).
   inscrito?: boolean;
+  proximosRivales?: ProximoRival[];
   historialPuntos: PuntosJornada[];
 }
 
@@ -96,6 +113,7 @@ export interface MercadoDelDia extends Jugador {
   puntosTotales: number;
   historialPuntos: PuntosJornada[];
   numeroPujas: number;
+  proximosRivales?: ProximoRival[];
 }
 
 // Puja de un equipo por un jugador de la tanda de mercado abierta.

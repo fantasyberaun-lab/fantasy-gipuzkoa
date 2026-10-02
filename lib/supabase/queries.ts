@@ -11,6 +11,7 @@ import type {
   OfertaRecibida,
   PerfilManager,
   PlantillaSlot,
+  ProximoRival,
   PujaMercado,
   PuntoValorPlantilla,
   PuntosJornada,
@@ -38,6 +39,115 @@ export async function fetchMisLigas(supabase: Supabase): Promise<LigaResumen[]> 
     nombreEquipo: l.nombre_equipo,
     saldo: Number(l.saldo),
   }));
+}
+
+// Lee todas las filas de una consulta paginando (Supabase corta en 1000).
+async function leerTodo(construir: (desde: number, hasta: number) => PromiseLike<{ data: any[] | null }>) {
+  const TAM = 1000;
+  const filas: any[] = [];
+  for (let desde = 0; ; desde += TAM) {
+    const { data } = await construir(desde, desde + TAM - 1);
+    const lote = data ?? [];
+    filas.push(...lote);
+    if (lote.length < TAM) break;
+  }
+  return filas;
+}
+
+// Próximo rival de cada jugador, a partir de los emparejamientos publicados
+// (matchday_pairings, ver 0053). En cada torneo solo cuenta su última jornada
+// con emparejamientos; si el jugador ya tiene resultado (o descanso) guardado
+// en ella, la partida ya está jugada y no se muestra. Devuelve un mapa
+// id de jugador -> próximos rivales (uno por torneo).
+export async function fetchProximosRivales(
+  supabase: Supabase
+): Promise<Record<string, ProximoRival[]>> {
+  const mesas = await leerTodo((d, h) =>
+    supabase
+      .from("matchday_pairings")
+      .select(
+        "matchday_id, tablero, blanco_player_id, blanco_elo, negro_player_id, negro_elo, descansa, matchdays (id, numero, created_at, tournament_id, tournaments (nombre))"
+      )
+      .order("id")
+      .range(d, h)
+  );
+  if (mesas.length === 0) return {};
+
+  // Última jornada con emparejamientos de cada torneo.
+  const ultimaPorTorneo = new Map<string, { id: string; creada: string }>();
+  for (const m of mesas) {
+    const j = m.matchdays;
+    if (!j) continue;
+    const clave = j.tournament_id ?? j.id;
+    const actual = ultimaPorTorneo.get(clave);
+    if (!actual || (j.created_at ?? "") > actual.creada) {
+      ultimaPorTorneo.set(clave, { id: j.id, creada: j.created_at ?? "" });
+    }
+  }
+  const jornadasVigentes = new Set([...ultimaPorTorneo.values()].map((u) => u.id));
+  const vigentes = mesas.filter((m) => m.matchdays && jornadasVigentes.has(m.matchday_id));
+  if (vigentes.length === 0) return {};
+
+  const idsJornadas = [...jornadasVigentes];
+  const [resultados, descansos] = await Promise.all([
+    leerTodo((d, h) =>
+      supabase.from("results").select("matchday_id, player_id").in("matchday_id", idsJornadas).range(d, h)
+    ),
+    leerTodo((d, h) =>
+      supabase.from("matchday_byes").select("matchday_id, player_id").in("matchday_id", idsJornadas).range(d, h)
+    ),
+  ]);
+  const yaJugado = new Set<string>(
+    [...resultados, ...descansos].map((r: any) => `${r.matchday_id}:${r.player_id}`)
+  );
+
+  const jugadores = await leerTodo((d, h) =>
+    supabase.from("players").select("id, nombre, elo").order("id").range(d, h)
+  );
+  const infoJugador = new Map<string, { nombre: string; elo: number | null }>(
+    jugadores.map((p: any): [string, { nombre: string; elo: number | null }] => [
+      p.id,
+      { nombre: p.nombre, elo: p.elo ?? null },
+    ])
+  );
+
+  const resultado: Record<string, ProximoRival[]> = {};
+  const anadir = (jugadorId: string, rival: ProximoRival) => {
+    (resultado[jugadorId] ??= []).push(rival);
+  };
+
+  for (const m of vigentes) {
+    const base = {
+      jornada: m.matchdays.numero as number,
+      torneo: (m.matchdays.tournaments?.nombre ?? null) as string | null,
+      tablero: (m.tablero ?? null) as number | null,
+    };
+
+    if (m.descansa) {
+      const id = m.blanco_player_id as string | null;
+      if (!id || yaJugado.has(`${m.matchday_id}:${id}`)) continue;
+      anadir(id, { ...base, descansa: true, rivalId: null, rivalNombre: "", rivalElo: null, color: null });
+      continue;
+    }
+
+    const lados: { yo: string | null; rival: string | null; rivalElo: number | null; color: "blancas" | "negras" }[] = [
+      { yo: m.blanco_player_id, rival: m.negro_player_id, rivalElo: m.negro_elo, color: "blancas" },
+      { yo: m.negro_player_id, rival: m.blanco_player_id, rivalElo: m.blanco_elo, color: "negras" },
+    ];
+    for (const l of lados) {
+      if (!l.yo || yaJugado.has(`${m.matchday_id}:${l.yo}`)) continue;
+      const info = l.rival ? infoJugador.get(l.rival) : undefined;
+      anadir(l.yo, {
+        ...base,
+        descansa: false,
+        rivalId: l.rival,
+        rivalNombre: l.rival ? (info?.nombre ?? "Rival desconocido") : "Rival externo",
+        rivalElo: l.rival ? (info?.elo ?? null) : (l.rivalElo ?? null),
+        color: l.color,
+      });
+    }
+  }
+  return resultado;
 }
 
 export async function fetchMiPlantilla(

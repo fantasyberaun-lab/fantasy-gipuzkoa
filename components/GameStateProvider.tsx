@@ -24,6 +24,7 @@ import {
   fetchMisOfertas,
   fetchNotificaciones,
   fetchOfertasRecibidas,
+  fetchProximosRivales,
   fetchPujasMercado,
   ficharJugadorDB,
   hacerOfertaDB,
@@ -52,6 +53,7 @@ import type {
   OfertaPendiente,
   OfertaRecibida,
   PlantillaSlot,
+  ProximoRival,
   PujaMercado,
 } from "@/lib/types";
 
@@ -192,7 +194,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     };
     setEquipo(miEquipo);
 
-    const [plantilla, ligaJugadores, misOfertas, ofertasParaMi, jugadoresMercado, pujas, tabla, avisos] =
+    const [plantilla, ligaJugadores, misOfertas, ofertasParaMi, jugadoresMercado, pujas, tabla, avisos, rivales] =
       await Promise.all([
         fetchMiPlantilla(supabase, miEquipo.id),
         fetchJugadoresLiga(supabase, miEquipo.leagueId, miEquipo.id),
@@ -213,10 +215,15 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         esPublica
           ? Promise.resolve({ notificaciones: [] as Notificacion[], vistasEn: Date.now() })
           : fetchNotificaciones(supabase, miEquipo.leagueId, miEquipo.id),
+        // Si falla, simplemente no se muestran rivales.
+        fetchProximosRivales(supabase).catch(() => ({} as Record<string, ProximoRival[]>)),
       ]);
 
     setSquad(
-      plantilla.map(({ titular: _titular, capitan: _capitan, ...resto }) => resto)
+      plantilla.map(({ titular: _titular, capitan: _capitan, ...resto }) => ({
+        ...resto,
+        proximosRivales: rivales[resto.jugador.id] ?? [],
+      }))
     );
     setTitulares(
       Object.fromEntries(plantilla.map((s) => [s.jugador.id, s.titular]))
@@ -229,16 +236,17 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       esPublica
         ? ligaJugadores.map((j) => ({
             ...j,
+            proximosRivales: rivales[j.id] ?? [],
             propietario: null,
             esMiEquipo: idsMiPlantilla.has(j.id),
             candado: false,
             blindado: false,
           }))
-        : ligaJugadores
+        : ligaJugadores.map((j) => ({ ...j, proximosRivales: rivales[j.id] ?? [] }))
     );
     setOfertas(misOfertas);
     setOfertasRecibidas(ofertasParaMi);
-    setMercado(jugadoresMercado);
+    setMercado(jugadoresMercado.map((j) => ({ ...j, proximosRivales: rivales[j.id] ?? [] })));
     setPujasMercado(pujas);
     setClasificacion(tabla);
     setNotificaciones(avisos.notificaciones);

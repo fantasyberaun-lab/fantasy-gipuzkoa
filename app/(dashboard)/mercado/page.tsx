@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import ProximoRivalLinea from "@/components/ProximoRival";
 import { useEffect, useMemo, useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
@@ -277,6 +278,7 @@ function MercadoConPujas() {
                   <p className="text-xs text-neutral-500">
                     {jugador.club} · {jugador.categoria}ª cat. · Elo {jugador.elo}
                   </p>
+                  <ProximoRivalLinea rivales={jugador.proximosRivales} className="mt-0.5" />
                   <p className="mt-0.5 text-xs text-neutral-500">
                     {jugador.puntosTotales} pts esta temporada
                   </p>

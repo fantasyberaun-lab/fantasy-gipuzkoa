@@ -5,6 +5,7 @@ import { useState } from "react";
 import type { PlantillaSlot } from "@/lib/types";
 import { gameConfig } from "@/lib/gameConfig";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
+import ProximoRivalLinea from "@/components/ProximoRival";
 
 function iniciales(nombre: string) {
   return nombre
@@ -54,6 +55,7 @@ export default function PlayerCard({
   ligaPublica = false,
   candado,
   blindado,
+  proximosRivales,
   onToggleTitular,
   onToggleCapitan,
   onBlindar,
@@ -226,6 +228,7 @@ export default function PlayerCard({
             <p className="text-sm text-neutral-500">
               {jugador.club} · {jugador.categoria}ª cat. · Elo {jugador.elo}
             </p>
+            <ProximoRivalLinea rivales={proximosRivales} className="mt-0.5" />
           </div>
         </div>
 
