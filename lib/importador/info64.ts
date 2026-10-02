@@ -50,6 +50,8 @@ const num = (t: string): number | null => {
   return n != null && n > 0 ? n : null;
 };
 
+const RE_BLANCAS = /^(white|blancas|zuriak)/;
+const RE_NEGRAS = /^(black|negras|beltzak)/;
 const ES_NOMBRE = /^(name|nombre|player|jugador|jugadora)/;
 const ES_RANK = /^(ran|rk|no|n|#|seed|id)$|^(ran|rk)/;
 
@@ -170,18 +172,24 @@ export function parsearRondaInfo64(
 
   const tabla = localizarTabla(
     pagina,
-    (h) => h.some((x) => /^white/.test(x)) && h.some((x) => /^black/.test(x))
+    (h) => h.some((x) => RE_BLANCAS.test(x)) && h.some((x) => RE_NEGRAS.test(x))
   );
   if (!tabla) {
+    // Diagnóstico: qué tablas ve el importador, para poder ajustar el lector.
+    const vistas = pagina.tablas
+      .slice(0, 5)
+      .map((t, i) => `T${i + 1}[${t.filas.length}f]: ${t.filas[0].celdas.map((c) => c.texto).join("|").slice(0, 120)}`)
+      .join(" ; ");
     throw new ErrorImportador(
-      `Info64 no muestra todavía emparejamientos de la ronda ${numero} (o ha cambiado el formato de la página).`
+      `Info64 no muestra emparejamientos de la ronda ${numero} (o ha cambiado el formato). ` +
+        (pagina.tablas.length === 0 ? "La página no tiene ninguna tabla en el HTML." : `Tablas vistas: ${vistas}`)
     );
   }
 
   const h = tabla.cabeceras;
   const iBrd = h.findIndex((x) => /^(brd|board|mesa|tab)/.test(x));
-  const iW = h.findIndex((x) => /^white/.test(x));
-  const iB = h.findIndex((x) => /^black/.test(x));
+  const iW = h.findIndex((x) => RE_BLANCAS.test(x));
+  const iB = h.findIndex((x) => RE_NEGRAS.test(x));
   const iRes = h.findIndex((x) => /^res/.test(x));
   if (iW < 0 || iB < 0 || iRes < 0) {
     throw new ErrorImportador(
@@ -201,8 +209,8 @@ export function parsearRondaInfo64(
     const textoNombre = celda(fila, iNombre);
     if (!textoNombre) return null;
     const hasta = limite(iNombre);
-    const rank = entero(celda(fila, buscar(/^ran/, iNombre + 1, hasta)));
-    const elo = entero(celda(fila, buscar(/^fide/, iNombre + 1, hasta)));
+    const rank = entero(celda(fila, buscar(/^(ran|rk)/, iNombre + 1, hasta)));
+    const elo = entero(celda(fila, buscar(/^(fide|elo|rtg|rating)/, iNombre + 1, hasta)));
     const base = rank != null ? porRank.get(rank) : undefined;
     return {
       rank,
