@@ -8,9 +8,14 @@
 // su lector es tolerante con las columnas y, si no las reconoce, falla con un
 // mensaje que lista las cabeceras vistas.
 //
+// Ligas (round-robin), p. ej. el Superveteranos 2026: la página trae TODAS las
+// rondas seguidas en una misma tabla, cada una precedida de una fila-título
+// "1. Ronda el 2026/10/04 a las 16:00" y con su propia fila de cabeceras
+// (M. | No. | Elo | Blancas | Resultado | Negras | Elo | No.). Ver localizarRonda.
+//
 // Funciones puras: reciben una Pagina ya leída (ver html.ts).
 
-import type { JugadorOrigen, Pagina, RondaOrigen, TorneoOrigen } from "./tipos";
+import type { FilaTabla, JugadorOrigen, Pagina, RondaOrigen, TorneoOrigen } from "./tipos";
 import {
   ErrorImportador,
   celda,
@@ -20,6 +25,7 @@ import {
   limpiarNombre,
   localizarTabla,
   normalizarCabecera,
+  type TablaLocalizada,
   sinTildes,
   textoONulo,
 } from "./texto";
@@ -162,6 +168,62 @@ export function parsearTorneoChessResults(pagina: Pagina, urlCanonica: string): 
   };
 }
 
+const RE_TABLERO = /^(m|bo|brd|tab|mesa|board)/;
+
+// Fila-título de ronda: "1. Ronda el 2026/10/04 a las 16:00" (ya normalizada,
+// sin puntos) o la forma "Ronda 1 ...".
+const RE_TITULO_RONDA = /^(?:(\d+)\s*(?:ronda|round|rd|runde)\b|(?:ronda|round|rd|runde)\s*(\d+)\b)/;
+
+function esCabeceraRonda(h: string[]): boolean {
+  const iRes = h.findIndex((x) => /^(resultado|result)/.test(x));
+  if (iRes < 0) return false;
+  const nombres = h.map((x, i) => (RE_NOMBRE.test(x) ? i : -1)).filter((i) => i >= 0);
+  return nombres.some((i) => i < iRes) && nombres.some((i) => i > iRes);
+}
+
+// Busca la tabla de emparejamientos de la ronda pedida. Admite:
+//  - una tabla por ronda (Suizo: la web ya filtra con rd=N), y
+//  - una tabla con varias rondas separadas por filas-título (Liga/round-robin).
+// Devuelve las rondas vistas para poder dar un error claro.
+function localizarRonda(
+  pagina: Pagina,
+  numero: number
+): { tabla: TablaLocalizada | null; rondasVistas: number[] } {
+  const bloques: { ronda: number | null; tabla: TablaLocalizada }[] = [];
+
+  for (const t of pagina.tablas) {
+    let ronda: number | null = null;
+    let actual: TablaLocalizada | null = null;
+    for (const fila of t.filas) {
+      const cab = fila.celdas.map((c) => normalizarCabecera(c.texto));
+      if (fila.celdas.length <= 2) {
+        const m = cab[0]?.match(RE_TITULO_RONDA);
+        if (m) {
+          ronda = Number(m[1] ?? m[2]);
+          actual = null;
+          continue;
+        }
+      }
+      if (esCabeceraRonda(cab)) {
+        // Cabecera nueva (también si se repite dentro de la misma ronda).
+        if (!actual) {
+          actual = { cabeceras: cab, datos: [] };
+          bloques.push({ ronda, tabla: actual });
+        }
+        continue;
+      }
+      if (actual && !fila.cabecera && fila.celdas.length >= 2) actual.datos.push(fila);
+    }
+  }
+
+  const rondasVistas = bloques.map((b) => b.ronda).filter((r): r is number => r != null);
+  const exacto = bloques.find((b) => b.ronda === numero);
+  if (exacto) return { tabla: exacto.tabla, rondasVistas };
+  // Sin títulos de ronda: una sola ronda en la página (la que pide rd=N).
+  if (rondasVistas.length === 0) return { tabla: bloques[0]?.tabla ?? null, rondasVistas };
+  return { tabla: null, rondasVistas };
+}
+
 const RE_BYE = /^(bye|libre|descansa|sin emparejar|no emparejado|not paired|spielfrei)/i;
 
 export function parsearRondaChessResults(
@@ -176,13 +238,13 @@ export function parsearRondaChessResults(
     porNombre.set(sinTildes(j.nombre).toLowerCase(), j);
   }
 
-  const tabla = localizarTabla(pagina, (h) => {
-    const iRes = h.findIndex((x) => /^(resultado|result)/.test(x));
-    if (iRes < 0) return false;
-    const nombres = h.map((x, i) => (RE_NOMBRE.test(x) ? i : -1)).filter((i) => i >= 0);
-    return nombres.some((i) => i < iRes) && nombres.some((i) => i > iRes);
-  });
+  const { tabla, rondasVistas } = localizarRonda(pagina, numero);
 
+  if (!tabla && rondasVistas.length > 0) {
+    throw new ErrorImportador(
+      `La página de Chess-Results no trae la ronda ${numero}. Rondas que sí aparecen: ${rondasVistas.join(", ")}.`
+    );
+  }
   if (!tabla) {
     const vistas = pagina.tablas
       .slice(0, 4)
@@ -196,7 +258,7 @@ export function parsearRondaChessResults(
 
   const h = tabla.cabeceras;
   const iRes = h.findIndex((x) => /^(resultado|result)/.test(x));
-  const iBrd = h.findIndex((x) => /^(bo|brd|tab|mesa|board)/.test(x));
+  const iBrd = h.findIndex((x) => RE_TABLERO.test(x));
   const primero = (re: RegExp, desde: number, hasta: number) => {
     for (let i = desde; i < hasta; i++) if (re.test(h[i])) return i;
     return -1;
@@ -268,14 +330,35 @@ export function parsearRondaChessResults(
 
   let fecha: string | null = null;
   let hora: string | null = null;
-  for (const linea of pagina.lineas) {
-    const m = linea.match(
-      /(?:ronda|round|rd\.?)\s*(\d+)\D{0,12}(\d{4}[/-]\d{2}[/-]\d{2})(?:\D{0,12}(\d{1,2}:\d{2}))?/i
-    );
-    if (m && Number(m[1]) === numero) {
-      fecha = fechaISO(m[2]);
-      hora = m[3] ?? null;
-      break;
+  const reFecha = [
+    // "Ronda 1 ... 2026/10/04 16:00"
+    /(?:ronda|round|rd\.?)\s*(\d+)\D{0,12}(\d{4}[/-]\d{2}[/-]\d{2})(?:\D{0,12}(\d{1,2}:\d{2}))?/i,
+    // "1. Ronda el 2026/10/04 a las 16:00" (ligas)
+    /\b(\d+)\.\s*(?:ronda|round|runde)\D{0,12}(\d{4}[/-]\d{2}[/-]\d{2})(?:\D{0,12}(\d{1,2}:\d{2}))?/i,
+  ];
+  buscar: for (const linea of pagina.lineas) {
+    for (const re of reFecha) {
+      const m = linea.match(re);
+      if (m && Number(m[1]) === numero) {
+        fecha = fechaISO(m[2]);
+        hora = m[3] ?? null;
+        break buscar;
+      }
+    }
+  }
+  // Ligas: la fecha también viene en la fila-título dentro de la tabla.
+  if (!fecha) {
+    for (const t of pagina.tablas) {
+      for (const f of t.filas) {
+        const txt = f.celdas[0]?.texto ?? "";
+        for (const re of reFecha) {
+          const m = f.celdas.length <= 2 ? txt.match(re) : null;
+          if (m && Number(m[1]) === numero) {
+            fecha = fechaISO(m[2]);
+            hora = m[3] ?? null;
+          }
+        }
+      }
     }
   }
 
