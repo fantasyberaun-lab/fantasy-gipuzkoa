@@ -112,9 +112,11 @@ export default function InfoReglasButton({ onDark = false }: { onDark?: boolean 
                 </div>
                 <p>
                   <span className="font-medium">Bonus por victoria.</span> Según el torneo, ganar da
-                  puntos extra: Tercera y Cadete, ninguno; Segunda, Open de Gros y Superveteranos,{" "}
-                  <span className="font-medium">+2</span>; Absoluto, <span className="font-medium">+3</span>.
-                  Solo se aplica a las victorias (no a tablas ni derrotas).
+                  puntos extra: Tercera, ninguno; Cadete, <span className="font-medium">+1</span>;
+                  Segunda, Open de Gros y Superveteranos, <span className="font-medium">+2</span>;
+                  Absoluto, <span className="font-medium">+3</span>. Solo se aplica a las victorias
+                  (no a tablas ni derrotas). Los jugadores con 0 de Elo puntúan siempre 3 puntos por
+                  victoria (más el bonus del torneo).
                 </p>
                 <p>
                   <span className="font-medium">Descanso.</span> Si tu jugador queda sin emparejar en

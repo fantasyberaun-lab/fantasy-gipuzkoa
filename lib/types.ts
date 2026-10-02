@@ -128,7 +128,8 @@ export type TipoNotificacion =
   | "fichaje"
   | "clausulazo"
   | "clausula_subida"
-  | "oferta_rechazada";
+  | "oferta_rechazada"
+  | "venta";
 
 // Un aviso del panel de notificaciones (ver 0022_notificaciones.sql).
 // "actor" es quien hace la acción (ofertar, fichar, pagar cláusula);

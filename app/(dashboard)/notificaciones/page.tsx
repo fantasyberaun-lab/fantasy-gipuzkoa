@@ -26,6 +26,10 @@ const ETIQUETA: Record<Notificacion["tipo"], { texto: string; clases: string }> 
     texto: "Oferta rechazada",
     clases: "bg-neutral-200 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300",
   },
+  venta: {
+    texto: "Venta",
+    clases: "bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300",
+  },
 };
 
 function hace(iso: string): string {
@@ -97,6 +101,20 @@ export default function NotificacionesPage() {
         <>
           {actor} ha fichado a {jugador(n)}
           {dinero(n)}.
+        </>
+      );
+    }
+
+    if (n.tipo === "venta") {
+      return yo ? (
+        <>
+          Has vendido a {jugador(n)}
+          {n.importe !== null ? ` por ${n.importe} M` : ""} al mercado.
+        </>
+      ) : (
+        <>
+          {actor} ha vendido a {jugador(n)}
+          {n.importe !== null ? ` por ${n.importe} M` : ""} al mercado.
         </>
       );
     }
