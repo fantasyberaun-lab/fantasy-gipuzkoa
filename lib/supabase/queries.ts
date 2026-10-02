@@ -332,7 +332,8 @@ export async function fetchMercado(
   );
 
   return listings
-    .filter((l: any) => l.players)
+    // Un jugador con dueño en esta liga nunca debe salir en el mercado.
+    .filter((l: any) => l.players && !estadoPorJugador.get(l.players.id)?.propietario_team_id)
     .map((l: any) => {
       const estado = estadoPorJugador.get(l.players.id);
 
@@ -784,6 +785,7 @@ export interface JugadorPlantillaAjena {
   valorMercado: number;
   puntosTotales: number;
   historialPuntos: PuntosJornada[];
+  proximosRivales?: ProximoRival[];
 }
 
 // Liga pública: plantilla de otro manager (ver plantilla_equipo_publica en
@@ -797,6 +799,11 @@ export async function fetchPlantillaEquipoPublicaDB(
   });
   if (error || !data) return null;
 
+  // Si falla, simplemente no se muestran rivales.
+  const rivales = await fetchProximosRivales(supabase).catch(
+    () => ({} as Record<string, ProximoRival[]>)
+  );
+
   return (data as any[]).map((p) => ({
     id: p.id,
     nombre: p.nombre,
@@ -806,6 +813,7 @@ export async function fetchPlantillaEquipoPublicaDB(
     valorMercado: Number(p.valor_mercado),
     puntosTotales: p.puntos_totales,
     historialPuntos: (p.historial_puntos ?? []) as PuntosJornada[],
+    proximosRivales: rivales[p.id] ?? [],
   }));
 }
 

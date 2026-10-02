@@ -5,6 +5,7 @@ import { redondear2 } from "@/lib/saldo";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
+import ProximoRivalLinea from "@/components/ProximoRival";
 import { createClient } from "@/lib/supabase/client";
 import {
   fetchPlantillaEquipoPublicaDB,
@@ -439,6 +440,7 @@ export default function ClasificacionPage() {
                         {jugador.club} · {jugador.categoria}ª cat. · Elo {jugador.elo} ·{" "}
                         {jugador.puntosTotales} pts
                       </p>
+                      <ProximoRivalLinea rivales={jugador.proximosRivales} className="mt-0.5" />
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <span className="text-sm font-medium">{jugador.valorMercado} M</span>
@@ -517,6 +519,7 @@ export default function ClasificacionPage() {
                         <p className="text-xs text-neutral-500">
                           {jugador.club} · {jugador.categoria}ª cat. · Elo {jugador.elo}
                         </p>
+                        <ProximoRivalLinea rivales={jugador.proximosRivales} className="mt-0.5" />
                       </div>
                       <span className="text-sm font-medium">{jugador.valorMercado} M</span>
                     </div>
