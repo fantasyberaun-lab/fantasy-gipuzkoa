@@ -2,7 +2,7 @@ import type { createClient } from "@/lib/supabase/client";
 
 type Supabase = ReturnType<typeof createClient>;
 
-export interface JugadorAlineacion {
+export interface JugadorSemana {
   id: string;
   nombre: string;
   categoria: number;
@@ -10,38 +10,35 @@ export interface JugadorAlineacion {
   resultado: "victoria" | "tablas" | "derrota" | null;
   descanso: boolean;
   base: number; // puntos del jugador sin multiplicar
-  puntos: number; // puntos que suma al equipo (capitán x2); 0 si no cuenta
-  cuenta: boolean; // false: ese fin de semana puntuó más en otro torneo
-  cuentaEn: string | null; // torneo donde sí cuenta
+  puntos: number; // puntos que suma al equipo (capitán x2)
+  torneo: string | null; // torneo donde jugó ese fin de semana (null si no jugó)
+  jornada: number | null; // ronda de ese torneo
 }
 
-export interface AlineacionJornada {
-  jornadaId: string | null;
-  jornada: number | null;
-  torneo: string | null;
-  creada: string;
-  puntos: number;
+export interface AlineacionSemana {
+  clave: string;
+  fecha: string; // sábado de la foto, formato AAAA-MM-DD
+  puntos: number; // total del equipo ese fin de semana
   pendiente: boolean; // foto del sábado a la espera de que se cree la jornada
-  jugadores: JugadorAlineacion[];
+  jugadores: JugadorSemana[];
 }
 
-// Alineación de un equipo en cada jornada (ver alineaciones_equipo en 0051).
-// Lista vacía si no existe, no compartes liga o aún no hay ninguna foto.
-export async function fetchAlineacionesEquipo(
+// Alineación de un equipo en cada fin de semana, con todos los torneos juntos
+// (ver alineaciones_equipo_semanas en 0058). Lista vacía si no existe, no
+// compartes liga o aún no hay ninguna foto.
+export async function fetchAlineacionesSemanas(
   supabase: Supabase,
   equipoId: string
-): Promise<AlineacionJornada[]> {
-  const { data, error } = await supabase.rpc("alineaciones_equipo", {
+): Promise<AlineacionSemana[]> {
+  const { data, error } = await supabase.rpc("alineaciones_equipo_semanas", {
     p_equipo_id: equipoId,
   });
   if (error || !data) return [];
 
   return (data as any[])
     .map((f) => ({
-      jornadaId: (f.jornada_id ?? null) as string | null,
-      jornada: f.jornada == null ? null : Number(f.jornada),
-      torneo: (f.torneo ?? null) as string | null,
-      creada: f.creada as string,
+      clave: String(f.clave),
+      fecha: String(f.fecha),
       puntos: Number(f.puntos_equipo ?? 0),
       pendiente: Boolean(f.pendiente),
       jugadores: ((f.jugadores ?? []) as any[]).map((j) => ({
@@ -49,13 +46,13 @@ export async function fetchAlineacionesEquipo(
         nombre: j.nombre as string,
         categoria: Number(j.categoria),
         capitan: Boolean(j.capitan),
-        resultado: (j.resultado ?? null) as JugadorAlineacion["resultado"],
+        resultado: (j.resultado ?? null) as JugadorSemana["resultado"],
         descanso: Boolean(j.descanso),
         base: Number(j.base ?? 0),
         puntos: Number(j.puntos ?? 0),
-        cuenta: j.cuenta !== false,
-        cuentaEn: (j.cuenta_en ?? null) as string | null,
+        torneo: (j.torneo ?? null) as string | null,
+        jornada: j.jornada == null ? null : Number(j.jornada),
       })),
     }))
-    .sort((a, b) => a.creada.localeCompare(b.creada));
+    .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.clave.localeCompare(b.clave));
 }
