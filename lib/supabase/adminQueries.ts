@@ -497,3 +497,67 @@ export async function eliminarTorneoDB(
   }
   return { ok: true };
 }
+// ---------- Emparejamientos publicados (ver 0051_emparejamientos_publicados.sql) ----------
+
+export interface EmparejamientoPublicable {
+  tablero: number | null;
+  blancoPlayerId: string | null;
+  // Elo solo si ese jugador NO está en la base de jugadores (rival externo).
+  blancoElo: number | null;
+  negroPlayerId: string | null;
+  negroElo: number | null;
+  // true: solo hay un jugador (blancoPlayerId) y descansa esta ronda.
+  descansa: boolean;
+}
+
+// Sustituye TODAS las mesas publicadas de la jornada por las que se pasan.
+export async function publicarEmparejamientosDB(
+  supabase: Supabase,
+  matchdayId: string,
+  filas: EmparejamientoPublicable[]
+): Promise<{ ok: true; total: number } | { ok: false; mensaje: string }> {
+  const { data, error } = await supabase.rpc("publicar_emparejamientos", {
+    p_matchday_id: matchdayId,
+    p_partidas: filas.map((f) => ({
+      tablero: f.tablero,
+      blanco_player_id: f.blancoPlayerId,
+      blanco_elo: f.blancoElo,
+      negro_player_id: f.negroPlayerId,
+      negro_elo: f.negroElo,
+      descansa: f.descansa,
+    })),
+  });
+
+  if (error || !data) {
+    return { ok: false, mensaje: error?.message ?? "No se pudieron publicar los emparejamientos." };
+  }
+  if (!data.ok) return { ok: false, mensaje: data.mensaje };
+  return { ok: true, total: Number(data.total) };
+}
+
+export async function retirarEmparejamientosDB(
+  supabase: Supabase,
+  matchdayId: string
+): Promise<ResultadoAccion> {
+  const { data, error } = await supabase.rpc("retirar_emparejamientos", {
+    p_matchday_id: matchdayId,
+  });
+
+  if (error || !data) {
+    return { ok: false, mensaje: error?.message ?? "No se pudieron retirar los emparejamientos." };
+  }
+  if (!data.ok) return { ok: false, mensaje: data.mensaje };
+  return { ok: true };
+}
+
+// Cuántas mesas hay publicadas ahora mismo en la jornada.
+export async function contarEmparejamientosDB(
+  supabase: Supabase,
+  matchdayId: string
+): Promise<number> {
+  const { count } = await supabase
+    .from("matchday_pairings")
+    .select("id", { count: "exact", head: true })
+    .eq("matchday_id", matchdayId);
+  return count ?? 0;
+}

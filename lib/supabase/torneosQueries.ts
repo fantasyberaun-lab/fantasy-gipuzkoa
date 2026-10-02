@@ -128,10 +128,20 @@ export interface PartidaTorneo {
   resultadoA: ResultadoPartida;
 }
 
+// Mesa publicada antes de que haya resultado (ver 0051_emparejamientos_publicados.sql).
+export interface EmparejamientoTorneo {
+  clave: string;
+  tablero: number | null;
+  blancas: LadoPartida;
+  negras: LadoPartida;
+}
+
 export interface JornadaTorneo {
   id: string;
   numero: number;
   partidas: PartidaTorneo[];
+  // Mesas publicadas que todavía no tienen resultado.
+  emparejamientos: EmparejamientoTorneo[];
   descansan: { id: string; nombre: string }[]; // sin emparejar en esta jornada
 }
 
@@ -174,8 +184,9 @@ export async function fetchDetalleTorneo(
   const idsJornadas = (jornadasDb ?? []).map((j: any) => j.id as string);
   let filasResultados: any[] = [];
   let filasDescansos: any[] = [];
+  let filasEmparejamientos: any[] = [];
   if (idsJornadas.length > 0) {
-    const [{ data: resultados }, { data: descansos }] = await Promise.all([
+    const [{ data: resultados }, { data: descansos }, { data: emparejamientos }] = await Promise.all([
       supabase
         .from("results")
         .select(
@@ -186,9 +197,16 @@ export async function fetchDetalleTorneo(
         .from("matchday_byes")
         .select("matchday_id, player_id")
         .in("matchday_id", idsJornadas),
+      supabase
+        .from("matchday_pairings")
+        .select(
+          "matchday_id, tablero, blanco_player_id, blanco_elo, negro_player_id, negro_elo, descansa"
+        )
+        .in("matchday_id", idsJornadas),
     ]);
     filasResultados = resultados ?? [];
     filasDescansos = descansos ?? [];
+    filasEmparejamientos = emparejamientos ?? [];
   }
 
   // Nombre y Elo de quienes aparecen sin estar inscritos (por ejemplo, un
@@ -202,6 +220,11 @@ export async function fetchDetalleTorneo(
   }
   for (const d of filasDescansos) {
     if (!jugadores.has(d.player_id)) faltan.add(d.player_id);
+  }
+  for (const e of filasEmparejamientos) {
+    for (const id of [e.blanco_player_id, e.negro_player_id]) {
+      if (id && !jugadores.has(id)) faltan.add(id);
+    }
   }
   const otros = new Map<string, { nombre: string; elo: number }>();
   if (faltan.size > 0) {
@@ -283,12 +306,53 @@ export async function fetchDetalleTorneo(
     const eloMaximo = (p: PartidaTorneo) => Math.max(p.a.elo ?? 0, p.b.elo ?? 0);
     partidas.sort((x, y) => eloMaximo(y) - eloMaximo(x));
 
-    const descansan = filasDescansos
-      .filter((d) => d.matchday_id === j.id)
-      .map((d) => ({ id: d.player_id as string, nombre: nombreDe(d.player_id) }))
-      .sort((x, y) => x.nombre.localeCompare(y.nombre));
+    // Mesas publicadas: solo las que aún no tienen resultado de ninguno de
+    // sus jugadores (cuando hay resultado, ya sale como partida jugada).
+    const conResultado = new Set(filas.map((r) => r.player_id as string));
+    const publicadas = filasEmparejamientos.filter((e) => e.matchday_id === j.id);
 
-    return { id: j.id, numero: j.numero, partidas, descansan };
+    const ladoPublicado = (id: string | null, elo: number | null): LadoPartida =>
+      id
+        ? { id, nombre: nombreDe(id), elo: eloDe(id), puntosFantasy: null }
+        : { id: null, nombre: "Rival externo", elo, puntosFantasy: null };
+
+    const emparejamientos: EmparejamientoTorneo[] = publicadas
+      .filter(
+        (e) =>
+          !e.descansa &&
+          !(e.blanco_player_id && conResultado.has(e.blanco_player_id)) &&
+          !(e.negro_player_id && conResultado.has(e.negro_player_id))
+      )
+      .map((e) => ({
+        clave: `${e.blanco_player_id ?? "externo"}-${e.negro_player_id ?? "externo"}`,
+        tablero: e.tablero ?? null,
+        blancas: ladoPublicado(e.blanco_player_id, e.blanco_elo),
+        negras: ladoPublicado(e.negro_player_id, e.negro_elo),
+      }))
+      .sort(
+        (x, y) =>
+          (x.tablero ?? Number.MAX_SAFE_INTEGER) - (y.tablero ?? Number.MAX_SAFE_INTEGER)
+      );
+
+    // Descansan: los ya guardados como descanso más los anunciados en las
+    // mesas publicadas (sin repetir).
+    const descansanPorId = new Map<string, { id: string; nombre: string }>();
+    for (const d of filasDescansos.filter((d) => d.matchday_id === j.id)) {
+      descansanPorId.set(d.player_id, { id: d.player_id, nombre: nombreDe(d.player_id) });
+    }
+    for (const e of publicadas) {
+      if (e.descansa && e.blanco_player_id && !conResultado.has(e.blanco_player_id)) {
+        descansanPorId.set(e.blanco_player_id, {
+          id: e.blanco_player_id,
+          nombre: nombreDe(e.blanco_player_id),
+        });
+      }
+    }
+    const descansan = [...descansanPorId.values()].sort((x, y) =>
+      x.nombre.localeCompare(y.nombre)
+    );
+
+    return { id: j.id, numero: j.numero, partidas, emparejamientos, descansan };
   });
 
   const participantes: JugadorTorneo[] = [...jugadores.entries()].map(([id, info]) => {

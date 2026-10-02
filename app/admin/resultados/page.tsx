@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import BuscadorSelect from "@/components/BuscadorSelect";
+import ImportarRondaPanel from "@/components/ImportarRondaPanel";
 import {
   fetchTodosLosJugadores,
   fetchJornadas,
@@ -148,6 +149,11 @@ export default function AdminResultadosPage() {
   }, [jornadaId]);
 
   const jornadaActual = jornadas.find((j) => j.id === jornadaId) ?? null;
+  // Enlace de chess-results / Info64 guardado en la ficha del torneo.
+  const urlTorneoImportable = (() => {
+    const url = torneos.find((t) => t.id === jornadaActual?.torneoId)?.webUrl?.trim() ?? "";
+    return /chess-results\.com|info64\.org/i.test(url) ? url : null;
+  })();
 
   // Jugadores de la jornada: los inscritos en su torneo (más cualquiera que
   // ya tenga resultado o descanso guardado, por si se le quitó del torneo
@@ -457,6 +463,16 @@ export default function AdminResultadosPage() {
         <p className="py-6 text-center text-sm text-neutral-500">
           Crea la primera jornada para empezar a introducir resultados.
         </p>
+      )}
+
+      {jornadaId && jornadaActual && urlTorneoImportable && (
+        <ImportarRondaPanel
+          urlTorneo={urlTorneoImportable}
+          numeroRonda={jornadaActual.numero}
+          matchdayId={jornadaId}
+          jugadores={jugadores}
+          alCambiar={() => refrescarJornada(jornadaId)}
+        />
       )}
 
       {jornadaId && (

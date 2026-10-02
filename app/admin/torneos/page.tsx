@@ -12,6 +12,7 @@ import {
 import { fetchParticipantesIds, fetchTorneos } from "@/lib/supabase/torneosQueries";
 import { estadoTorneo, ordenarTorneos, type DatosTorneo, type Torneo } from "@/lib/torneos";
 import FichaTorneo from "@/components/FichaTorneo";
+import ImportarTorneoBox, { type ImportacionTorneo } from "@/components/ImportarTorneoBox";
 import type { Categoria } from "@/lib/types";
 
 // El formulario trabaja siempre con strings (es lo que devuelven los
@@ -343,6 +344,33 @@ export default function AdminTorneosPage() {
     setErrorForm(null);
   }
 
+  // Rellena el formulario con lo importado. Solo pisa un campo si la web de
+  // origen trae ese dato; lo que ya hubieras escrito y no venga, se conserva.
+  // Los jugadores encontrados se AÑADEN a los ya marcados.
+  function aplicarImportacion({ torneo, idsJugadores }: ImportacionTorneo) {
+    setForm((prev) => {
+      const siguiente = { ...prev };
+      const poner = (clave: keyof FormTorneo, valor: string | number | null) => {
+        if (valor !== null && valor !== "") siguiente[clave] = String(valor) as never;
+      };
+      poner("nombre", torneo.nombre);
+      poner("organizador", torneo.organizador);
+      poner("federacion", torneo.federacion);
+      poner("director", torneo.director);
+      poner("arbitroPrincipal", torneo.arbitroPrincipal);
+      poner("lugar", torneo.lugar);
+      poner("fechaInicio", torneo.fechaInicio);
+      poner("fechaFin", torneo.fechaFin);
+      poner("numeroRondas", torneo.numeroRondas);
+      poner("sistema", torneo.sistema);
+      poner("ritmoJuego", torneo.ritmoJuego);
+      poner("computoElo", torneo.computoElo);
+      poner("webUrl", torneo.url);
+      return siguiente;
+    });
+    setSeleccionados((prev) => new Set([...prev, ...idsJugadores]));
+  }
+
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
     setMensaje(null);
@@ -411,6 +439,8 @@ export default function AdminTorneosPage() {
               (solo el nombre es obligatorio; el resto es texto libre)
             </span>
           </p>
+
+          <ImportarTorneoBox jugadores={jugadores} onImportado={aplicarImportacion} />
 
           <Seccion titulo="General">
             <Campo etiqueta="Nombre del torneo" className="sm:col-span-2">

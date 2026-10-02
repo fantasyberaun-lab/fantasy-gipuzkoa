@@ -212,11 +212,34 @@ export default function TorneoDetallePage() {
 
             {jornadaActual &&
               jornadaActual.partidas.length === 0 &&
+              jornadaActual.emparejamientos.length === 0 &&
               jornadaActual.descansan.length === 0 && (
                 <p className="py-6 text-center text-sm text-neutral-500">
                   Todavía no hay resultados en esta jornada.
                 </p>
               )}
+
+            {jornadaActual && jornadaActual.emparejamientos.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+                  Emparejamientos · pendientes de resultado
+                </p>
+                <ul className="divide-y divide-neutral-200 rounded-xl border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
+                  {jornadaActual.emparejamientos.map((e) => (
+                    <li
+                      key={e.clave}
+                      className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-3 py-2.5 text-sm"
+                    >
+                      <LadoDePartida lado={e.blancas} torneoId={torneo.id} alineacion="text-right" />
+                      <span className="min-w-[3.5rem] text-center text-xs text-neutral-500">
+                        {e.tablero != null ? `Mesa ${e.tablero}` : "vs"}
+                      </span>
+                      <LadoDePartida lado={e.negras} torneoId={torneo.id} alineacion="text-left" />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {jornadaActual && jornadaActual.partidas.length > 0 && (
               <ul className="divide-y divide-neutral-200 rounded-xl border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
