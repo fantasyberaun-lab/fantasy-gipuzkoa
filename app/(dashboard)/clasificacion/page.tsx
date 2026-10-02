@@ -325,13 +325,22 @@ export default function ClasificacionPage() {
             <span className="min-w-0">
               {posicion}.{" "}
               {entry.equipoId ? (
-                <Link
-                  href={`/managers/${entry.equipoId}`}
-                  className="hover:underline"
-                  title="Ver perfil del manager"
-                >
-                  {entry.nombreEquipo}
-                </Link>
+                <>
+                  <Link
+                    href={`/managers/${entry.equipoId}`}
+                    className="hover:underline"
+                    title="Ver perfil del manager"
+                  >
+                    {entry.nombreEquipo}
+                  </Link>
+                  <Link
+                    href={`/managers/${entry.equipoId}?tab=jornadas`}
+                    className="ml-2 rounded-full border border-accent px-2 py-0.5 text-[11px] font-medium text-accent"
+                    title="Ver plantilla y puntos de cada jornada"
+                  >
+                    Jornadas
+                  </Link>
+                </>
               ) : (
                 entry.nombreEquipo
               )}

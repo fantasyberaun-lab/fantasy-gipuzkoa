@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import AjustesCuenta from "@/components/AjustesCuenta";
+import AlineacionesJornadas from "@/components/AlineacionesJornadas";
 import HistorialValorChart from "@/components/HistorialValorChart";
 import {
   fetchEvolucionValorPlantilla,
@@ -50,6 +51,14 @@ export default function PerfilManagerPage() {
   const [perfil, setPerfil] = useState<PerfilManager | null>(null);
   const [evolucion, setEvolucion] = useState<PuntoValorPlantilla[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [pestana, setPestana] = useState<"resumen" | "jornadas">("resumen");
+
+  // Si se llega desde el botón "Jornadas" de Clasificación (?tab=jornadas).
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("tab") === "jornadas") {
+      setPestana("jornadas");
+    }
+  }, [id]);
 
   useEffect(() => {
     (async () => {
@@ -128,33 +137,60 @@ export default function PerfilManagerPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800 sm:grid-cols-3">
-        <Cifra etiqueta="Manager desde" valor={fechaLarga(perfil.miembroDesde)} />
-        <Cifra
-          etiqueta="Ligas ganadas"
-          valor={String(perfil.ligasGanadas)}
-          detalle={perfil.ligasGanadas === 0 ? "Todavía ninguna" : undefined}
-        />
-        <Cifra etiqueta="Ligas en las que juega" valor={String(perfil.ligasJugadas)} />
-        <Cifra etiqueta="Puntos en esta liga" valor={String(perfil.puntosTotales)} />
-        <Cifra
-          etiqueta="Mejor jornada"
-          valor={perfil.puntosTotales > 0 ? `${perfil.mejorJornada} pts` : "–"}
-        />
-        <Cifra
-          etiqueta="Valor de la plantilla"
-          valor={valorActual ? `${valorActual.valor} M` : "–"}
-          detalle={valorActual ? `${valorActual.jugadores} jugadores` : undefined}
-        />
+      <div className="flex gap-1 border-b border-neutral-200 dark:border-neutral-800">
+        {(
+          [
+            ["resumen", "Resumen"],
+            ["jornadas", "Jornadas"],
+          ] as const
+        ).map(([clave, etiqueta]) => (
+          <button
+            key={clave}
+            onClick={() => setPestana(clave)}
+            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${
+              pestana === clave
+                ? "border-accent text-accent"
+                : "border-transparent text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300"
+            }`}
+          >
+            {etiqueta}
+          </button>
+        ))}
       </div>
 
-      <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
-        <HistorialValorChart
-          historial={puntos}
-          titulo="Evolución del valor de la plantilla"
-          textoVacio="Todavía no hay suficientes días de historial para dibujar la evolución."
-        />
-      </div>
+      {pestana === "resumen" && (
+        <>
+        <div className="grid grid-cols-2 gap-2 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800 sm:grid-cols-3">
+          <Cifra etiqueta="Manager desde" valor={fechaLarga(perfil.miembroDesde)} />
+          <Cifra
+            etiqueta="Ligas ganadas"
+            valor={String(perfil.ligasGanadas)}
+            detalle={perfil.ligasGanadas === 0 ? "Todavía ninguna" : undefined}
+          />
+          <Cifra etiqueta="Ligas en las que juega" valor={String(perfil.ligasJugadas)} />
+          <Cifra etiqueta="Puntos en esta liga" valor={String(perfil.puntosTotales)} />
+          <Cifra
+            etiqueta="Mejor jornada"
+            valor={perfil.puntosTotales > 0 ? `${perfil.mejorJornada} pts` : "–"}
+          />
+          <Cifra
+            etiqueta="Valor de la plantilla"
+            valor={valorActual ? `${valorActual.valor} M` : "–"}
+            detalle={valorActual ? `${valorActual.jugadores} jugadores` : undefined}
+          />
+        </div>
+
+        <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+          <HistorialValorChart
+            historial={puntos}
+            titulo="Evolución del valor de la plantilla"
+            textoVacio="Todavía no hay suficientes días de historial para dibujar la evolución."
+          />
+        </div>
+        </>
+      )}
+
+      {pestana === "jornadas" && <AlineacionesJornadas equipoId={id} />}
 
       {perfil.esMio && (
         <AjustesCuenta
