@@ -44,6 +44,9 @@ export default function MercadoPublico() {
 
     const filtrados = jugadoresLiga.filter((j) => {
       if (!j.activo) return false;
+      // Solo salen en el mercado los inscritos en algún torneo; los que ya
+      // tienes en plantilla se quedan para poder venderlos.
+      if (j.inscrito === false && !idsMiPlantilla.has(j.id)) return false;
       if (vista === "mios" && !idsMiPlantilla.has(j.id)) return false;
       if (categoria !== "todas" && String(j.categoria) !== categoria) return false;
       if (soloAsequibles && !idsMiPlantilla.has(j.id) && j.valorMercado > saldoFuturo) {

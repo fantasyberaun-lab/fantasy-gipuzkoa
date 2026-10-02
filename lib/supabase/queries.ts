@@ -155,6 +155,14 @@ export async function fetchJugadoresLiga(
 
   if (error || !data) return [];
 
+  // Jugadores inscritos en algún torneo (el mercado solo muestra a estos).
+  const { data: inscripciones } = await supabase
+    .from("tournament_players")
+    .select("player_id");
+  const inscritos = new Set<string>(
+    ((inscripciones ?? []) as any[]).map((i) => i.player_id as string)
+  );
+
   return data.map((p: any) => ({
     id: p.id,
     nombre: p.nombre,
@@ -163,6 +171,7 @@ export async function fetchJugadoresLiga(
     elo: p.elo,
     valorMercado: Number(p.valor_mercado),
     activo: p.activo,
+    inscrito: inscritos.has(p.id),
     puntosTotales: p.puntos_totales,
     propietario: p.propietario_nombre,
     esMiEquipo: miEquipoId ? p.propietario_team_id === miEquipoId : false,

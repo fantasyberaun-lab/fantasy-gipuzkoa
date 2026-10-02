@@ -85,6 +85,9 @@ export interface JugadorLiga extends Jugador {
   // hacer un clausulazo hasta que empiece la siguiente jornada.
   candado?: boolean;
   blindado?: boolean;
+  // Inscrito en algún torneo. Solo los inscritos salen en el mercado de la
+  // liga pública (false = no se puede fichar; undefined se trata como true).
+  inscrito?: boolean;
   historialPuntos: PuntosJornada[];
 }
 
