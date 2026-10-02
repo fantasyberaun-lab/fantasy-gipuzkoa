@@ -333,13 +333,6 @@ export default function ClasificacionPage() {
                   >
                     {entry.nombreEquipo}
                   </Link>
-                  <Link
-                    href={`/managers/${entry.equipoId}?tab=jornadas`}
-                    className="ml-2 rounded-full border border-accent px-2 py-0.5 text-[11px] font-medium text-accent"
-                    title="Ver plantilla y puntos de cada jornada"
-                  >
-                    Jornadas
-                  </Link>
                 </>
               ) : (
                 entry.nombreEquipo
@@ -349,9 +342,18 @@ export default function ClasificacionPage() {
                   {entry.nombreManager}
                 </span>
               )}
+              {entry.equipoId && (
+                <Link
+                  href={`/managers/${entry.equipoId}?tab=jornadas`}
+                  className="ml-5 mt-1 inline-block rounded-full border border-accent px-2.5 py-0.5 text-[11px] font-medium text-accent"
+                  title="Ver plantilla y puntos de cada jornada"
+                >
+                  Jornadas
+                </Link>
+              )}
             </span>
-            <div className="flex items-center gap-3">
-              <span className="font-medium">
+            <div className="flex shrink-0 items-center gap-3 pl-2">
+              <span className="whitespace-nowrap font-medium">
                 {puntosParaOrden(entry)} pts{" "}
                 <span className="text-neutral-500">
                   {orden === "total" ? "este año" : etiquetaOrden}
