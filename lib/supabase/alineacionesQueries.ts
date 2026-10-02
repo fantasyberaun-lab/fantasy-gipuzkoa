@@ -10,7 +10,9 @@ export interface JugadorAlineacion {
   resultado: "victoria" | "tablas" | "derrota" | null;
   descanso: boolean;
   base: number; // puntos del jugador sin multiplicar
-  puntos: number; // puntos que suma al equipo (capitán x2)
+  puntos: number; // puntos que suma al equipo (capitán x2); 0 si no cuenta
+  cuenta: boolean; // false: ese fin de semana puntuó más en otro torneo
+  cuentaEn: string | null; // torneo donde sí cuenta
 }
 
 export interface AlineacionJornada {
@@ -51,6 +53,8 @@ export async function fetchAlineacionesEquipo(
         descanso: Boolean(j.descanso),
         base: Number(j.base ?? 0),
         puntos: Number(j.puntos ?? 0),
+        cuenta: j.cuenta !== false,
+        cuentaEn: (j.cuenta_en ?? null) as string | null,
       })),
     }))
     .sort((a, b) => a.creada.localeCompare(b.creada));

@@ -117,11 +117,16 @@ export default function AlineacionesJornadas({ equipoId }: { equipoId: string })
                     {j.categoria}ª cat.
                     {!actual.pendiente && ` · ${textoResultado(j)}`}
                   </p>
+                  {!actual.pendiente && !j.cuenta && (j.resultado || j.descanso) && (
+                    <p className="text-[11px] text-neutral-400">
+                      No cuenta: ese fin de semana puntuó más en {j.cuentaEn ?? "otro torneo"}
+                    </p>
+                  )}
                 </div>
                 {!actual.pendiente && (
                   <div className="text-right">
                     <p className="text-sm font-semibold">{j.puntos} pts</p>
-                    {j.capitan && (
+                    {j.capitan && j.cuenta && (
                       <p className="text-[11px] text-neutral-400">{j.base} × 2</p>
                     )}
                   </div>

@@ -123,10 +123,22 @@ export default function InfoReglasButton({ onDark = false }: { onDark?: boolean 
                   una jornada, suma {gameConfig.puntosPorDescanso} punto.
                 </p>
                 <p>
+                  <span className="font-medium">Tu plantilla del fin de semana.</span> El sábado a las
+                  16:00 se guardan tus titulares y tu capitán. Esa plantilla vale para todas las
+                  rondas que se jueguen ese fin de semana, en cualquier torneo (aunque un torneo vaya
+                  por la ronda 1 y otro por la 2). Cuando acaba el fin de semana, tus puntos son la
+                  suma de lo que ha hecho cada titular.
+                </p>
+                <p>
+                  <span className="font-medium">Un jugador, un torneo.</span> Si un titular tuyo juega
+                  en más de un torneo el mismo fin de semana, solo te puntúa en el torneo donde más
+                  puntos haya hecho; en el otro suma 0. Por ejemplo: si saca 5 puntos en Segunda y 3 en
+                  el Open de Gros, te suma 5.
+                </p>
+                <p>
                   Límite de titulares: como máximo {gameConfig.plantilla.maximoTitularesPorTorneo} de tus
-                  titulares pueden estar inscritos en el mismo torneo. Si un jugador juega varios
-                  torneos, cuenta en cada uno. En Plantilla ves cuántos llevas por torneo. Con el
-                  saldo en negativo no puntúas.
+                  titulares pueden estar inscritos en el mismo torneo. En Plantilla ves cuántos llevas
+                  por torneo. Con el saldo en negativo no puntúas.
                 </p>
               </Seccion>
 
