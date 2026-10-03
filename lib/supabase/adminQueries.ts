@@ -561,3 +561,70 @@ export async function contarEmparejamientosDB(
     .eq("matchday_id", matchdayId);
   return count ?? 0;
 }
+
+// ---------------------------------------------------------------------------
+// Actualización mensual de Elo (ver 0061_actualizacion_elo.sql)
+// ---------------------------------------------------------------------------
+
+export interface FilaCambioElo {
+  id: string;
+  nombre: string;
+  club: string | null;
+  elo_antes: number;
+  elo_despues: number;
+  valor_antes: number;
+  valor_despues: number;
+  cambio_pct: number | null;
+  aviso: boolean;
+}
+
+export interface ResumenCambioElo {
+  en_lista: number;
+  coinciden: number;
+  cambian_elo: number;
+  suben: number;
+  bajan: number;
+  debuts: number;
+  sin_dato_en_lista: number;
+  no_encontrados: string[];
+}
+
+export type ResultadoCambioElo =
+  | { ok: true; aplicado: boolean; periodo: string; resumen: ResumenCambioElo; filas: FilaCambioElo[] }
+  | { ok: false; mensaje: string };
+
+// aplicar = false -> solo vista previa (no cambia nada en la base de datos).
+export async function actualizarEloDB(
+  supabase: Supabase,
+  periodo: string, // YYYY-MM-DD (vale cualquier día del mes)
+  datos: { fide_id: string; elo: number }[],
+  aplicar: boolean
+): Promise<ResultadoCambioElo> {
+  const { data, error } = await supabase.rpc("aplicar_actualizacion_elo", {
+    p_periodo: periodo,
+    p_datos: datos,
+    p_aplicar: aplicar,
+  });
+  if (error) return { ok: false, mensaje: error.message };
+  return data as ResultadoCambioElo;
+}
+
+// Estado actual de todos los jugadores como filas de CSV. Incluye "fide_id" y
+// "elo", así que el mismo fichero (editado) se puede volver a subir.
+export function jugadoresAFilasCsv(jugadores: JugadorAdmin[]) {
+  return [
+    ["fide_id", "nombre", "club", "categoria", "elo", "anio_nacimiento", "edad", "sexo", "valor_mercado", "activo"],
+    ...jugadores.map((j) => [
+      j.fideId ?? "",
+      j.nombre,
+      j.club,
+      j.categoria,
+      j.elo,
+      j.anioNacimiento ?? "",
+      j.edad ?? "",
+      j.sexo ?? "",
+      j.valorMercado,
+      j.activo ? "si" : "no",
+    ]),
+  ];
+}

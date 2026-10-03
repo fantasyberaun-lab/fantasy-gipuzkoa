@@ -30,7 +30,74 @@ const ETIQUETA: Record<Notificacion["tipo"], { texto: string; clases: string }> 
     texto: "Venta",
     clases: "bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300",
   },
+  actualizacion_elo: {
+    texto: "Actualización de Elo",
+    clases: "bg-accent text-white",
+  },
 };
+
+// Una actualización de Elo se mantiene fijada arriba durante este tiempo.
+const DIAS_FIJADA = 7;
+
+function mesDe(periodo: string): string {
+  return new Date(`${periodo}T12:00:00`).toLocaleDateString("es-ES", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function TarjetaElo({ n, nueva }: { n: Notificacion; nueva: boolean }) {
+  const d = n.datosElo;
+  const dif = d ? Math.round((d.valorDespues - d.valorAntes) * 100) / 100 : 0;
+  const pct = d && d.valorAntes > 0 ? (dif / d.valorAntes) * 100 : 0;
+  const signo = dif > 0 ? "+" : "";
+  return (
+    <li className="rounded-2xl border-2 border-accent bg-accent/10 p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <span className="rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+            Importante
+          </span>
+          <h3 className="mt-2 text-base font-bold">
+            Elo y valores actualizados{d ? ` · ${mesDe(d.periodo)}` : ""}
+          </h3>
+        </div>
+        {nueva && <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-accent" aria-label="Nueva" />}
+      </div>
+      {d && (
+        <div className="mt-3 flex flex-col gap-1.5 text-sm">
+          <p>
+            Se ha actualizado el Elo de {d.jugadoresActualizados} jugadores con la nueva lista de la
+            FIDE y su valor de mercado se ha reajustado.
+          </p>
+          <p>
+            Valor de tu plantilla:{" "}
+            <span className="font-semibold">
+              {d.valorAntes} M → {d.valorDespues} M
+            </span>{" "}
+            <span
+              className={
+                dif > 0 ? "font-semibold text-accent" : dif < 0 ? "font-semibold text-red-500" : ""
+              }
+            >
+              ({signo}
+              {dif} M, {signo}
+              {pct.toFixed(1)} %)
+            </span>
+          </p>
+          <p>
+            {d.jugadoresConCambio === 0
+              ? "Ninguno de tus jugadores ha cambiado de Elo."
+              : `${d.jugadoresConCambio} de tus jugadores han cambiado de Elo.`}
+            {d.mejor && ` Mayor subida: ${d.mejor.nombre} (▲ ${d.mejor.delta}).`}
+            {d.peor && ` Mayor bajada: ${d.peor.nombre} (▼ ${Math.abs(d.peor.delta)}).`}
+          </p>
+        </div>
+      )}
+      <p className="mt-2 text-xs text-neutral-500">{hace(n.creada)}</p>
+    </li>
+  );
+}
 
 function hace(iso: string): string {
   const segundos = Math.round((Date.parse(iso) - Date.now()) / 1000);
@@ -77,6 +144,15 @@ export default function NotificacionesPage() {
     );
 
   const dinero = (n: Notificacion) => (n.importe !== null ? ` por ${n.importe} M` : "");
+
+  // Las actualizaciones de Elo recientes van fijadas arriba; el resto, por fecha.
+  const ahora = Date.now();
+  const fijada = (n: Notificacion) =>
+    n.tipo === "actualizacion_elo" &&
+    ahora - Date.parse(n.creada) < DIAS_FIJADA * 86400 * 1000;
+  const ordenadas = [...notificaciones].sort(
+    (a, b) => Number(fijada(b)) - Number(fijada(a)) || Date.parse(b.creada) - Date.parse(a.creada)
+  );
 
   const texto = (n: Notificacion): ReactNode => {
     const yo = n.actorId === equipo.id;
@@ -173,9 +249,12 @@ export default function NotificacionesPage() {
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
-          {notificaciones.map((n) => {
+          {ordenadas.map((n) => {
             const nueva =
               corte !== null && n.actorId !== equipo.id && Date.parse(n.creada) > corte;
+            if (n.tipo === "actualizacion_elo") {
+              return <TarjetaElo key={n.id} n={n} nueva={nueva} />;
+            }
             const etiqueta = ETIQUETA[n.tipo];
             return (
               <li

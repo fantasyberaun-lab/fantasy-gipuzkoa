@@ -36,6 +36,8 @@ export interface PerfilJugador {
   club: string;
   categoria: Categoria;
   elo: number;
+  // Elo del periodo anterior (0 = no tenía Elo); null si aún no hay histórico.
+  eloAnterior: number | null;
   // Texto ya preparado por la base de datos (vista jugadores_ficha): "sub20"
   // para menores de 20 años, o "2004" (solo el año, la edad se descarta en cliente) para el resto. El año de
   // nacimiento real de un menor nunca llega al navegador.
@@ -62,7 +64,7 @@ export async function fetchPerfilJugador(
 ): Promise<PerfilJugador | null> {
   const { data: p, error } = await supabase
     .from("players")
-    .select("id, nombre, club, categoria, elo, sexo, fide_id, valor_mercado, activo")
+    .select("id, nombre, club, categoria, elo, elo_anterior, sexo, fide_id, valor_mercado, activo")
     .eq("id", playerId)
     .maybeSingle();
 
@@ -166,6 +168,7 @@ export async function fetchPerfilJugador(
     club: p.club ?? "",
     categoria: Number(p.categoria) as Categoria,
     elo: p.elo,
+    eloAnterior: p.elo_anterior ?? null,
     nacimiento: soloAnioNacimiento(ficha?.nacimiento_texto ?? null),
     sexo: p.sexo ?? null,
     fideId: p.fide_id ?? null,
@@ -179,7 +182,7 @@ export interface PuntoValor {
   fecha: string; // ISO
   valor: number; // en M
   cambioPct: number | null;
-  motivo: "inicial" | "diaria" | "resultado" | "correccion" | "ajuste";
+  motivo: "inicial" | "diaria" | "resultado" | "correccion" | "ajuste" | "elo";
 }
 
 // Evolución del valor de mercado de un jugador (tabla player_value_history,
@@ -201,5 +204,32 @@ export async function fetchHistorialValor(
     valor: Number(h.valor),
     cambioPct: h.cambio_pct === null ? null : Number(h.cambio_pct),
     motivo: h.motivo,
+  }));
+}
+
+export interface PuntoElo {
+  periodo: string; // YYYY-MM-DD (primer día del mes de la lista FIDE)
+  elo: number;
+  eloAnterior: number | null;
+}
+
+// Evolución del Elo de un jugador (tabla player_elo_history, lectura pública),
+// un punto por lista mensual. Orden cronológico.
+export async function fetchHistorialElo(
+  supabase: Supabase,
+  playerId: string
+): Promise<PuntoElo[]> {
+  const { data, error } = await supabase
+    .from("player_elo_history")
+    .select("periodo, elo, elo_anterior")
+    .eq("player_id", playerId)
+    .order("periodo", { ascending: true });
+
+  if (error || !data) return [];
+
+  return (data as any[]).map((h) => ({
+    periodo: h.periodo as string,
+    elo: Number(h.elo),
+    eloAnterior: h.elo_anterior === null ? null : Number(h.elo_anterior),
   }));
 }

@@ -442,7 +442,7 @@ export async function fetchNotificaciones(
     supabase
       .from("notificaciones")
       .select(
-        "id, tipo, actor_team_id, objetivo_team_id, player_id, importe, created_at, players (nombre), actor:fantasy_teams!actor_team_id (nombre), objetivo:fantasy_teams!objetivo_team_id (nombre)"
+        "id, tipo, actor_team_id, objetivo_team_id, player_id, importe, datos, created_at, players (nombre), actor:fantasy_teams!actor_team_id (nombre), objetivo:fantasy_teams!objetivo_team_id (nombre)"
       )
       .eq("league_id", leagueId)
       .order("created_at", { ascending: false })
@@ -473,6 +473,18 @@ export async function fetchNotificaciones(
       jugadorNombre: n.players?.nombre ?? "un jugador",
       importe: n.importe === null ? null : Number(n.importe),
       creada: n.created_at,
+      datosElo:
+        n.tipo === "actualizacion_elo" && n.datos
+          ? {
+              periodo: n.datos.periodo,
+              valorAntes: Number(n.datos.valor_antes ?? 0),
+              valorDespues: Number(n.datos.valor_despues ?? 0),
+              jugadoresConCambio: Number(n.datos.jugadores_con_cambio ?? 0),
+              mejor: n.datos.mejor ?? null,
+              peor: n.datos.peor ?? null,
+              jugadoresActualizados: Number(n.datos.jugadores_actualizados ?? 0),
+            }
+          : null,
     })),
   };
 }

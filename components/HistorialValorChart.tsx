@@ -6,6 +6,7 @@ const ETIQUETA: Record<PuntoValor["motivo"], string> = {
   resultado: "partida",
   correccion: "corrección de resultado",
   ajuste: "ajuste manual",
+  elo: "actualización de Elo",
 };
 
 const ANCHO = 600;

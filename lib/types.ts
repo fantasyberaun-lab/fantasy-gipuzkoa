@@ -150,7 +150,19 @@ export type TipoNotificacion =
   | "clausulazo"
   | "clausula_subida"
   | "oferta_rechazada"
-  | "venta";
+  | "venta"
+  | "actualizacion_elo";
+
+// Resumen de una actualización mensual de Elo para UN equipo (0061).
+export interface DatosActualizacionElo {
+  periodo: string; // YYYY-MM-DD
+  valorAntes: number;
+  valorDespues: number;
+  jugadoresConCambio: number; // de TU plantilla
+  mejor: { nombre: string; delta: number } | null;
+  peor: { nombre: string; delta: number } | null;
+  jugadoresActualizados: number; // en toda la base
+}
 
 // Un aviso del panel de notificaciones (ver 0022_notificaciones.sql).
 // "actor" es quien hace la acción (ofertar, fichar, pagar cláusula);
@@ -167,6 +179,8 @@ export interface Notificacion {
   jugadorNombre: string;
   importe: number | null;
   creada: string;
+  // Solo en tipo "actualizacion_elo".
+  datosElo?: DatosActualizacionElo | null;
 }
 
 // "privada": liga de amigos (máx. 9, plantilla inicial, mercado por tandas,

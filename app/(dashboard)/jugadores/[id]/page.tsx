@@ -7,10 +7,13 @@ import { createClient } from "@/lib/supabase/client";
 import { useGameState } from "@/components/GameStateProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import HistorialValorChart from "@/components/HistorialValorChart";
+import HistorialEloChart from "@/components/HistorialEloChart";
 import {
+  fetchHistorialElo,
   fetchHistorialValor,
   fetchPerfilJugador,
   type PerfilJugador,
+  type PuntoElo,
   type PuntoValor,
   type TorneoPerfil,
 } from "@/lib/supabase/jugadoresQueries";
@@ -33,6 +36,14 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | number | 
       <dd>{valor}</dd>
     </div>
   );
+}
+
+// "1990 (▲ 12)" respecto al mes anterior; "debut" si antes no tenía Elo.
+function textoElo(elo: number, anterior: number | null): string | number {
+  if (anterior === null || anterior === elo) return elo;
+  if (anterior === 0) return `${elo} (debut)`;
+  const d = elo - anterior;
+  return `${elo} (${d > 0 ? "▲" : "▼"} ${Math.abs(d)})`;
 }
 
 function Cifra({ etiqueta, valor }: { etiqueta: string; valor: string }) {
@@ -162,17 +173,20 @@ function PerfilJugadorContenido() {
 
   const [perfil, setPerfil] = useState<PerfilJugador | null>(null);
   const [historialValor, setHistorialValor] = useState<PuntoValor[]>([]);
+  const [historialElo, setHistorialElo] = useState<PuntoElo[]>([]);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
     (async () => {
       setCargando(true);
-      const [p, hv] = await Promise.all([
+      const [p, hv, he] = await Promise.all([
         fetchPerfilJugador(supabase, id),
         fetchHistorialValor(supabase, id),
+        fetchHistorialElo(supabase, id),
       ]);
       setPerfil(p);
       setHistorialValor(hv);
+      setHistorialElo(he);
       setCargando(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -235,7 +249,7 @@ function PerfilJugadorContenido() {
       <dl className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl border border-neutral-200 p-4 text-sm dark:border-neutral-800 sm:grid-cols-3">
         <Dato etiqueta="Club" valor={perfil.club} />
         <Dato etiqueta="Categoría" valor={`${perfil.categoria}ª`} />
-        <Dato etiqueta="Elo" valor={perfil.elo} />
+        <Dato etiqueta="Elo" valor={textoElo(perfil.elo, perfil.eloAnterior)} />
         <Dato etiqueta="Año de nacimiento" valor={perfil.nacimiento} />
         <Dato etiqueta="Sexo" valor={perfil.sexo === "F" ? "Mujer" : perfil.sexo === "M" ? "Hombre" : null} />
         <Dato etiqueta="ID Fantasy" valor={perfil.fideId} />
@@ -259,6 +273,10 @@ function PerfilJugadorContenido() {
 
       <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
         <HistorialValorChart historial={historialValor} />
+      </div>
+
+      <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+        <HistorialEloChart historial={historialElo} />
       </div>
 
       {enLiga && enLiga.historialPuntos.length > 0 && (

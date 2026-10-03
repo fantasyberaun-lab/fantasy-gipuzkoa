@@ -11,6 +11,7 @@ import {
   recalcularValoresInicialesDB,
   type JugadorAdmin,
 } from "@/lib/supabase/adminQueries";
+import ActualizarEloPanel from "@/components/ActualizarEloPanel";
 import type { Categoria } from "@/lib/types";
 
 const CATEGORIAS: Categoria[] = [1, 2, 3];
@@ -348,6 +349,8 @@ export default function AdminJugadoresPage() {
           {recalculando ? "Recalculando..." : "Recalcular valores iniciales"}
         </button>
       </div>
+
+      <ActualizarEloPanel onAplicado={cargar} />
 
       {mensaje && <p className="text-sm text-negative">{mensaje}</p>}
       {aviso && <p className="text-sm text-positive">{aviso}</p>}
