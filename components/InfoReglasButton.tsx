@@ -141,6 +141,12 @@ export default function InfoReglasButton({ onDark = false }: { onDark?: boolean 
                   titulares pueden estar inscritos en el mismo torneo. En Plantilla ves cuántos llevas
                   por torneo. Con el saldo en negativo no puntúas.
                 </p>
+                <p>
+                  <span className="font-medium">Titular automático.</span> Si tienes menos de{" "}
+                  {gameConfig.plantilla.maximoTitulares} titulares, los jugadores que fiches entran
+                  de titular directamente (si no se supera el límite por torneo). Puedes pasarlos a
+                  suplente cuando quieras.
+                </p>
               </Seccion>
 
               <Seccion titulo="Mercado y pujas (ligas privadas)">
