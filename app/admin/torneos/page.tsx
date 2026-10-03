@@ -474,7 +474,7 @@ export default function AdminTorneosPage() {
                 className={INPUT}
               />
               <p className="mt-1 text-xs text-neutral-500">
-                0 = sin bonus. Tercera: 0 · Cadete: 1 · Segunda, Open de Gros y Superveteranos: 2 · Absoluto: 3.
+                0 = sin bonus. Tercera: 1 · Cadete: 1 · Segunda, Open de Gros y Superveteranos: 2 · Absoluto: 3.
                 Al cambiarlo se recalculan los puntos de los resultados ya guardados.
               </p>
             </Campo>

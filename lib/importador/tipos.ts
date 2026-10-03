@@ -83,9 +83,9 @@ export interface PartidaOrigen {
   textoResultado: string;
 }
 
-// descanso: punto completo sin jugar (bye) · medio_punto: medio punto sin
-// jugar · ausente: 0 puntos sin jugar · otro: no se sabe.
-export type TipoSinRival = "descanso" | "medio_punto" | "ausente" | "otro";
+// descanso: sin jugar por bye (1 punto) o por bye pedido (medio punto): ambos
+// puntúan igual en el Fantasy · ausente: 0 puntos sin jugar · otro: no se sabe.
+export type TipoSinRival = "descanso" | "ausente" | "otro";
 
 export interface SinRivalOrigen {
   jugador: JugadorOrigen;

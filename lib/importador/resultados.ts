@@ -24,12 +24,13 @@ export function interpretarResultadoPartida(texto: string): ResultadoOrigen {
   return "desconocido";
 }
 
-// Jugador que aparece sin rival ("+" = bye de punto completo, etc.).
+// Jugador que aparece sin rival. Bye de punto completo ("+", "1", "bye") y bye
+// pedido por el jugador (medio punto, "0.5" / "½") puntúan igual: descanso.
 export function interpretarSinRival(texto: string): TipoSinRival | "pendiente" {
   const t = compactar(texto);
   if (t === "*" || t === "?") return "pendiente";
   if (t === "+" || t === "1" || t === "1.0" || t.includes("bye")) return "descanso";
-  if (t === "0.5") return "medio_punto";
+  if (t === "0.5") return "descanso";
   if (t === "0" || t === "0.0" || t === "-") return "ausente";
   return "otro";
 }

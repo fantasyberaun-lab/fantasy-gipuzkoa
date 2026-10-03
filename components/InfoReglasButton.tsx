@@ -112,7 +112,7 @@ export default function InfoReglasButton({ onDark = false }: { onDark?: boolean 
                 </div>
                 <p>
                   <span className="font-medium">Bonus por victoria.</span> Según el torneo, ganar da
-                  puntos extra: Tercera, ninguno; Cadete, <span className="font-medium">+1</span>;
+                  puntos extra: Tercera y Cadete, <span className="font-medium">+1</span>;
                   Segunda, Open de Gros y Superveteranos, <span className="font-medium">+2</span>;
                   Absoluto, <span className="font-medium">+3</span>. Solo se aplica a las victorias
                   (no a tablas ni derrotas). Los jugadores con 0 de Elo puntúan siempre 3 puntos por
@@ -120,7 +120,8 @@ export default function InfoReglasButton({ onDark = false }: { onDark?: boolean 
                 </p>
                 <p>
                   <span className="font-medium">Descanso.</span> Si tu jugador queda sin emparejar en
-                  una jornada, suma {gameConfig.puntosPorDescanso} punto.
+                  una jornada, suma {gameConfig.puntosPorDescanso} punto. Cuenta igual si tiene un
+                  bye (no le toca rival) que si ha pedido que no le emparejen.
                 </p>
                 <p>
                   <span className="font-medium">Tu plantilla del fin de semana.</span> El sábado a las
