@@ -56,8 +56,9 @@ async function leerTodo(construir: (desde: number, hasta: number) => PromiseLike
 
 // Próximo rival de cada jugador, a partir de los emparejamientos publicados
 // (matchday_pairings, ver 0053). En cada torneo solo cuenta su última jornada
-// con emparejamientos; si el jugador ya tiene resultado (o descanso) guardado
-// en ella, la partida ya está jugada y no se muestra. Devuelve un mapa
+// con emparejamientos; si el jugador ya tiene resultado guardado en ella, la
+// partida ya está jugada y no se muestra. Quien queda sin emparejar (fila
+// "descansa" o descanso guardado) sale con descansa=true. Devuelve un mapa
 // id de jugador -> próximos rivales (uno por torneo).
 export async function fetchProximosRivales(
   supabase: Supabase
@@ -97,9 +98,43 @@ export async function fetchProximosRivales(
       supabase.from("matchday_byes").select("matchday_id, player_id").in("matchday_id", idsJornadas).range(d, h)
     ),
   ]);
+  // Solo los resultados cuentan como "ya jugado"; el descanso se sigue mostrando
+  // como "Sin emparejar".
   const yaJugado = new Set<string>(
-    [...resultados, ...descansos].map((r: any) => `${r.matchday_id}:${r.player_id}`)
+    resultados.map((r: any) => `${r.matchday_id}:${r.player_id}`)
   );
+  // Info de cada jornada vigente, para los descansos que no tienen fila en matchday_pairings.
+  const baseJornada = new Map<
+    string,
+    { jornada: number; torneo: string | null; torneoId: string | null }
+  >();
+  const emparejados = new Set<string>(); // `${jornada}:${jugador}` con mesa o descanso publicado
+  for (const m of vigentes) {
+    if (!baseJornada.has(m.matchday_id)) {
+      baseJornada.set(m.matchday_id, {
+        jornada: m.matchdays.numero as number,
+        torneo: (m.matchdays.tournaments?.nombre ?? null) as string | null,
+        torneoId: (m.matchdays.tournament_id ?? null) as string | null,
+      });
+    }
+    if (m.blanco_player_id) emparejados.add(`${m.matchday_id}:${m.blanco_player_id}`);
+    if (m.negro_player_id) emparejados.add(`${m.matchday_id}:${m.negro_player_id}`);
+  }
+  // Inscritos en los torneos con emparejamientos vigentes (para detectar a quien no sale en ellos).
+  const idsTorneos = [
+    ...new Set([...baseJornada.values()].map((b) => b.torneoId).filter((x): x is string => !!x)),
+  ];
+  const inscritos: any[] = idsTorneos.length
+    ? await leerTodo((d, h) =>
+        supabase
+          .from("tournament_players")
+          .select("tournament_id, player_id")
+          .in("tournament_id", idsTorneos)
+          .order("player_id")
+          .range(d, h)
+      ).catch(() => [])
+    : [];
+  const descansoAnadido = new Set<string>();
 
   const jugadores = await leerTodo((d, h) =>
     supabase.from("players").select("id, nombre, elo").order("id").range(d, h)
@@ -126,6 +161,7 @@ export async function fetchProximosRivales(
     if (m.descansa) {
       const id = m.blanco_player_id as string | null;
       if (!id || yaJugado.has(`${m.matchday_id}:${id}`)) continue;
+      descansoAnadido.add(`${m.matchday_id}:${id}`);
       anadir(id, { ...base, descansa: true, rivalId: null, rivalNombre: "", rivalElo: null, color: null });
       continue;
     }
@@ -144,6 +180,46 @@ export async function fetchProximosRivales(
         rivalNombre: l.rival ? (info?.nombre ?? "Rival desconocido") : "Rival externo",
         rivalElo: l.rival ? (info?.elo ?? null) : (l.rivalElo ?? null),
         color: l.color,
+      });
+    }
+  }
+
+  // Jugadores marcados sin emparejar que no tienen fila "descansa" en los emparejamientos.
+  for (const d of descansos as any[]) {
+    const clave = `${d.matchday_id}:${d.player_id}`;
+    const jornada = baseJornada.get(d.matchday_id);
+    if (!jornada || descansoAnadido.has(clave) || yaJugado.has(clave)) continue;
+    descansoAnadido.add(clave);
+    anadir(d.player_id, {
+      jornada: jornada.jornada,
+      torneo: jornada.torneo,
+      tablero: null,
+      descansa: true,
+      rivalId: null,
+      rivalNombre: "",
+      rivalElo: null,
+      color: null,
+    });
+  }
+
+  // Inscritos en el torneo que no aparecen en los emparejamientos publicados de su
+  // última jornada (ni con mesa ni con descanso) y sin resultado: sin emparejar.
+  for (const [matchdayId, jornada] of baseJornada) {
+    if (!jornada.torneoId) continue;
+    for (const t of inscritos) {
+      if (t.tournament_id !== jornada.torneoId) continue;
+      const clave = `${matchdayId}:${t.player_id}`;
+      if (emparejados.has(clave) || descansoAnadido.has(clave) || yaJugado.has(clave)) continue;
+      descansoAnadido.add(clave);
+      anadir(t.player_id, {
+        jornada: jornada.jornada,
+        torneo: jornada.torneo,
+        tablero: null,
+        descansa: true,
+        rivalId: null,
+        rivalNombre: "",
+        rivalElo: null,
+        color: null,
       });
     }
   }

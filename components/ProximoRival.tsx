@@ -3,6 +3,7 @@ import type { ProximoRival } from "@/lib/types";
 
 // Línea "Próx. rival" para la tarjeta de un jugador (plantilla y mercado).
 // No pinta nada si no hay emparejamientos publicados pendientes.
+// Si el jugador queda sin emparejar, muestra "Próx. rival: Sin emparejar".
 export default function ProximoRivalLinea({
   rivales,
   className = "",
@@ -26,8 +27,9 @@ export default function ProximoRivalLinea({
         if (r.descansa) {
           return (
             <p key={i} className="text-xs text-neutral-500">
-              <span className="font-medium text-neutral-600 dark:text-neutral-400">Próx.:</span>{" "}
-              descansa <span className="text-neutral-400">({detalle})</span>
+              <span className="font-medium text-neutral-600 dark:text-neutral-400">Próx. rival:</span>{" "}
+              <span className="font-medium text-neutral-700 dark:text-neutral-300">Sin emparejar</span>{" "}
+              <span className="text-neutral-400">· {detalle}</span>
             </p>
           );
         }
