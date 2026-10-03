@@ -33,7 +33,15 @@ jobs:
           node-version: 20
       - run: npm install --no-save --no-package-lock sax
       - name: Descargar la lista de la FIDE
-        run: curl -fsSL -A "Mozilla/5.0" -o lista.zip "$FIDE_URL"
+        run: |
+          curl -fsSL \
+            --connect-timeout 30 --max-time 900 \
+            --retry 5 --retry-delay 20 --retry-all-errors \
+            -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36" \
+            -e "https://ratings.fide.com/download_lists.phtml" \
+            -o lista.zip "$FIDE_URL"
+          ls -l lista.zip
+          unzip -tq lista.zip
       - name: Actualizar Elo
         env:
           # En la ejecución programada se aplica; en la manual, según el interruptor.
