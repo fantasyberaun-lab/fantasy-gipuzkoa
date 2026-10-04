@@ -10,7 +10,7 @@ const RUTAS_PROTEGIDAS = [
   "/clasificacion",
   "/torneos",
 ];
-const RUTAS_SOLO_SIN_SESION = ["/login", "/registro"];
+const RUTAS_SOLO_SIN_SESION = ["/login", "/registro", "/recuperar"];
 const RUTAS_SOLO_ROOT = ["/admin"];
 
 export async function updateSession(request: NextRequest) {
