@@ -178,10 +178,12 @@ export interface JornadaAdmin {
   // null solo en jornadas antiguas, de antes de existir los torneos.
   torneoId: string | null;
   torneoNombre: string | null;
+  // Cuándo se terminó (se pagaron los millones por punto); null = abierta.
+  terminadaEn: string | null;
 }
 
 const COLUMNAS_JORNADA =
-  "id, numero, fecha_inicio, fecha_fin, tournament_id, tournaments (nombre)";
+  "id, numero, fecha_inicio, fecha_fin, tournament_id, tournaments (nombre), terminada_en";
 
 function mapearJornada(m: any): JornadaAdmin {
   return {
@@ -191,6 +193,7 @@ function mapearJornada(m: any): JornadaAdmin {
     fechaFin: m.fecha_fin,
     torneoId: m.tournament_id ?? null,
     torneoNombre: m.tournaments?.nombre ?? null,
+    terminadaEn: m.terminada_en ?? null,
   };
 }
 
@@ -248,6 +251,46 @@ export async function borrarJornadaDB(
 
   if (error) return { ok: false, mensaje: error.message };
   return { ok: true };
+}
+
+// Millones que se pagan por punto al terminar una ronda (game_config 'pago_jornada').
+export async function fetchPagoPorPunto(supabase: Supabase): Promise<number> {
+  const { data } = await supabase
+    .from("game_config")
+    .select("valor")
+    .eq("clave", "pago_jornada")
+    .maybeSingle();
+  const n = Number((data?.valor as any)?.millones_por_punto);
+  return Number.isFinite(n) && n >= 0 ? n : 1;
+}
+
+export interface ResumenPagoJornada {
+  yaTerminada: boolean;
+  equiposPagados: number;
+  puntos: number;
+  millones: number;
+}
+
+// Termina la ronda y paga los millones por punto. Si ya estaba terminada,
+// recalcula: cada equipo recibe o devuelve solo la diferencia.
+export async function terminarJornadaDB(
+  supabase: Supabase,
+  matchdayId: string
+): Promise<{ ok: true; resumen: ResumenPagoJornada } | { ok: false; mensaje: string }> {
+  const { data, error } = await supabase.rpc("terminar_jornada", {
+    p_matchday_id: matchdayId,
+  });
+  if (error) return { ok: false, mensaje: error.message };
+  if (!data?.ok) return { ok: false, mensaje: data?.mensaje ?? "No se pudo terminar la ronda." };
+  return {
+    ok: true,
+    resumen: {
+      yaTerminada: Boolean(data.ya_terminada),
+      equiposPagados: Number(data.equipos_pagados ?? 0),
+      puntos: Number(data.puntos ?? 0),
+      millones: Number(data.millones ?? 0),
+    },
+  };
 }
 
 export interface ResultadoGuardado {

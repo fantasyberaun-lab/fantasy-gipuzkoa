@@ -151,7 +151,17 @@ export type TipoNotificacion =
   | "clausula_subida"
   | "oferta_rechazada"
   | "venta"
-  | "actualizacion_elo";
+  | "actualizacion_elo"
+  | "pago_jornada";
+
+// Millones ingresados al terminar una ronda (0067). "importe" de la
+// notificación es lo ingresado; en una corrección puede ser negativo.
+export interface DatosPagoJornada {
+  torneo: string | null;
+  ronda: number;
+  puntos: number;
+  correccion: boolean;
+}
 
 // Resumen de una actualización mensual de Elo para UN equipo (0061).
 export interface DatosActualizacionElo {
@@ -181,6 +191,8 @@ export interface Notificacion {
   creada: string;
   // Solo en tipo "actualizacion_elo".
   datosElo?: DatosActualizacionElo | null;
+  // Solo en tipo "pago_jornada".
+  datosPago?: DatosPagoJornada | null;
 }
 
 // "privada": liga de amigos (máx. 9, plantilla inicial, mercado por tandas,

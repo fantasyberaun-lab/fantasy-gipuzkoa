@@ -10,6 +10,8 @@ import {
   fetchJornadas,
   crearJornadaDB,
   borrarJornadaDB,
+  fetchPagoPorPunto,
+  terminarJornadaDB,
   fetchResultadosDeJornada,
   fetchDescansosDeJornada,
   guardarResultadoDB,
@@ -90,6 +92,9 @@ export default function AdminResultadosPage() {
   const [cargandoJornada, setCargandoJornada] = useState(false);
   const [creandoJornada, setCreandoJornada] = useState(false);
   const [borrandoJornada, setBorrandoJornada] = useState(false);
+  const [terminando, setTerminando] = useState(false);
+  const [pagoPorPunto, setPagoPorPunto] = useState(1);
+  const [avisoTerminar, setAvisoTerminar] = useState<string | null>(null);
   const [guardandoId, setGuardandoId] = useState<string | null>(null);
   const [mensajePorJugador, setMensajePorJugador] = useState<
     Record<string, { tipo: "ok" | "error"; texto: string }>
@@ -102,13 +107,15 @@ export default function AdminResultadosPage() {
   useEffect(() => {
     (async () => {
       setCargando(true);
-      const [listaJugadores, listaJornadas, listaTorneos, participantes] =
+      const [listaJugadores, listaJornadas, listaTorneos, participantes, tarifa] =
         await Promise.all([
           fetchTodosLosJugadores(supabase),
           fetchJornadas(supabase),
           fetchTorneos(supabase),
           fetchParticipantesPorTorneo(supabase),
+          fetchPagoPorPunto(supabase),
         ]);
+      setPagoPorPunto(tarifa);
       setJugadores(listaJugadores);
       setJornadas(listaJornadas);
       setTorneos(listaTorneos);
@@ -120,6 +127,10 @@ export default function AdminResultadosPage() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    setAvisoTerminar(null);
+  }, [jornadaId]);
 
   useEffect(() => {
     if (!jornadaId) {
@@ -170,6 +181,7 @@ export default function AdminResultadosPage() {
   function onCambiarTorneo(nuevoId: string) {
     setTorneoId(nuevoId);
     setErrorJornada(null);
+    setAvisoTerminar(null);
     // Al cambiar de torneo no se elige ninguna ronda: la eliges tú.
     setJornadaId(null);
   }
@@ -293,6 +305,43 @@ export default function AdminResultadosPage() {
     setTorneos(await fetchTorneos(supabase));
   }
 
+  async function onTerminarJornada() {
+    if (!jornadaActual) return;
+    const yaTerminada = Boolean(jornadaActual.terminadaEn);
+    const pendientes = Math.max(totalActivos - totalConResultado - descansos.size, 0);
+    const millonesPorPunto = `${pagoPorPunto} M por punto`;
+
+    const pregunta = yaTerminada
+      ? `Esta ronda ya está terminada. ¿Recalcular los pagos con los resultados actuales? ` +
+        `Cada manager recibirá o devolverá solo la diferencia (${millonesPorPunto}).`
+      : `¿Estás seguro de que has metido todos los resultados y quieres terminar la ronda? ` +
+        `Se pagarán ${millonesPorPunto} a cada manager según los puntos que haya hecho en ` +
+        `${etiquetaJornada(jornadaActual)}.` +
+        (pendientes > 0
+          ? `\n\nOJO: todavía hay ${pendientes} jugador${pendientes === 1 ? "" : "es"} sin resultado.`
+          : "");
+    if (!confirm(pregunta)) return;
+
+    setErrorJornada(null);
+    setAvisoTerminar(null);
+    setTerminando(true);
+    const resultado = await terminarJornadaDB(supabase, jornadaActual.id);
+    setTerminando(false);
+
+    if (!resultado.ok) {
+      setErrorJornada(resultado.mensaje);
+      return;
+    }
+
+    const r = resultado.resumen;
+    setJornadas(await fetchJornadas(supabase));
+    setAvisoTerminar(
+      r.yaTerminada
+        ? `Pagos recalculados: en total ${r.millones} M a ${r.equiposPagados} managers (${r.puntos} puntos).`
+        : `Ronda terminada: ${r.millones} M pagados a ${r.equiposPagados} managers (${r.puntos} puntos).`
+    );
+  }
+
   async function onBorrarJornada() {
     if (!jornadaActual) return;
     const nombre = etiquetaJornada(jornadaActual);
@@ -300,7 +349,10 @@ export default function AdminResultadosPage() {
       totalConResultado > 0
         ? `Se borrarán también los ${totalConResultado} resultados de esta ronda y sus puntos. `
         : "";
-    if (!confirm(`¿Borrar "${nombre}"? ${aviso}Esto no se puede deshacer.`)) return;
+    const avisoPago = jornadaActual.terminadaEn
+      ? "Como la ronda estaba terminada, se devolverán los millones ya pagados a los managers. "
+      : "";
+    if (!confirm(`¿Borrar "${nombre}"? ${aviso}${avisoPago}Esto no se puede deshacer.`)) return;
 
     setErrorJornada(null);
     setBorrandoJornada(true);
@@ -478,6 +530,24 @@ export default function AdminResultadosPage() {
 
         {jornadaActual && (
           <button
+            onClick={onTerminarJornada}
+            disabled={terminando || cargandoJornada}
+            className={`rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-40 ${
+              jornadaActual.terminadaEn
+                ? "border border-neutral-300 dark:border-neutral-700"
+                : "bg-accent text-white hover:bg-accent-hover"
+            }`}
+          >
+            {terminando
+              ? "Procesando…"
+              : jornadaActual.terminadaEn
+                ? "Recalcular pagos"
+                : "Terminar ronda"}
+          </button>
+        )}
+
+        {jornadaActual && (
+          <button
             onClick={onBorrarJornada}
             disabled={borrandoJornada}
             className="rounded-lg border border-neutral-300 px-3 py-2 text-sm text-negative disabled:opacity-40 dark:border-neutral-700"
@@ -497,6 +567,20 @@ export default function AdminResultadosPage() {
       </div>
 
       {errorJornada && <p className="text-sm text-negative">{errorJornada}</p>}
+
+      {jornadaActual?.terminadaEn && (
+        <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm">
+          <strong>Ronda terminada</strong> el{" "}
+          {new Date(jornadaActual.terminadaEn).toLocaleString("es-ES", {
+            day: "numeric",
+            month: "long",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+          . Si corriges algún resultado, pulsa «Recalcular pagos» para ajustar los millones.
+        </p>
+      )}
+      {avisoTerminar && <p className="text-sm text-positive">{avisoTerminar}</p>}
 
       {!jornadaId && (
         <p className="py-6 text-center text-sm text-neutral-500">

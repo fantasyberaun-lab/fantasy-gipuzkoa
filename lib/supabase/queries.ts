@@ -7,6 +7,7 @@ import type {
   LigaResumen,
   MercadoDelDia,
   Notificacion,
+  TipoNotificacion,
   OfertaPendiente,
   OfertaRecibida,
   PerfilManager,
@@ -512,17 +513,20 @@ export async function fetchOfertasRecibidas(
 export async function fetchNotificaciones(
   supabase: Supabase,
   leagueId: string,
-  equipoId: string
+  equipoId: string,
+  // Si se indica, solo estos tipos (la liga pública solo enseña los ingresos por ronda).
+  soloTipos?: TipoNotificacion[]
 ): Promise<{ notificaciones: Notificacion[]; vistasEn: number }> {
+  let consulta = supabase
+    .from("notificaciones")
+    .select(
+      "id, tipo, actor_team_id, objetivo_team_id, player_id, importe, datos, created_at, players (nombre), actor:fantasy_teams!actor_team_id (nombre), objetivo:fantasy_teams!objetivo_team_id (nombre)"
+    )
+    .eq("league_id", leagueId);
+  if (soloTipos) consulta = consulta.in("tipo", soloTipos);
+
   const [{ data, error }, { data: equipo }] = await Promise.all([
-    supabase
-      .from("notificaciones")
-      .select(
-        "id, tipo, actor_team_id, objetivo_team_id, player_id, importe, datos, created_at, players (nombre), actor:fantasy_teams!actor_team_id (nombre), objetivo:fantasy_teams!objetivo_team_id (nombre)"
-      )
-      .eq("league_id", leagueId)
-      .order("created_at", { ascending: false })
-      .limit(50),
+    consulta.order("created_at", { ascending: false }).limit(50),
     supabase
       .from("fantasy_teams")
       .select("notificaciones_vistas_en")
@@ -559,6 +563,15 @@ export async function fetchNotificaciones(
               mejor: n.datos.mejor ?? null,
               peor: n.datos.peor ?? null,
               jugadoresActualizados: Number(n.datos.jugadores_actualizados ?? 0),
+            }
+          : null,
+      datosPago:
+        n.tipo === "pago_jornada" && n.datos
+          ? {
+              torneo: n.datos.torneo ?? null,
+              ronda: Number(n.datos.ronda ?? 0),
+              puntos: Number(n.datos.puntos ?? 0),
+              correccion: Boolean(n.datos.correccion),
             }
           : null,
     })),

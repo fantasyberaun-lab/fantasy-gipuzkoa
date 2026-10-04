@@ -36,6 +36,10 @@ const ETIQUETA: Record<Notificacion["tipo"], { texto: string; clases: string }> 
     texto: "Actualización de Elo",
     clases: "bg-accent text-white",
   },
+  pago_jornada: {
+    texto: "Ingreso",
+    clases: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
+  },
 };
 
 // Una actualización de Elo se mantiene fijada arriba durante este tiempo.
@@ -222,6 +226,31 @@ export default function NotificacionesPage() {
       );
     }
 
+    if (n.tipo === "pago_jornada") {
+      const d = n.datosPago;
+      const donde = d ? `${d.torneo ? `${d.torneo} · ` : ""}Ronda ${d.ronda}` : "una ronda";
+      const importe = n.importe ?? 0;
+      const signo = importe > 0 ? "+" : "";
+      if (d?.correccion) {
+        return (
+          <>
+            Corrección de tus ingresos en {donde}:{" "}
+            <span className="font-semibold">
+              {signo}
+              {importe} M
+            </span>{" "}
+            (ahora cuentas {d.puntos} puntos).
+          </>
+        );
+      }
+      return (
+        <>
+          Has ingresado <span className="font-semibold">{importe} M</span> por tus{" "}
+          {d?.puntos ?? 0} puntos en {donde}.
+        </>
+      );
+    }
+
     // clausulazo
     if (yo) {
       return (
@@ -280,12 +309,52 @@ export default function NotificacionesPage() {
     </section>
   );
 
-  // Liga pública: solo comunicados (no se enseñan las operaciones de otros).
+  const fila = (n: Notificacion) => {
+    const nueva = corte !== null && n.actorId !== equipo.id && Date.parse(n.creada) > corte;
+    if (n.tipo === "actualizacion_elo") {
+      return <TarjetaElo key={n.id} n={n} nueva={nueva} />;
+    }
+    const etiqueta = ETIQUETA[n.tipo];
+    return (
+      <li
+        key={n.id}
+        className={`flex items-start gap-3 rounded-xl border p-3 ${
+          nueva ? "border-accent/60 bg-accent/5" : "border-neutral-200 dark:border-neutral-800"
+        }`}
+      >
+        <span
+          className={`mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${etiqueta.clases}`}
+        >
+          {etiqueta.texto}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm">{texto(n)}</p>
+          <p className="mt-0.5 text-xs text-neutral-500">{hace(n.creada)}</p>
+        </div>
+        {nueva && (
+          <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent" aria-label="Nueva" />
+        )}
+      </li>
+    );
+  };
+
+  // Liga pública: comunicados del administrador + tus ingresos por ronda
+  // (no se enseñan las operaciones de otros managers).
   if (esLigaPublica) {
     return (
-      <div>
-        <h2 className="mb-3 text-lg font-semibold">Comunicados</h2>
-        {bloqueComunicados}
+      <div className="flex flex-col gap-6">
+        <div>
+          <h2 className="mb-3 text-lg font-semibold">Comunicados</h2>
+          {bloqueComunicados}
+        </div>
+        {ordenadas.length > 0 && (
+          <section>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              Tus ingresos
+            </h3>
+            <ul className="flex flex-col gap-2">{ordenadas.map(fila)}</ul>
+          </section>
+        )}
       </div>
     );
   }
@@ -307,37 +376,7 @@ export default function NotificacionesPage() {
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
-          {ordenadas.map((n) => {
-            const nueva =
-              corte !== null && n.actorId !== equipo.id && Date.parse(n.creada) > corte;
-            if (n.tipo === "actualizacion_elo") {
-              return <TarjetaElo key={n.id} n={n} nueva={nueva} />;
-            }
-            const etiqueta = ETIQUETA[n.tipo];
-            return (
-              <li
-                key={n.id}
-                className={`flex items-start gap-3 rounded-xl border p-3 ${
-                  nueva
-                    ? "border-accent/60 bg-accent/5"
-                    : "border-neutral-200 dark:border-neutral-800"
-                }`}
-              >
-                <span
-                  className={`mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${etiqueta.clases}`}
-                >
-                  {etiqueta.texto}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm">{texto(n)}</p>
-                  <p className="mt-0.5 text-xs text-neutral-500">{hace(n.creada)}</p>
-                </div>
-                {nueva && (
-                  <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent" aria-label="Nueva" />
-                )}
-              </li>
-            );
-          })}
+          {ordenadas.map(fila)}
         </ul>
       )}
       </section>

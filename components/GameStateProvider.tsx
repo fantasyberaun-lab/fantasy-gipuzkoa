@@ -52,6 +52,7 @@ import type {
   LigaResumen,
   MercadoDelDia,
   Notificacion,
+  TipoNotificacion,
   OfertaPendiente,
   OfertaRecibida,
   PlantillaSlot,
@@ -61,6 +62,8 @@ import type {
 
 const EQUIPO_VACIO: EquipoManager = { id: "", leagueId: "", nombreEquipo: "", saldo: 0 };
 const LIGA_ACTIVA_KEY = "liga-activa-id";
+// Avisos personales que sí llegan a la liga pública.
+const TIPOS_LIGA_PUBLICA: TipoNotificacion[] = ["pago_jornada"];
 // Instante (ms) hasta el que el usuario ha visto los comunicados. Se guarda en
 // el navegador: los comunicados son globales, no de una liga concreta.
 const COMUNICADOS_VISTOS_KEY = "comunicados-vistos-en";
@@ -234,9 +237,13 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
           ? Promise.resolve([] as PujaMercado[])
           : fetchPujasMercado(supabase, miEquipo.leagueId),
         fetchClasificacion(supabase, miEquipo.leagueId, miEquipo.id),
-        esPublica
-          ? Promise.resolve({ notificaciones: [] as Notificacion[], vistasEn: Date.now() })
-          : fetchNotificaciones(supabase, miEquipo.leagueId, miEquipo.id),
+        // En la pública solo se cargan los ingresos por ronda (no las operaciones de otros).
+        fetchNotificaciones(
+          supabase,
+          miEquipo.leagueId,
+          miEquipo.id,
+          esPublica ? TIPOS_LIGA_PUBLICA : undefined
+        ),
         // Si falla, simplemente no se muestran rivales.
         fetchProximosRivales(supabase).catch(() => ({} as Record<string, ProximoRival[]>)),
         // Los comunicados los ven todas las ligas, también la pública.
@@ -286,8 +293,13 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function recargarNotificaciones() {
-    if (!equipo.id || !equipo.leagueId || esLigaPublica) return;
-    const avisos = await fetchNotificaciones(supabase, equipo.leagueId, equipo.id);
+    if (!equipo.id || !equipo.leagueId) return;
+    const avisos = await fetchNotificaciones(
+      supabase,
+      equipo.leagueId,
+      equipo.id,
+      esLigaPublica ? TIPOS_LIGA_PUBLICA : undefined
+    );
     setNotificaciones(avisos.notificaciones);
     setNotificacionesVistasEn(avisos.vistasEn);
   }
@@ -296,23 +308,27 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   // hace que cada manager solo reciba los suyos). Como red de seguridad,
   // también se recargan al volver a la pestaña del navegador.
   useEffect(() => {
-    if (!equipo.id || !equipo.leagueId || esLigaPublica) return;
+    if (!equipo.id || !equipo.leagueId) return;
 
-    const canal = supabase
-      .channel(`notificaciones-${equipo.leagueId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notificaciones",
-          filter: `league_id=eq.${equipo.leagueId}`,
-        },
-        () => {
-          recargarNotificaciones();
-        }
-      )
-      .subscribe();
+    // En la pública no hay tiempo real (recibiría los fichajes de todos): los
+    // ingresos se recargan al volver a la pestaña.
+    const canal = esLigaPublica
+      ? null
+      : supabase
+          .channel(`notificaciones-${equipo.leagueId}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "INSERT",
+              schema: "public",
+              table: "notificaciones",
+              filter: `league_id=eq.${equipo.leagueId}`,
+            },
+            () => {
+              recargarNotificaciones();
+            }
+          )
+          .subscribe();
 
     const alVolver = () => {
       if (document.visibilityState === "visible") recargarNotificaciones();
@@ -320,7 +336,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     document.addEventListener("visibilitychange", alVolver);
 
     return () => {
-      supabase.removeChannel(canal);
+      if (canal) supabase.removeChannel(canal);
       document.removeEventListener("visibilitychange", alVolver);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -367,7 +383,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   ).length;
 
   async function marcarNotificacionesVistas() {
-    if (!equipo.leagueId || esLigaPublica) return;
+    if (!equipo.leagueId) return;
     const vistasEn = await marcarNotificacionesVistasDB(supabase, equipo.leagueId);
     if (vistasEn !== null) setNotificacionesVistasEn(vistasEn);
   }
