@@ -568,8 +568,7 @@ export async function fetchNotificaciones(
       datosPago:
         n.tipo === "pago_jornada" && n.datos
           ? {
-              torneo: n.datos.torneo ?? null,
-              ronda: Number(n.datos.ronda ?? 0),
+              jornada: n.datos.jornada != null ? Number(n.datos.jornada) : null,
               puntos: Number(n.datos.puntos ?? 0),
               correccion: Boolean(n.datos.correccion),
             }
