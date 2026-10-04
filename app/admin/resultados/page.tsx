@@ -62,8 +62,8 @@ const SIN_TORNEO = "__sin_torneo__";
 
 function etiquetaJornada(j: JornadaAdmin): string {
   return j.torneoNombre
-    ? `${j.torneoNombre} · Jornada ${j.numero}`
-    : `Jornada ${j.numero} (sin torneo)`;
+    ? `${j.torneoNombre} · Ronda ${j.numero}`
+    : `Ronda ${j.numero} (sin torneo)`;
 }
 
 export default function AdminResultadosPage() {
@@ -113,11 +113,9 @@ export default function AdminResultadosPage() {
       setJornadas(listaJornadas);
       setTorneos(listaTorneos);
       setParticipantesPorTorneo(participantes);
-      // Por defecto, el torneo de la última jornada creada (y esa jornada);
-      // si no hay jornadas, el primer torneo.
-      const ultima = listaJornadas[0];
-      setTorneoId(ultima ? (ultima.torneoId ?? SIN_TORNEO) : (listaTorneos[0]?.id ?? ""));
-      setJornadaId(ultima?.id ?? null);
+      // Se empieza sin nada elegido: primero el torneo, luego su ronda.
+      setTorneoId("");
+      setJornadaId(null);
       setCargando(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -172,11 +170,8 @@ export default function AdminResultadosPage() {
   function onCambiarTorneo(nuevoId: string) {
     setTorneoId(nuevoId);
     setErrorJornada(null);
-    // Salta a la jornada más reciente del torneo (la de mayor número).
-    const delTorneo = jornadas
-      .filter((j) => (j.torneoId ?? SIN_TORNEO) === nuevoId)
-      .sort((a, b) => b.numero - a.numero);
-    setJornadaId(delTorneo[0]?.id ?? null);
+    // Al cambiar de torneo no se elige ninguna ronda: la eliges tú.
+    setJornadaId(null);
   }
   // Enlace de chess-results / Info64 guardado en la ficha del torneo.
   const urlTorneoImportable = (() => {
@@ -294,7 +289,7 @@ export default function AdminResultadosPage() {
 
     setJornadas((prev) => [resultado.jornada, ...prev]);
     setJornadaId(resultado.jornada.id);
-    // Refresca el contador de jornadas del torneo.
+    // Refresca el contador de rondas del torneo.
     setTorneos(await fetchTorneos(supabase));
   }
 
@@ -303,7 +298,7 @@ export default function AdminResultadosPage() {
     const nombre = etiquetaJornada(jornadaActual);
     const aviso =
       totalConResultado > 0
-        ? `Se borrarán también los ${totalConResultado} resultados de esta jornada y sus puntos. `
+        ? `Se borrarán también los ${totalConResultado} resultados de esta ronda y sus puntos. `
         : "";
     if (!confirm(`¿Borrar "${nombre}"? ${aviso}Esto no se puede deshacer.`)) return;
 
@@ -319,11 +314,8 @@ export default function AdminResultadosPage() {
 
     const restantes = jornadas.filter((j) => j.id !== jornadaActual.id);
     setJornadas(restantes);
-    // Se queda en el mismo torneo, en su última jornada que quede.
-    const delMismoTorneo = restantes
-      .filter((j) => (j.torneoId ?? SIN_TORNEO) === torneoId)
-      .sort((a, b) => b.numero - a.numero);
-    setJornadaId(delMismoTorneo[0]?.id ?? null);
+    // Se queda en el mismo torneo, sin ronda elegida.
+    setJornadaId(null);
     setTorneos(await fetchTorneos(supabase));
   }
 
@@ -431,7 +423,7 @@ export default function AdminResultadosPage() {
             href="/admin/torneos"
             className="text-sm text-accent underline underline-offset-2"
           >
-            Crea primero un torneo para poder añadir jornadas
+            Crea primero un torneo para poder añadir rondas
           </Link>
         ) : (
           <>
@@ -441,31 +433,34 @@ export default function AdminResultadosPage() {
               onChange={(e) => onCambiarTorneo(e.target.value)}
               className="min-w-0 max-w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
             >
+              <option value="">Elige un torneo…</option>
               {ordenarTorneos(torneos).map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.nombre} ({t.rondasCreadas}
-                  {t.numeroRondas != null ? `/${t.numeroRondas}` : ""} jornadas)
+                  {t.nombre}
                 </option>
               ))}
               {hayJornadasSinTorneo && (
-                <option value={SIN_TORNEO}>Sin torneo (jornadas antiguas)</option>
+                <option value={SIN_TORNEO}>Rondas antiguas (sin torneo)</option>
               )}
             </select>
 
-            <select
-              aria-label="Jornada"
-              value={jornadaId ?? ""}
-              onChange={(e) => setJornadaId(e.target.value || null)}
-              disabled={jornadasDelTorneo.length === 0}
-              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-900"
-            >
-              {jornadasDelTorneo.length === 0 && <option value="">Sin jornadas todavía</option>}
-              {jornadasDelTorneo.map((j) => (
-                <option key={j.id} value={j.id}>
-                  Jornada {j.numero}
+            {torneoId && (
+              <select
+                aria-label="Ronda"
+                value={jornadaId ?? ""}
+                onChange={(e) => setJornadaId(e.target.value || null)}
+                className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+              >
+                <option value="">
+                  {jornadasDelTorneo.length === 0 ? "Sin rondas todavía" : "Elige una ronda…"}
                 </option>
-              ))}
-            </select>
+                {jornadasDelTorneo.map((j) => (
+                  <option key={j.id} value={j.id}>
+                    Ronda {j.numero}
+                  </option>
+                ))}
+              </select>
+            )}
 
             {torneoElegido && (
               <button
@@ -473,7 +468,9 @@ export default function AdminResultadosPage() {
                 disabled={creandoJornada}
                 className="rounded-lg border border-neutral-300 px-3 py-2 text-sm disabled:opacity-40 dark:border-neutral-700"
               >
-                {creandoJornada ? "Creando…" : "+ Nueva jornada"}
+                {creandoJornada
+                  ? "Añadiendo…"
+                  : `+ Añadir ronda ${(jornadasDelTorneo[jornadasDelTorneo.length - 1]?.numero ?? 0) + 1}`}
               </button>
             )}
           </>
@@ -485,7 +482,7 @@ export default function AdminResultadosPage() {
             disabled={borrandoJornada}
             className="rounded-lg border border-neutral-300 px-3 py-2 text-sm text-negative disabled:opacity-40 dark:border-neutral-700"
           >
-            {borrandoJornada ? "Borrando…" : "Borrar jornada"}
+            {borrandoJornada ? "Borrando…" : "Borrar ronda"}
           </button>
         )}
 
@@ -503,9 +500,11 @@ export default function AdminResultadosPage() {
 
       {!jornadaId && (
         <p className="py-6 text-center text-sm text-neutral-500">
-          {torneoElegido
-            ? "Este torneo todavía no tiene jornadas. Crea la primera con «+ Nueva jornada»."
-            : "Crea la primera jornada para empezar a introducir resultados."}
+          {!torneoId
+            ? "Elige un torneo para ver sus rondas."
+            : jornadasDelTorneo.length === 0
+              ? "Este torneo todavía no tiene rondas. Crea la primera con «+ Añadir ronda 1»."
+              : "Elige una ronda de este torneo para ver y subir sus resultados."}
         </p>
       )}
 
@@ -552,7 +551,7 @@ export default function AdminResultadosPage() {
           </div>
 
           {cargandoJornada ? (
-            <p className="text-sm text-neutral-500">Cargando resultados de la jornada…</p>
+            <p className="text-sm text-neutral-500">Cargando resultados de la ronda…</p>
           ) : (
             <div className="flex flex-col gap-2">
               {jugadoresFiltrados.map((jugador) => {
@@ -621,7 +620,7 @@ export default function AdminResultadosPage() {
 
                       {esDescanso ? (
                         <p className="col-span-2 flex items-center text-xs text-neutral-500 sm:col-span-2">
-                          No juega en esta jornada: no cuenta como partida y suma 1 punto Fantasy.
+                          No juega en esta ronda: no cuenta como partida y suma 1 punto Fantasy.
                         </p>
                       ) : (
                         <>

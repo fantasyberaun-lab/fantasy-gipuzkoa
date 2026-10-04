@@ -240,7 +240,7 @@ export default function ImportarRondaPanel({
   }
 
   async function retirar() {
-    if (!confirm("¿Retirar los emparejamientos publicados de esta jornada?")) return;
+    if (!confirm("¿Retirar los emparejamientos publicados de esta ronda?")) return;
     setOcupado("retirar");
     const r = await retirarEmparejamientosDB(supabase, matchdayId);
     setOcupado(null);
@@ -259,7 +259,7 @@ export default function ImportarRondaPanel({
           <h3 className="text-sm font-semibold">Importar la ronda {numeroRonda} desde {fuente}</h3>
           <p className="text-xs text-neutral-500">
             Lee la ronda tal como está ahora en su web. No se publica nada hasta que lo pidas.
-            {publicadas ? ` · ${publicadas} mesas publicadas en esta jornada.` : ""}
+            {publicadas ? ` · ${publicadas} mesas publicadas en esta ronda.` : ""}
           </p>
         </div>
         <button onClick={leer} disabled={cargando} className={BOTON}>

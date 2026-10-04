@@ -414,8 +414,8 @@ export default function AdminTorneosPage() {
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-neutral-500">
-          Cada jornada del Fantasy pertenece a un torneo y cada torneo numera las suyas
-          desde 1. Crea aquí el torneo, con sus jugadores, antes de crear sus jornadas.
+          Cada ronda del Fantasy pertenece a un torneo y cada torneo numera las suyas
+          desde 1. Crea aquí el torneo, con sus jugadores, antes de añadirle rondas.
         </p>
         {!formAbierto && (
           <button
@@ -703,7 +703,7 @@ export default function AdminTorneosPage() {
         <p className="text-sm text-neutral-500">Cargando torneos…</p>
       ) : torneos.length === 0 ? (
         <p className="py-6 text-center text-sm text-neutral-500">
-          Todavía no hay torneos. Crea el primero para poder añadirle jornadas.
+          Todavía no hay torneos. Crea el primero para poder añadirle rondas.
         </p>
       ) : (
         <ul className="flex flex-col gap-4">
@@ -729,7 +729,7 @@ export default function AdminTorneosPage() {
                       </span>
                       <span>
                         {t.rondasCreadas}
-                        {t.numeroRondas != null ? ` / ${t.numeroRondas}` : ""} jornada
+                        {t.numeroRondas != null ? ` / ${t.numeroRondas}` : ""} ronda
                         {t.rondasCreadas === 1 ? "" : "s"}
                       </span>
                     </div>
