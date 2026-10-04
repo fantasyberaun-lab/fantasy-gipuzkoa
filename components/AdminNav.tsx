@@ -7,6 +7,7 @@ const TABS = [
   { href: "/admin", label: "Jugadores" },
   { href: "/admin/torneos", label: "Torneos" },
   { href: "/admin/resultados", label: "Resultados" },
+  { href: "/admin/comunicados", label: "Comunicados" },
 ];
 
 export default function AdminNav() {

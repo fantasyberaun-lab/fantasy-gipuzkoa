@@ -94,13 +94,12 @@ function Badge({
 
 export default function TabNav() {
   const pathname = usePathname();
-  const { notificacionesNoLeidas, esLigaPublica } = useGameState();
+  const { avisosNoLeidos, esLigaPublica } = useGameState();
 
-  // En la liga pública no hay plantillas ajenas con clausulazos ni avisos de
-  // fichajes: todo se hace desde el Mercado.
-  const tabs = esLigaPublica
-    ? TABS.filter((tab) => tab.href !== "/jugadores" && tab.href !== "/notificaciones")
-    : TABS;
+  // En la liga pública no hay plantillas ajenas con clausulazos: todo se hace
+  // desde el Mercado. Sí hay pestaña de Avisos, pero solo con los comunicados
+  // del administrador (no con las operaciones de otros managers).
+  const tabs = esLigaPublica ? TABS.filter((tab) => tab.href !== "/jugadores") : TABS;
 
   return (
     <>
@@ -108,7 +107,7 @@ export default function TabNav() {
       <nav className="hidden gap-6 border-b border-neutral-200 dark:border-neutral-800 sm:flex">
         {tabs.map((tab) => {
           const isActive = pathname?.startsWith(tab.href);
-          const badge = tab.href === "/notificaciones" ? notificacionesNoLeidas : 0;
+          const badge = tab.href === "/notificaciones" ? avisosNoLeidos : 0;
           return (
             <Link
               key={tab.href}
@@ -134,7 +133,7 @@ export default function TabNav() {
         <ul className="mx-auto flex max-w-md">
           {tabs.map((tab) => {
             const isActive = pathname?.startsWith(tab.href);
-            const badge = tab.href === "/notificaciones" ? notificacionesNoLeidas : 0;
+            const badge = tab.href === "/notificaciones" ? avisosNoLeidos : 0;
             return (
               <li key={tab.href} className="min-w-0 flex-1">
                 <Link

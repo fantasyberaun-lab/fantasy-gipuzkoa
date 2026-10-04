@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
+import ComunicadoCard from "@/components/ComunicadoCard";
 import { useGameState } from "@/components/GameStateProvider";
+import { ordenarComunicados } from "@/lib/comunicados";
 import type { Notificacion } from "@/lib/types";
 
 const ETIQUETA: Record<Notificacion["tipo"], { texto: string; clases: string }> = {
@@ -114,6 +116,10 @@ export default function NotificacionesPage() {
     notificaciones,
     notificacionesVistasEn,
     marcarNotificacionesVistas,
+    comunicados,
+    comunicadosVistosEn,
+    marcarComunicadosVistos,
+    esLigaPublica,
     equipo,
     cargando,
   } = useGameState();
@@ -121,14 +127,17 @@ export default function NotificacionesPage() {
   // Instante de la última visita ANTES de marcarlo como visto ahora: sirve
   // para resaltar lo nuevo mientras estás en el panel.
   const [corte, setCorte] = useState<number | null>(null);
+  const [corteComunicados, setCorteComunicados] = useState<number | null>(null);
 
   useEffect(() => {
     if (cargando) return;
     setCorte((previo) => previo ?? notificacionesVistasEn);
+    setCorteComunicados((previo) => previo ?? comunicadosVistosEn);
     marcarNotificacionesVistas();
+    marcarComunicadosVistos();
     // Se vuelve a marcar si llega un aviso nuevo mientras el panel está abierto.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cargando, notificaciones.length]);
+  }, [cargando, notificaciones.length, comunicados.length]);
 
   if (cargando) {
     return <p className="text-sm text-neutral-500">Cargando notificaciones…</p>;
@@ -239,10 +248,59 @@ export default function NotificacionesPage() {
     );
   };
 
-  return (
-    <div>
-      <h2 className="mb-3 text-lg font-semibold">Notificaciones</h2>
+  const comunicadosOrdenados = ordenarComunicados(comunicados);
 
+  const bloqueComunicados = (
+    <section>
+      {!esLigaPublica && (
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+          Comunicados
+        </h3>
+      )}
+      {comunicadosOrdenados.length === 0 ? (
+        <p className="py-6 text-center text-sm text-neutral-500">
+          {esLigaPublica
+            ? "No hay comunicados por ahora. Aquí aparecerán las novedades y avisos importantes."
+            : "No hay comunicados vigentes."}
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {comunicadosOrdenados.map((c) => (
+            <ComunicadoCard
+              key={c.id}
+              titulo={c.titulo}
+              cuerpo={c.cuerpo}
+              etiqueta={c.etiqueta}
+              creado={c.creado}
+              nuevo={corteComunicados !== null && Date.parse(c.creado) > corteComunicados}
+            />
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+
+  // Liga pública: solo comunicados (no se enseñan las operaciones de otros).
+  if (esLigaPublica) {
+    return (
+      <div>
+        <h2 className="mb-3 text-lg font-semibold">Comunicados</h2>
+        {bloqueComunicados}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <h2 className="mb-3 text-lg font-semibold">Avisos</h2>
+        {bloqueComunicados}
+      </div>
+
+      <section>
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+        Actividad de la liga
+      </h3>
       {notificaciones.length === 0 ? (
         <p className="py-6 text-center text-sm text-neutral-500">
           Todavía no hay movimientos en tu liga.
@@ -282,6 +340,7 @@ export default function NotificacionesPage() {
           })}
         </ul>
       )}
+      </section>
     </div>
   );
 }

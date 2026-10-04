@@ -20,7 +20,7 @@ import {
   type ResultadoGuardado,
 } from "@/lib/supabase/adminQueries";
 import { fetchParticipantesPorTorneo, fetchTorneos } from "@/lib/supabase/torneosQueries";
-import type { Torneo } from "@/lib/torneos";
+import { ordenarTorneos, type Torneo } from "@/lib/torneos";
 import type { Categoria } from "@/lib/types";
 
 type Resultado = "victoria" | "tablas" | "derrota";
@@ -56,6 +56,10 @@ function filaDesdeGuardado(r: ResultadoGuardado): FilaEdicion {
   };
 }
 
+// Valor del desplegable de torneos para las jornadas antiguas, de antes de
+// existir los torneos.
+const SIN_TORNEO = "__sin_torneo__";
+
 function etiquetaJornada(j: JornadaAdmin): string {
   return j.torneoNombre
     ? `${j.torneoNombre} · Jornada ${j.numero}`
@@ -71,7 +75,9 @@ export default function AdminResultadosPage() {
   const [participantesPorTorneo, setParticipantesPorTorneo] = useState<
     Record<string, string[]>
   >({});
-  const [torneoNuevaId, setTorneoNuevaId] = useState<string>("");
+  // Torneo elegido en el primer desplegable; las jornadas que se ven (y la
+  // que se crea con "+ Nueva jornada") son siempre de este torneo.
+  const [torneoId, setTorneoId] = useState<string>("");
   const [errorJornada, setErrorJornada] = useState<string | null>(null);
   const [jornadaId, setJornadaId] = useState<string | null>(null);
   const [resultadosGuardados, setResultadosGuardados] = useState<
@@ -107,9 +113,11 @@ export default function AdminResultadosPage() {
       setJornadas(listaJornadas);
       setTorneos(listaTorneos);
       setParticipantesPorTorneo(participantes);
-      // Por defecto, el torneo de la última jornada; si no hay, el primero.
-      setTorneoNuevaId(listaJornadas[0]?.torneoId ?? listaTorneos[0]?.id ?? "");
-      setJornadaId(listaJornadas[0]?.id ?? null);
+      // Por defecto, el torneo de la última jornada creada (y esa jornada);
+      // si no hay jornadas, el primer torneo.
+      const ultima = listaJornadas[0];
+      setTorneoId(ultima ? (ultima.torneoId ?? SIN_TORNEO) : (listaTorneos[0]?.id ?? ""));
+      setJornadaId(ultima?.id ?? null);
       setCargando(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -149,6 +157,27 @@ export default function AdminResultadosPage() {
   }, [jornadaId]);
 
   const jornadaActual = jornadas.find((j) => j.id === jornadaId) ?? null;
+
+  // Jornadas del torneo elegido, de la primera a la última.
+  const jornadasDelTorneo = useMemo(
+    () =>
+      jornadas
+        .filter((j) => (j.torneoId ?? SIN_TORNEO) === torneoId)
+        .sort((a, b) => a.numero - b.numero),
+    [jornadas, torneoId]
+  );
+  const hayJornadasSinTorneo = jornadas.some((j) => !j.torneoId);
+  const torneoElegido = torneos.find((t) => t.id === torneoId) ?? null;
+
+  function onCambiarTorneo(nuevoId: string) {
+    setTorneoId(nuevoId);
+    setErrorJornada(null);
+    // Salta a la jornada más reciente del torneo (la de mayor número).
+    const delTorneo = jornadas
+      .filter((j) => (j.torneoId ?? SIN_TORNEO) === nuevoId)
+      .sort((a, b) => b.numero - a.numero);
+    setJornadaId(delTorneo[0]?.id ?? null);
+  }
   // Enlace de chess-results / Info64 guardado en la ficha del torneo.
   const urlTorneoImportable = (() => {
     const url = torneos.find((t) => t.id === jornadaActual?.torneoId)?.webUrl?.trim() ?? "";
@@ -252,10 +281,10 @@ export default function AdminResultadosPage() {
   }
 
   async function onCrearJornada() {
-    if (!torneoNuevaId) return;
+    if (!torneoElegido) return;
     setErrorJornada(null);
     setCreandoJornada(true);
-    const resultado = await crearJornadaDB(supabase, torneoNuevaId);
+    const resultado = await crearJornadaDB(supabase, torneoElegido.id);
     setCreandoJornada(false);
 
     if (!resultado.ok) {
@@ -290,7 +319,11 @@ export default function AdminResultadosPage() {
 
     const restantes = jornadas.filter((j) => j.id !== jornadaActual.id);
     setJornadas(restantes);
-    setJornadaId(restantes[0]?.id ?? null);
+    // Se queda en el mismo torneo, en su última jornada que quede.
+    const delMismoTorneo = restantes
+      .filter((j) => (j.torneoId ?? SIN_TORNEO) === torneoId)
+      .sort((a, b) => b.numero - a.numero);
+    setJornadaId(delMismoTorneo[0]?.id ?? null);
     setTorneos(await fetchTorneos(supabase));
   }
 
@@ -393,48 +426,57 @@ export default function AdminResultadosPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <select
-          value={jornadaId ?? ""}
-          onChange={(e) => setJornadaId(e.target.value || null)}
-          className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
-        >
-          {jornadas.length === 0 && <option value="">Sin jornadas todavía</option>}
-          {jornadas.map((j) => (
-            <option key={j.id} value={j.id}>
-              {etiquetaJornada(j)}
-            </option>
-          ))}
-        </select>
-
-        {torneos.length > 0 ? (
-          <>
-            <select
-              value={torneoNuevaId}
-              onChange={(e) => setTorneoNuevaId(e.target.value)}
-              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
-            >
-              {torneos.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.nombre} ({t.rondasCreadas}
-                  {t.numeroRondas != null ? `/${t.numeroRondas}` : ""} jornadas)
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={onCrearJornada}
-              disabled={creandoJornada || !torneoNuevaId}
-              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm disabled:opacity-40 dark:border-neutral-700"
-            >
-              {creandoJornada ? "Creando…" : "+ Nueva jornada"}
-            </button>
-          </>
-        ) : (
+        {torneos.length === 0 && !hayJornadasSinTorneo ? (
           <Link
             href="/admin/torneos"
             className="text-sm text-accent underline underline-offset-2"
           >
             Crea primero un torneo para poder añadir jornadas
           </Link>
+        ) : (
+          <>
+            <select
+              aria-label="Torneo"
+              value={torneoId}
+              onChange={(e) => onCambiarTorneo(e.target.value)}
+              className="min-w-0 max-w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+            >
+              {ordenarTorneos(torneos).map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.nombre} ({t.rondasCreadas}
+                  {t.numeroRondas != null ? `/${t.numeroRondas}` : ""} jornadas)
+                </option>
+              ))}
+              {hayJornadasSinTorneo && (
+                <option value={SIN_TORNEO}>Sin torneo (jornadas antiguas)</option>
+              )}
+            </select>
+
+            <select
+              aria-label="Jornada"
+              value={jornadaId ?? ""}
+              onChange={(e) => setJornadaId(e.target.value || null)}
+              disabled={jornadasDelTorneo.length === 0}
+              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm disabled:opacity-60 dark:border-neutral-700 dark:bg-neutral-900"
+            >
+              {jornadasDelTorneo.length === 0 && <option value="">Sin jornadas todavía</option>}
+              {jornadasDelTorneo.map((j) => (
+                <option key={j.id} value={j.id}>
+                  Jornada {j.numero}
+                </option>
+              ))}
+            </select>
+
+            {torneoElegido && (
+              <button
+                onClick={onCrearJornada}
+                disabled={creandoJornada}
+                className="rounded-lg border border-neutral-300 px-3 py-2 text-sm disabled:opacity-40 dark:border-neutral-700"
+              >
+                {creandoJornada ? "Creando…" : "+ Nueva jornada"}
+              </button>
+            )}
+          </>
         )}
 
         {jornadaActual && (
@@ -461,7 +503,9 @@ export default function AdminResultadosPage() {
 
       {!jornadaId && (
         <p className="py-6 text-center text-sm text-neutral-500">
-          Crea la primera jornada para empezar a introducir resultados.
+          {torneoElegido
+            ? "Este torneo todavía no tiene jornadas. Crea la primera con «+ Nueva jornada»."
+            : "Crea la primera jornada para empezar a introducir resultados."}
         </p>
       )}
 

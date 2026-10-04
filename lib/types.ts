@@ -224,3 +224,21 @@ export interface PuntoValorPlantilla {
   valor: number; // en M
   jugadores: number;
 }
+// Comunicado del administrador para todos los jugadores (ver 0066_comunicados.sql).
+export type EtiquetaComunicado =
+  | "importante"
+  | "actualizacion"
+  | "novedad"
+  | "aviso"
+  | "mercado"
+  | "torneo";
+
+export interface Comunicado {
+  id: string;
+  titulo: string;
+  cuerpo: string;
+  etiqueta: EtiquetaComunicado;
+  fijado: boolean;
+  creado: string; // ISO
+  caduca: string | null; // ISO; null = sin caducidad
+}

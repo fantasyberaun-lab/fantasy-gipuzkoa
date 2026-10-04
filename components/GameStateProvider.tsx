@@ -9,6 +9,7 @@ import {
 } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { redondear2 } from "@/lib/saldo";
+import { fetchComunicados } from "@/lib/supabase/comunicadosQueries";
 import { motivoBloqueoTitular } from "@/lib/titulares";
 import { clausulazosCerrados, MENSAJE_CLAUSULAZOS_CERRADOS } from "@/lib/mercadoCountdown";
 import {
@@ -45,6 +46,7 @@ import {
 } from "@/lib/supabase/queries";
 import type {
   ClasificacionEntry,
+  Comunicado,
   EquipoManager,
   JugadorLiga,
   LigaResumen,
@@ -59,6 +61,17 @@ import type {
 
 const EQUIPO_VACIO: EquipoManager = { id: "", leagueId: "", nombreEquipo: "", saldo: 0 };
 const LIGA_ACTIVA_KEY = "liga-activa-id";
+// Instante (ms) hasta el que el usuario ha visto los comunicados. Se guarda en
+// el navegador: los comunicados son globales, no de una liga concreta.
+const COMUNICADOS_VISTOS_KEY = "comunicados-vistos-en";
+
+function leerComunicadosVistos(): number {
+  try {
+    return Number(localStorage.getItem(COMUNICADOS_VISTOS_KEY)) || 0;
+  } catch {
+    return 0;
+  }
+}
 
 export function calcularClausula(valorMercado: number) {
   return Math.ceil(valorMercado * 1.5);
@@ -94,6 +107,13 @@ interface GameState {
   notificaciones: Notificacion[];
   notificacionesVistasEn: number;
   notificacionesNoLeidas: number;
+  // Comunicados del administrador (vigentes), para todas las ligas.
+  comunicados: Comunicado[];
+  comunicadosVistosEn: number;
+  comunicadosNoLeidos: number;
+  marcarComunicadosVistos: () => void;
+  // Lo que enseña el globo de la pestaña Avisos: notificaciones + comunicados.
+  avisosNoLeidos: number;
   marcarNotificacionesVistas: () => Promise<void>;
   toggleTitular: (id: string) => Promise<ResultadoAccion>;
   toggleCapitan: (id: string) => Promise<ResultadoAccion>;
@@ -156,6 +176,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const [clasificacion, setClasificacion] = useState<ClasificacionEntry[]>([]);
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
   const [notificacionesVistasEn, setNotificacionesVistasEn] = useState(() => Date.now());
+  const [comunicados, setComunicados] = useState<Comunicado[]>([]);
+  const [comunicadosVistosEn, setComunicadosVistosEn] = useState(0);
 
   async function cargarTodo(forzarLigaId?: string) {
     const {
@@ -194,7 +216,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     };
     setEquipo(miEquipo);
 
-    const [plantilla, ligaJugadores, misOfertas, ofertasParaMi, jugadoresMercado, pujas, tabla, avisos, rivales] =
+    const [plantilla, ligaJugadores, misOfertas, ofertasParaMi, jugadoresMercado, pujas, tabla, avisos, rivales, listaComunicados] =
       await Promise.all([
         fetchMiPlantilla(supabase, miEquipo.id),
         fetchJugadoresLiga(supabase, miEquipo.leagueId, miEquipo.id),
@@ -217,8 +239,12 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
           : fetchNotificaciones(supabase, miEquipo.leagueId, miEquipo.id),
         // Si falla, simplemente no se muestran rivales.
         fetchProximosRivales(supabase).catch(() => ({} as Record<string, ProximoRival[]>)),
+        // Los comunicados los ven todas las ligas, también la pública.
+        fetchComunicados(supabase).catch(() => [] as Comunicado[]),
       ]);
 
+    setComunicados(listaComunicados);
+    setComunicadosVistosEn(leerComunicadosVistos());
     setSquad(
       plantilla.map(({ titular: _titular, capitan: _capitan, ...resto }) => ({
         ...resto,
@@ -300,6 +326,46 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [equipo.id, equipo.leagueId, esLigaPublica]);
 
+  // Los comunicados nuevos (o editados/borrados) llegan por Realtime; red de
+  // seguridad: se recargan al volver a la pestaña del navegador.
+  useEffect(() => {
+    if (!equipo.id) return;
+
+    const recargar = async () => setComunicados(await fetchComunicados(supabase));
+
+    const canal = supabase
+      .channel("comunicados")
+      .on("postgres_changes", { event: "*", schema: "public", table: "comunicados" }, () => {
+        recargar();
+      })
+      .subscribe();
+
+    const alVolver = () => {
+      if (document.visibilityState === "visible") recargar();
+    };
+    document.addEventListener("visibilitychange", alVolver);
+
+    return () => {
+      supabase.removeChannel(canal);
+      document.removeEventListener("visibilitychange", alVolver);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [equipo.id]);
+
+  function marcarComunicadosVistos() {
+    const ahora = Date.now();
+    try {
+      localStorage.setItem(COMUNICADOS_VISTOS_KEY, String(ahora));
+    } catch {
+      // no es crítico
+    }
+    setComunicadosVistosEn(ahora);
+  }
+
+  const comunicadosNoLeidos = comunicados.filter(
+    (c) => Date.parse(c.creado) > comunicadosVistosEn
+  ).length;
+
   async function marcarNotificacionesVistas() {
     if (!equipo.leagueId || esLigaPublica) return;
     const vistasEn = await marcarNotificacionesVistasDB(supabase, equipo.leagueId);
@@ -309,6 +375,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const notificacionesNoLeidas = notificaciones.filter(
     (n) => n.actorId !== equipo.id && Date.parse(n.creada) > notificacionesVistasEn
   ).length;
+
+  const avisosNoLeidos = notificacionesNoLeidas + comunicadosNoLeidos;
 
   async function toggleTitular(id: string): Promise<ResultadoAccion> {
     const nuevoValor = !titulares[id];
@@ -539,6 +607,11 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         notificaciones,
         notificacionesVistasEn,
         notificacionesNoLeidas,
+        comunicados,
+        comunicadosVistosEn,
+        comunicadosNoLeidos,
+        marcarComunicadosVistos,
+        avisosNoLeidos,
         marcarNotificacionesVistas,
         toggleTitular,
         toggleCapitan,

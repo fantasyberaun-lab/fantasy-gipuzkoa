@@ -17,7 +17,8 @@ import {
 const CLAVE_ESTADO = "clasificacion:estado-al-volver";
 
 interface EstadoGuardado {
-  orden: string;
+  torneo: string;
+  jornada: string;
   busqueda: string;
   visibles: number;
   equipoAbierto: string | null;
@@ -27,17 +28,24 @@ interface EstadoGuardado {
   scrollY: number;
 }
 
-// "total", o el id de una jornada concreta (la numeración de jornadas
-// empieza en 1 en cada torneo, así que el número solo no la identifica).
-type Orden = "total" | string;
+// Clave de los puntos totales y de las jornadas antiguas sin torneo.
+const TOTAL = "total";
+const SIN_TORNEO = "__sin_torneo__";
 
 // Cuántos equipos se pintan de golpe (con cientos de managers, la lista entera es inmanejable).
 const TAMANO_PAGINA = 50;
 
 interface JornadaOpcion {
-  clave: string;
-  etiqueta: string;
+  clave: string; // id de la jornada (el número solo no la identifica: cada torneo empieza en 1)
+  numero: number;
   creada: string;
+}
+
+interface TorneoOpcion {
+  clave: string; // nombre del torneo (o SIN_TORNEO)
+  etiqueta: string;
+  ultima: string; // fecha de creación de su jornada más reciente
+  jornadas: JornadaOpcion[];
 }
 
 export default function ClasificacionPage() {
@@ -58,7 +66,10 @@ export default function ClasificacionPage() {
   const totalManagers =
     misLigas.find((l) => l.ligaId === equipo.leagueId)?.miembros ?? clasificacion.length;
 
-  const [orden, setOrden] = useState<Orden>("total");
+  // Primer desplegable: "total" o un torneo. Segundo (solo con torneo elegido):
+  // "" = todo el torneo, o el id de una jornada concreta.
+  const [torneoSel, setTorneoSel] = useState<string>(TOTAL);
+  const [jornadaSel, setJornadaSel] = useState<string>("");
   const [busqueda, setBusqueda] = useState("");
   const [visibles, setVisibles] = useState(TAMANO_PAGINA);
   // Liga pública: plantilla del equipo abierto (se pide a la base de datos al abrirlo).
@@ -77,7 +88,8 @@ export default function ClasificacionPage() {
 
   const estadoRef = useRef<EstadoGuardado | null>(null);
   estadoRef.current = {
-    orden,
+    torneo: torneoSel,
+    jornada: jornadaSel,
     busqueda,
     visibles,
     equipoAbierto,
@@ -113,7 +125,8 @@ export default function ClasificacionPage() {
       return;
     }
     if (!guardado) return;
-    setOrden(guardado.orden);
+    setTorneoSel(guardado.torneo ?? TOTAL);
+    setJornadaSel(guardado.jornada ?? "");
     setBusqueda(guardado.busqueda);
     setVisibles(guardado.visibles);
     setEquipoAbierto(guardado.equipoAbierto);
@@ -132,38 +145,65 @@ export default function ClasificacionPage() {
     setTimeout(() => window.scrollTo(0, y), 100);
   }, []);
 
-  // Jornadas que aparecen en el historial de algún equipo, por orden de
-  // creación (sin repetir).
-  const jornadasDisponibles = useMemo(() => {
-    const porClave = new Map<string, JornadaOpcion>();
+  // Torneos con jornadas en el historial de algún equipo; cada uno con sus
+  // jornadas (sin repetir). El más reciente primero.
+  const torneosDisponibles = useMemo(() => {
+    const porTorneo = new Map<string, TorneoOpcion>();
     for (const entry of clasificacion) {
       for (const h of entry.historialPuntos) {
-        const clave = h.id ?? String(h.jornada);
-        if (porClave.has(clave)) continue;
-        porClave.set(clave, {
-          clave,
-          etiqueta: h.torneo ? `${h.torneo} · Jornada ${h.jornada}` : `Jornada ${h.jornada}`,
-          creada: h.creada ?? "",
-        });
+        const claveTorneo = h.torneo ?? SIN_TORNEO;
+        let t = porTorneo.get(claveTorneo);
+        if (!t) {
+          t = {
+            clave: claveTorneo,
+            etiqueta: h.torneo ?? "Sin torneo",
+            ultima: "",
+            jornadas: [],
+          };
+          porTorneo.set(claveTorneo, t);
+        }
+        const claveJornada = h.id ?? `${claveTorneo}:${h.jornada}`;
+        if (t.jornadas.some((j) => j.clave === claveJornada)) continue;
+        t.jornadas.push({ clave: claveJornada, numero: h.jornada, creada: h.creada ?? "" });
+        if ((h.creada ?? "") > t.ultima) t.ultima = h.creada ?? "";
       }
     }
-    return [...porClave.values()].sort((a, b) => a.creada.localeCompare(b.creada));
+    const lista = [...porTorneo.values()];
+    for (const t of lista) t.jornadas.sort((a, b) => a.numero - b.numero);
+    return lista.sort((a, b) => b.ultima.localeCompare(a.ultima));
   }, [clasificacion]);
 
+  const torneoActual = torneosDisponibles.find((t) => t.clave === torneoSel) ?? null;
+  const jornadaActual = torneoActual?.jornadas.find((j) => j.clave === jornadaSel) ?? null;
+
+  const claveJornadaDe = (h: (typeof clasificacion)[number]["historialPuntos"][number]) =>
+    h.id ?? `${h.torneo ?? SIN_TORNEO}:${h.jornada}`;
+
+  // Texto que acompaña a los puntos de cada fila.
   const etiquetaOrden =
-    jornadasDisponibles.find((j) => j.clave === orden)?.etiqueta ?? "";
+    torneoSel === TOTAL
+      ? "este año"
+      : jornadaActual
+        ? `${torneoActual?.etiqueta} · J${jornadaActual.numero}`
+        : (torneoActual?.etiqueta ?? "");
 
   const puntosParaOrden = (entry: (typeof clasificacion)[number]) => {
-    if (orden === "total") return entry.puntos;
-    return (
-      entry.historialPuntos.find((h) => (h.id ?? String(h.jornada)) === orden)?.puntos ?? 0
-    );
+    if (torneoSel === TOTAL) return entry.puntos;
+    if (jornadaActual) {
+      return (
+        entry.historialPuntos.find((h) => claveJornadaDe(h) === jornadaActual.clave)?.puntos ?? 0
+      );
+    }
+    // Todo el torneo: suma de sus jornadas.
+    return entry.historialPuntos
+      .filter((h) => (h.torneo ?? SIN_TORNEO) === torneoSel)
+      .reduce((total, h) => total + h.puntos, 0);
   };
 
   const clasificacionOrdenada = useMemo(() => {
     return [...clasificacion].sort((a, b) => puntosParaOrden(b) - puntosParaOrden(a));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orden, clasificacion]);
+  }, [torneoSel, jornadaSel, clasificacion]);
 
   if (cargando) {
     return <p className="text-sm text-neutral-500">Cargando clasificación…</p>;
@@ -262,18 +302,39 @@ export default function ClasificacionPage() {
             </p>
           )}
         </div>
-        <select
-          value={orden}
-          onChange={(e) => setOrden(e.target.value)}
-          className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
-        >
-          <option value="total">Puntos totales</option>
-          {jornadasDisponibles.map((j) => (
-            <option key={j.clave} value={j.clave}>
-              {j.etiqueta}
-            </option>
-          ))}
-        </select>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <select
+            aria-label="Torneo"
+            value={torneoSel}
+            onChange={(e) => {
+              setTorneoSel(e.target.value);
+              setJornadaSel("");
+            }}
+            className="min-w-0 rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900 sm:max-w-xs"
+          >
+            <option value={TOTAL}>Puntos totales</option>
+            {torneosDisponibles.map((t) => (
+              <option key={t.clave} value={t.clave}>
+                {t.etiqueta}
+              </option>
+            ))}
+          </select>
+          {torneoActual && (
+            <select
+              aria-label="Jornada"
+              value={jornadaSel}
+              onChange={(e) => setJornadaSel(e.target.value)}
+              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+            >
+              <option value="">Todo el torneo</option>
+              {torneoActual.jornadas.map((j) => (
+                <option key={j.clave} value={j.clave}>
+                  Jornada {j.numero}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
       </div>
 
       {esLigaPublica && clasificacion.length > 0 && (
@@ -357,7 +418,7 @@ export default function ClasificacionPage() {
               <span className="whitespace-nowrap font-medium">
                 {puntosParaOrden(entry)} pts{" "}
                 <span className="text-neutral-500">
-                  {orden === "total" ? "este año" : etiquetaOrden}
+                  {etiquetaOrden}
                 </span>
               </span>
               {!entry.esMiEquipo && !esLigaPublica && (
