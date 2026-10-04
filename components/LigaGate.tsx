@@ -11,10 +11,10 @@ export default function LigaGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
 
-  // En la liga pública no existen la lista de jugadores con clausulazos ni los
-  // avisos: si alguien entra por un enlace antiguo, se le lleva al Mercado.
-  const rutaNoDisponible =
-    esLigaPublica && (pathname === "/jugadores" || pathname === "/notificaciones");
+  // En la liga pública no existe la lista de jugadores con clausulazos: si
+  // alguien entra por un enlace antiguo, se le lleva al Mercado. Los avisos
+  // (/notificaciones) sí existen: comunicados + ingresos por ronda.
+  const rutaNoDisponible = esLigaPublica && pathname === "/jugadores";
 
   useEffect(() => {
     if (rutaNoDisponible) router.replace("/mercado");
