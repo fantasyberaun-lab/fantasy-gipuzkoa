@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { fetchActividad, type Actividad } from "@/lib/supabase/actividadQueries";
+import { fetchActividad, type Actividad, type Ubicacion } from "@/lib/supabase/actividadQueries";
 
 const PERIODOS = [
   { dias: 7, texto: "7 días" },
@@ -19,6 +19,32 @@ const NOMBRE_RUTA: Record<string, string> = {
   "/torneos": "Torneos",
   "/notificaciones": "Avisos",
 };
+
+// El código de región llega de Vercel como ISO 3166-2. Para España se traduce a
+// nombre; si llega algo que no está aquí (otro país, otro nivel), se enseña el código tal cual.
+const REGIONES_ES: Record<string, string> = {
+  AN: "Andalucía", AR: "Aragón", AS: "Asturias", CB: "Cantabria", CE: "Ceuta",
+  CL: "Castilla y León", CM: "Castilla-La Mancha", CN: "Canarias", CT: "Cataluña",
+  EX: "Extremadura", GA: "Galicia", IB: "Illes Balears", MC: "Murcia", MD: "Madrid",
+  ML: "Melilla", NC: "Navarra", PV: "País Vasco", RI: "La Rioja", VC: "Comunitat Valenciana",
+  SS: "Gipuzkoa", BI: "Bizkaia", VI: "Araba/Álava",
+};
+
+function textoUbicacion(u: Ubicacion | null): string {
+  if (!u || (!u.pais && !u.region && !u.ciudad)) return "Sin datos";
+  let ambito = "";
+  if (u.pais === "ES") {
+    ambito = REGIONES_ES[u.region] ?? u.region;
+  } else if (u.pais) {
+    try {
+      ambito = new Intl.DisplayNames(["es"], { type: "region" }).of(u.pais) ?? u.pais;
+    } catch {
+      ambito = u.pais;
+    }
+  }
+  if (u.ciudad && ambito) return `${u.ciudad} (${ambito})`;
+  return u.ciudad || ambito;
+}
 
 function hace(iso: string | null): string {
   if (!iso) return "Nunca";
@@ -180,6 +206,27 @@ export default function AdminActividadPage() {
       </section>
 
       <section>
+        <h3 className="mb-2 text-sm font-semibold">Desde dónde entran ({dias} días)</h3>
+        {datos.ubicaciones.length === 0 ? (
+          <p className="text-sm text-neutral-500">Todavía no hay ubicaciones registradas.</p>
+        ) : (
+          <ul className="flex flex-col divide-y divide-neutral-200 dark:divide-neutral-800">
+            {datos.ubicaciones.map((l) => (
+              <li key={`${l.pais}-${l.region}-${l.ciudad}`} className="flex items-center justify-between gap-3 py-1.5 text-sm">
+                <span className="min-w-0 truncate font-medium">{textoUbicacion(l)}</span>
+                <span className="shrink-0 text-xs text-neutral-500">
+                  {l.managers} managers · {l.visitas} visitas
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="mt-2 text-xs text-neutral-500">
+          Ubicación aproximada deducida de la IP (puede fallar en móvil o con VPN). No se guarda la IP.
+        </p>
+      </section>
+
+      <section>
         <div className="mb-2 flex flex-wrap items-center gap-3">
           <h3 className="text-sm font-semibold">Managers</h3>
           <input
@@ -197,10 +244,11 @@ export default function AdminActividadPage() {
         </div>
 
         <div className="overflow-x-auto rounded-xl border border-neutral-200 dark:border-neutral-800">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="bg-neutral-50 text-xs text-neutral-500 dark:bg-neutral-900">
               <tr>
                 <th className="px-3 py-2 font-medium">Manager</th>
+                <th className="px-3 py-2 font-medium">Ubicación habitual</th>
                 <th className="px-3 py-2 font-medium">Última actividad</th>
                 <th className="px-3 py-2 font-medium">Último login</th>
                 <th className="px-3 py-2 text-right font-medium">Días activo</th>
@@ -211,7 +259,7 @@ export default function AdminActividadPage() {
             <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
               {cargando && (
                 <tr>
-                  <td colSpan={6} className="px-3 py-4 text-center text-neutral-500">
+                  <td colSpan={7} className="px-3 py-4 text-center text-neutral-500">
                     Actualizando…
                   </td>
                 </tr>
@@ -223,6 +271,7 @@ export default function AdminActividadPage() {
                       <p className="font-medium">{u.nombre}</p>
                       {u.equipos && <p className="text-xs text-neutral-500">{u.equipos}</p>}
                     </td>
+                    <td className="px-3 py-2 text-neutral-500">{textoUbicacion(u.ubicacion)}</td>
                     <td className="px-3 py-2">{hace(u.ultimaActividad)}</td>
                     <td className="px-3 py-2 text-neutral-500">{hace(u.ultimoLogin)}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{u.diasActivos}</td>

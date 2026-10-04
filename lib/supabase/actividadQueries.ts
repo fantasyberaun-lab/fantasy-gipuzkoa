@@ -1,5 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+export interface Ubicacion {
+  pais: string; // "ES"
+  region: string; // código ISO 3166-2, p. ej. "PV"
+  ciudad: string;
+}
+
 export interface ActividadUsuario {
   id: string;
   nombre: string;
@@ -10,6 +16,7 @@ export interface ActividadUsuario {
   diasActivos: number;
   visitas: number;
   operaciones: number;
+  ubicacion: Ubicacion | null; // la más frecuente del periodo
 }
 
 export interface Actividad {
@@ -27,6 +34,7 @@ export interface Actividad {
   };
   porDia: { dia: string; usuarios: number; visitas: number }[];
   paginas: { ruta: string; visitas: number; usuarios: number }[];
+  ubicaciones: (Ubicacion & { managers: number; visitas: number })[];
   usuarios: ActividadUsuario[];
 }
 
@@ -63,6 +71,13 @@ export async function fetchActividad(
         visitas: Number(p.visitas),
         usuarios: Number(p.usuarios),
       })),
+      ubicaciones: (data.ubicaciones ?? []).map((l: any) => ({
+        pais: l.pais ?? "",
+        region: l.region ?? "",
+        ciudad: l.ciudad ?? "",
+        managers: Number(l.managers ?? 0),
+        visitas: Number(l.visitas ?? 0),
+      })),
       usuarios: (data.usuarios ?? []).map((u: any) => ({
         id: u.id,
         nombre: u.nombre,
@@ -73,6 +88,13 @@ export async function fetchActividad(
         diasActivos: Number(u.dias_activos ?? 0),
         visitas: Number(u.visitas ?? 0),
         operaciones: Number(u.operaciones ?? 0),
+        ubicacion: u.ubicacion
+          ? {
+              pais: u.ubicacion.pais ?? "",
+              region: u.ubicacion.region ?? "",
+              ciudad: u.ubicacion.ciudad ?? "",
+            }
+          : null,
       })),
     },
   };

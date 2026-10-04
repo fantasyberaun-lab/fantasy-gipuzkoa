@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 
 const MISMA_RUTA_MS = 30_000; // no se cuenta dos veces la misma pantalla en 30 s
 const VOLVER_TRAS_MS = 30 * 60_000; // la app (PWA) puede quedarse abierta horas
@@ -19,11 +18,10 @@ function normalizarRuta(ruta: string): string {
     .join("/");
 }
 
-// No pinta nada: anota en Supabase (registrar_actividad) qué pantalla abre cada
+// No pinta nada: anota (vía /api/actividad -> registrar_actividad) qué pantalla abre cada
 // manager, para las métricas de Admin > Actividad. Si falla, no pasa nada.
 export default function ActividadTracker() {
   const pathname = usePathname();
-  const supabase = createClient();
   const ultimo = useRef<{ ruta: string; en: number }>({ ruta: "", en: 0 });
 
   function registrar(ruta: string) {
@@ -31,10 +29,14 @@ export default function ActividadTracker() {
     const ahora = Date.now();
     if (ultimo.current.ruta === normalizada && ahora - ultimo.current.en < MISMA_RUTA_MS) return;
     ultimo.current = { ruta: normalizada, en: ahora };
-    supabase.rpc("registrar_actividad", { p_ruta: normalizada }).then(
-      () => {},
-      () => {}
-    );
+    // Pasa por el servidor (y no directo a Supabase) para que Vercel añada la
+    // ubicación aproximada de la petición. Ver app/api/actividad/route.ts.
+    fetch("/api/actividad", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ruta: normalizada }),
+      keepalive: true,
+    }).catch(() => {});
   }
 
   useEffect(() => {
