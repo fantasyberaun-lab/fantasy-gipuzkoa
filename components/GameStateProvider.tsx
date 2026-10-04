@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -11,7 +12,11 @@ import { createClient } from "@/lib/supabase/client";
 import { redondear2 } from "@/lib/saldo";
 import { fetchComunicados } from "@/lib/supabase/comunicadosQueries";
 import { motivoBloqueoTitular } from "@/lib/titulares";
-import { clausulazosCerrados, MENSAJE_CLAUSULAZOS_CERRADOS } from "@/lib/mercadoCountdown";
+import {
+  clausulazosCerrados,
+  MENSAJE_CLAUSULAZOS_CERRADOS,
+  proximaTandaMercado,
+} from "@/lib/mercadoCountdown";
 import {
   aceptarOfertaDB,
   blindarJugadorDB,
@@ -182,7 +187,13 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const [comunicados, setComunicados] = useState<Comunicado[]>([]);
   const [comunicadosVistosEn, setComunicadosVistosEn] = useState(0);
 
+  // Cuándo se cargaron los datos del juego por última vez y si hay una recarga en
+  // marcha. Sirven para refrescar el mercado solos cuando se resuelve una tanda.
+  const ultimaCargaRef = useRef(Date.now());
+  const recargandoRef = useRef(false);
+
   async function cargarTodo(forzarLigaId?: string) {
+    ultimaCargaRef.current = Date.now();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -289,6 +300,51 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     cargarTodo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // El mercado se resuelve a las 8:00, 17:00 y 23:00 (Madrid). Sin este efecto,
+  // quien tuviera la app abierta seguiría viendo la tanda anterior (con jugadores
+  // que acaban de ser fichados) hasta recargar la página. Se recarga todo:
+  //   - 60 s después de cada tanda (margen para que termine de resolverse),
+  //   - al volver a la pestaña si ha pasado una tanda o llevan más de 5 min sin cargar.
+  useEffect(() => {
+    const MARGEN_MS = 60_000;
+    const MAX_SIN_CARGAR_MS = 5 * 60_000;
+
+    async function recargarSiToca(alVolver: boolean) {
+      if (recargandoRef.current) return;
+
+      const ahora = Date.now();
+      const desdeCarga = ahora - ultimaCargaRef.current;
+      // ¿Ha habido una tanda desde la última carga (y ya pasó el margen)?
+      const tandaPasada =
+        proximaTandaMercado(new Date(ultimaCargaRef.current - MARGEN_MS)).getTime() + MARGEN_MS <= ahora;
+      const demasiadoViejo = alVolver && desdeCarga > MAX_SIN_CARGAR_MS;
+
+      if (!tandaPasada && !demasiadoViejo) return;
+
+      recargandoRef.current = true;
+      try {
+        await cargarTodo();
+      } finally {
+        recargandoRef.current = false;
+      }
+    }
+
+    const intervalo = setInterval(() => {
+      if (document.visibilityState === "visible") recargarSiToca(false);
+    }, 15_000);
+
+    const alVolver = () => {
+      if (document.visibilityState === "visible") recargarSiToca(true);
+    };
+    document.addEventListener("visibilitychange", alVolver);
+
+    return () => {
+      clearInterval(intervalo);
+      document.removeEventListener("visibilitychange", alVolver);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
