@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/react";
 import PwaProvider from "@/components/PwaProvider";
 
 const fontSans = Barlow({
@@ -60,6 +61,8 @@ export default function RootLayout({
     >
       <body className="min-h-screen font-sans antialiased">
         <PwaProvider>{children}</PwaProvider>
+        {/* Visitas, páginas, país y dispositivo (sin cookies). Se ve en Vercel > Analytics. */}
+        <Analytics />
       </body>
     </html>
   );

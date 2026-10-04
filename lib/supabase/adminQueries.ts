@@ -178,12 +178,10 @@ export interface JornadaAdmin {
   // null solo en jornadas antiguas, de antes de existir los torneos.
   torneoId: string | null;
   torneoNombre: string | null;
-  // Cuándo se terminó (se pagaron los millones por punto); null = abierta.
-  terminadaEn: string | null;
 }
 
 const COLUMNAS_JORNADA =
-  "id, numero, fecha_inicio, fecha_fin, tournament_id, tournaments (nombre), terminada_en";
+  "id, numero, fecha_inicio, fecha_fin, tournament_id, tournaments (nombre)";
 
 function mapearJornada(m: any): JornadaAdmin {
   return {
@@ -193,7 +191,6 @@ function mapearJornada(m: any): JornadaAdmin {
     fechaFin: m.fecha_fin,
     torneoId: m.tournament_id ?? null,
     torneoNombre: m.tournaments?.nombre ?? null,
-    terminadaEn: m.terminada_en ?? null,
   };
 }
 
@@ -264,28 +261,67 @@ export async function fetchPagoPorPunto(supabase: Supabase): Promise<number> {
   return Number.isFinite(n) && n >= 0 ? n : 1;
 }
 
-export interface ResumenPagoJornada {
-  yaTerminada: boolean;
+// La JORNADA es el fin de semana completo (todos sus torneos); la RONDA es
+// una fila de matchdays. Esto dice a qué jornada pertenece cada ronda.
+export interface JornadaFinde {
+  semana: string; // el sábado, "YYYY-MM-DD"
+  numero: number; // jornada 1, 2, 3...
+  cerradaEn: string | null;
+}
+
+export async function fetchJornadasSemanales(
+  supabase: Supabase
+): Promise<Record<string, JornadaFinde>> {
+  const { data, error } = await supabase.rpc("jornadas_semanales");
+  const porRonda: Record<string, JornadaFinde> = {};
+  if (error || !data) return porRonda;
+  for (const r of data as any[]) {
+    porRonda[r.matchday_id] = {
+      semana: r.semana,
+      numero: Number(r.numero),
+      cerradaEn: r.terminada_en ?? null,
+    };
+  }
+  return porRonda;
+}
+
+// Cuántos resultados hay guardados en cada ronda.
+export async function fetchConteoResultados(
+  supabase: Supabase,
+  matchdayIds: string[]
+): Promise<Record<string, number>> {
+  const pares = await Promise.all(
+    matchdayIds.map(async (id) => {
+      const { count } = await supabase
+        .from("results")
+        .select("*", { count: "exact", head: true })
+        .eq("matchday_id", id);
+      return [id, count ?? 0] as const;
+    })
+  );
+  return Object.fromEntries(pares);
+}
+
+export interface ResumenCierreJornada {
+  yaCerrada: boolean;
   equiposPagados: number;
   puntos: number;
   millones: number;
 }
 
-// Termina la ronda y paga los millones por punto. Si ya estaba terminada,
-// recalcula: cada equipo recibe o devuelve solo la diferencia.
-export async function terminarJornadaDB(
+// Cierra la jornada (el fin de semana) y paga los millones por punto. Si ya
+// estaba cerrada, recalcula: cada equipo recibe o devuelve solo la diferencia.
+export async function cerrarJornadaDB(
   supabase: Supabase,
-  matchdayId: string
-): Promise<{ ok: true; resumen: ResumenPagoJornada } | { ok: false; mensaje: string }> {
-  const { data, error } = await supabase.rpc("terminar_jornada", {
-    p_matchday_id: matchdayId,
-  });
+  semana: string
+): Promise<{ ok: true; resumen: ResumenCierreJornada } | { ok: false; mensaje: string }> {
+  const { data, error } = await supabase.rpc("cerrar_jornada", { p_semana: semana });
   if (error) return { ok: false, mensaje: error.message };
-  if (!data?.ok) return { ok: false, mensaje: data?.mensaje ?? "No se pudo terminar la ronda." };
+  if (!data?.ok) return { ok: false, mensaje: data?.mensaje ?? "No se pudo cerrar la jornada." };
   return {
     ok: true,
     resumen: {
-      yaTerminada: Boolean(data.ya_terminada),
+      yaCerrada: Boolean(data.ya_cerrada),
       equiposPagados: Number(data.equipos_pagados ?? 0),
       puntos: Number(data.puntos ?? 0),
       millones: Number(data.millones ?? 0),

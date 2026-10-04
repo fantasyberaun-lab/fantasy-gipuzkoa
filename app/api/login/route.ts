@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
+import { canjearClaveTemporal } from "@/lib/recuperacion";
 
 // Inicio de sesión con email O nombre de usuario en el mismo campo.
 //
@@ -81,6 +82,18 @@ export async function POST(request: Request) {
     if (error.status === 429) {
       return respuestaError("Demasiados intentos. Espera un momento.", 429);
     }
+
+    // ¿Es la contraseña temporal de "He olvidado la contraseña"? Si lo es, se
+    // canjea (pasa a ser su contraseña) y se inicia sesión con ella. Ver
+    // lib/recuperacion.ts y app/api/recuperar/route.ts.
+    if (await canjearClaveTemporal(email, password)) {
+      const { error: errorTemporal } = await supabase.auth.signInWithPassword({
+        email,
+        password: password.trim(),
+      });
+      if (!errorTemporal) return NextResponse.json({ ok: true });
+    }
+
     return respuestaError(ERROR_CREDENCIALES, 401);
   }
 

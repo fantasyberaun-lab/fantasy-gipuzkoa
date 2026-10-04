@@ -13,7 +13,7 @@ export const RESPONSABLE = {
 } as const;
 
 export const VERSION_PRIVACIDAD = "2.1";
-export const FECHA_PRIVACIDAD = "30 de septiembre de 2026";
+export const FECHA_PRIVACIDAD = "4 de octubre de 2026";
 
 export const VERSION_CONDICIONES = "1.0";
 export const FECHA_CONDICIONES = "30 de septiembre de 2026";

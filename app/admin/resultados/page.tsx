@@ -11,7 +11,9 @@ import {
   crearJornadaDB,
   borrarJornadaDB,
   fetchPagoPorPunto,
-  terminarJornadaDB,
+  fetchJornadasSemanales,
+  fetchConteoResultados,
+  cerrarJornadaDB,
   fetchResultadosDeJornada,
   fetchDescansosDeJornada,
   guardarResultadoDB,
@@ -19,6 +21,7 @@ import {
   borrarResultadoDB,
   type JugadorAdmin,
   type JornadaAdmin,
+  type JornadaFinde,
   type ResultadoGuardado,
 } from "@/lib/supabase/adminQueries";
 import { fetchParticipantesPorTorneo, fetchTorneos } from "@/lib/supabase/torneosQueries";
@@ -92,9 +95,14 @@ export default function AdminResultadosPage() {
   const [cargandoJornada, setCargandoJornada] = useState(false);
   const [creandoJornada, setCreandoJornada] = useState(false);
   const [borrandoJornada, setBorrandoJornada] = useState(false);
-  const [terminando, setTerminando] = useState(false);
+  const [cerrando, setCerrando] = useState(false);
   const [pagoPorPunto, setPagoPorPunto] = useState(1);
-  const [avisoTerminar, setAvisoTerminar] = useState<string | null>(null);
+  const [avisoCierre, setAvisoCierre] = useState<string | null>(null);
+  // Jornada (fin de semana) de cada ronda, y la jornada elegida en su desplegable
+  // ("" = ninguna; entonces se trabaja por torneo y ronda).
+  const [finde, setFinde] = useState<Record<string, JornadaFinde>>({});
+  const [semanaSel, setSemanaSel] = useState<string>("");
+  const [conteos, setConteos] = useState<Record<string, number>>({});
   const [guardandoId, setGuardandoId] = useState<string | null>(null);
   const [mensajePorJugador, setMensajePorJugador] = useState<
     Record<string, { tipo: "ok" | "error"; texto: string }>
@@ -107,15 +115,17 @@ export default function AdminResultadosPage() {
   useEffect(() => {
     (async () => {
       setCargando(true);
-      const [listaJugadores, listaJornadas, listaTorneos, participantes, tarifa] =
+      const [listaJugadores, listaJornadas, listaTorneos, participantes, tarifa, semanas] =
         await Promise.all([
           fetchTodosLosJugadores(supabase),
           fetchJornadas(supabase),
           fetchTorneos(supabase),
           fetchParticipantesPorTorneo(supabase),
           fetchPagoPorPunto(supabase),
+          fetchJornadasSemanales(supabase),
         ]);
       setPagoPorPunto(tarifa);
+      setFinde(semanas);
       setJugadores(listaJugadores);
       setJornadas(listaJornadas);
       setTorneos(listaTorneos);
@@ -129,8 +139,8 @@ export default function AdminResultadosPage() {
   }, []);
 
   useEffect(() => {
-    setAvisoTerminar(null);
-  }, [jornadaId]);
+    setAvisoCierre(null);
+  }, [semanaSel]);
 
   useEffect(() => {
     if (!jornadaId) {
@@ -178,10 +188,70 @@ export default function AdminResultadosPage() {
   const hayJornadasSinTorneo = jornadas.some((j) => !j.torneoId);
   const torneoElegido = torneos.find((t) => t.id === torneoId) ?? null;
 
+  // Jornadas (fines de semana) con sus rondas, la más reciente primero.
+  const jornadasFinde = useMemo(() => {
+    const porSemana = new Map<
+      string,
+      { semana: string; numero: number; cerradaEn: string | null; rondas: JornadaAdmin[] }
+    >();
+    for (const ronda of jornadas) {
+      const f = finde[ronda.id];
+      if (!f) continue;
+      let g = porSemana.get(f.semana);
+      if (!g) {
+        g = { semana: f.semana, numero: f.numero, cerradaEn: f.cerradaEn, rondas: [] };
+        porSemana.set(f.semana, g);
+      }
+      g.rondas.push(ronda);
+    }
+    return [...porSemana.values()].sort((a, b) => b.numero - a.numero);
+  }, [jornadas, finde]);
+
+  const findeActual = jornadasFinde.find((g) => g.semana === semanaSel) ?? null;
+
+  // Cuántos resultados tiene cada ronda de la jornada elegida.
+  useEffect(() => {
+    if (!findeActual) return;
+    let cancelado = false;
+    fetchConteoResultados(
+      supabase,
+      findeActual.rondas.map((r) => r.id)
+    ).then((c) => {
+      if (!cancelado) setConteos(c);
+    });
+    return () => {
+      cancelado = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [semanaSel, findeActual?.rondas.length]);
+
+  const fechaFinde = (semana: string) => {
+    const sabado = new Date(`${semana}T12:00:00`);
+    const domingo = new Date(sabado.getTime() + 86400000);
+    const mes = sabado.toLocaleDateString("es-ES", { month: "long" });
+    return sabado.getMonth() === domingo.getMonth()
+      ? `${sabado.getDate()}-${domingo.getDate()} de ${mes}`
+      : `${sabado.getDate()} ${mes} - ${domingo.getDate()} ${domingo.toLocaleDateString("es-ES", { month: "long" })}`;
+  };
+
+  async function recargarSemanas() {
+    setFinde(await fetchJornadasSemanales(supabase));
+  }
+
+  function onCambiarJornada(semana: string) {
+    setSemanaSel(semana);
+    setErrorJornada(null);
+    if (semana) {
+      // Se trabaja o por jornada o por torneo: al elegir una, se suelta lo otro.
+      setTorneoId("");
+      setJornadaId(null);
+    }
+  }
+
   function onCambiarTorneo(nuevoId: string) {
     setTorneoId(nuevoId);
     setErrorJornada(null);
-    setAvisoTerminar(null);
+    setSemanaSel("");
     // Al cambiar de torneo no se elige ninguna ronda: la eliges tú.
     setJornadaId(null);
   }
@@ -301,32 +371,34 @@ export default function AdminResultadosPage() {
 
     setJornadas((prev) => [resultado.jornada, ...prev]);
     setJornadaId(resultado.jornada.id);
+    await recargarSemanas();
     // Refresca el contador de rondas del torneo.
     setTorneos(await fetchTorneos(supabase));
   }
 
-  async function onTerminarJornada() {
-    if (!jornadaActual) return;
-    const yaTerminada = Boolean(jornadaActual.terminadaEn);
-    const pendientes = Math.max(totalActivos - totalConResultado - descansos.size, 0);
-    const millonesPorPunto = `${pagoPorPunto} M por punto`;
+  async function onCerrarJornada() {
+    if (!findeActual) return;
+    const yaCerrada = Boolean(findeActual.cerradaEn);
+    const tarifa = `${pagoPorPunto} M por punto`;
+    const sinResultados = findeActual.rondas.filter((r) => (conteos[r.id] ?? 0) === 0);
 
-    const pregunta = yaTerminada
-      ? `Esta ronda ya está terminada. ¿Recalcular los pagos con los resultados actuales? ` +
-        `Cada manager recibirá o devolverá solo la diferencia (${millonesPorPunto}).`
-      : `¿Estás seguro de que has metido todos los resultados y quieres terminar la ronda? ` +
-        `Se pagarán ${millonesPorPunto} a cada manager según los puntos que haya hecho en ` +
-        `${etiquetaJornada(jornadaActual)}.` +
-        (pendientes > 0
-          ? `\n\nOJO: todavía hay ${pendientes} jugador${pendientes === 1 ? "" : "es"} sin resultado.`
+    const pregunta = yaCerrada
+      ? `La jornada ${findeActual.numero} ya está cerrada. ¿Recalcular los pagos con los resultados actuales? ` +
+        `Cada manager recibirá o devolverá solo la diferencia (${tarifa}).`
+      : `¿Estás seguro de que has metido todos los resultados y quieres cerrar la jornada ${findeActual.numero}? ` +
+        `Se pagarán ${tarifa} a cada manager según los puntos que haya hecho este fin de semana.` +
+        (sinResultados.length > 0
+          ? `\n\nOJO: ${sinResultados.length === 1 ? "esta ronda no tiene" : "estas rondas no tienen"} ningún resultado: ` +
+            sinResultados.map((r) => etiquetaJornada(r)).join(", ") +
+            "."
           : "");
     if (!confirm(pregunta)) return;
 
     setErrorJornada(null);
-    setAvisoTerminar(null);
-    setTerminando(true);
-    const resultado = await terminarJornadaDB(supabase, jornadaActual.id);
-    setTerminando(false);
+    setAvisoCierre(null);
+    setCerrando(true);
+    const resultado = await cerrarJornadaDB(supabase, findeActual.semana);
+    setCerrando(false);
 
     if (!resultado.ok) {
       setErrorJornada(resultado.mensaje);
@@ -334,11 +406,11 @@ export default function AdminResultadosPage() {
     }
 
     const r = resultado.resumen;
-    setJornadas(await fetchJornadas(supabase));
-    setAvisoTerminar(
-      r.yaTerminada
-        ? `Pagos recalculados: en total ${r.millones} M a ${r.equiposPagados} managers (${r.puntos} puntos).`
-        : `Ronda terminada: ${r.millones} M pagados a ${r.equiposPagados} managers (${r.puntos} puntos).`
+    await recargarSemanas();
+    setAvisoCierre(
+      r.yaCerrada
+        ? `Pagos recalculados: ${r.millones} M en total a ${r.equiposPagados} managers (${r.puntos} puntos).`
+        : `Jornada ${findeActual.numero} cerrada: ${r.millones} M pagados a ${r.equiposPagados} managers (${r.puntos} puntos).`
     );
   }
 
@@ -349,8 +421,8 @@ export default function AdminResultadosPage() {
       totalConResultado > 0
         ? `Se borrarán también los ${totalConResultado} resultados de esta ronda y sus puntos. `
         : "";
-    const avisoPago = jornadaActual.terminadaEn
-      ? "Como la ronda estaba terminada, se devolverán los millones ya pagados a los managers. "
+    const avisoPago = finde[jornadaActual.id]?.cerradaEn
+      ? "Esta ronda es de una jornada ya cerrada: los managers devolverán los millones que cobraron por sus puntos. "
       : "";
     if (!confirm(`¿Borrar "${nombre}"? ${aviso}${avisoPago}Esto no se puede deshacer.`)) return;
 
@@ -369,6 +441,7 @@ export default function AdminResultadosPage() {
     // Se queda en el mismo torneo, sin ronda elegida.
     setJornadaId(null);
     setTorneos(await fetchTorneos(supabase));
+    await recargarSemanas();
   }
 
   function avisar(playerId: string, tipo: "ok" | "error", texto: string) {
@@ -530,24 +603,6 @@ export default function AdminResultadosPage() {
 
         {jornadaActual && (
           <button
-            onClick={onTerminarJornada}
-            disabled={terminando || cargandoJornada}
-            className={`rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-40 ${
-              jornadaActual.terminadaEn
-                ? "border border-neutral-300 dark:border-neutral-700"
-                : "bg-accent text-white hover:bg-accent-hover"
-            }`}
-          >
-            {terminando
-              ? "Procesando…"
-              : jornadaActual.terminadaEn
-                ? "Recalcular pagos"
-                : "Terminar ronda"}
-          </button>
-        )}
-
-        {jornadaActual && (
-          <button
             onClick={onBorrarJornada}
             disabled={borrandoJornada}
             className="rounded-lg border border-neutral-300 px-3 py-2 text-sm text-negative disabled:opacity-40 dark:border-neutral-700"
@@ -564,25 +619,108 @@ export default function AdminResultadosPage() {
               : ""}
           </span>
         )}
+
+        {jornadasFinde.length > 0 && (
+          <select
+            aria-label="Jornada"
+            value={semanaSel}
+            onChange={(e) => onCambiarJornada(e.target.value)}
+            className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900 sm:ml-auto"
+          >
+            <option value="">Cerrar una jornada…</option>
+            {jornadasFinde.map((g) => (
+              <option key={g.semana} value={g.semana}>
+                Jornada {g.numero} · {fechaFinde(g.semana)}
+                {g.cerradaEn ? " ✓" : ""}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       {errorJornada && <p className="text-sm text-negative">{errorJornada}</p>}
 
-      {jornadaActual?.terminadaEn && (
-        <p className="rounded-lg bg-accent/10 px-3 py-2 text-sm">
-          <strong>Ronda terminada</strong> el{" "}
-          {new Date(jornadaActual.terminadaEn).toLocaleString("es-ES", {
-            day: "numeric",
-            month: "long",
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-          . Si corriges algún resultado, pulsa «Recalcular pagos» para ajustar los millones.
-        </p>
-      )}
-      {avisoTerminar && <p className="text-sm text-positive">{avisoTerminar}</p>}
+      {findeActual && (
+        <section className="flex flex-col gap-4 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+          <div>
+            <h3 className="text-base font-semibold">
+              Jornada {findeActual.numero}{" "}
+              <span className="font-normal text-neutral-500">
+                · fin de semana del {fechaFinde(findeActual.semana)}
+              </span>
+            </h3>
+            {findeActual.cerradaEn ? (
+              <p className="mt-1 text-sm">
+                <strong>Jornada cerrada</strong> el{" "}
+                {new Date(findeActual.cerradaEn).toLocaleString("es-ES", {
+                  day: "numeric",
+                  month: "long",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+                . Si corriges algún resultado, pulsa «Recalcular pagos» para ajustar los millones.
+              </p>
+            ) : (
+              <p className="mt-1 text-sm text-neutral-500">
+                Estos son los torneos con rondas este fin de semana. Cuando estén todos los
+                resultados, cierra la jornada para pagar {pagoPorPunto} M por punto a cada manager.
+              </p>
+            )}
+          </div>
 
-      {!jornadaId && (
+          <ul className="flex flex-col divide-y divide-neutral-200 dark:divide-neutral-800">
+            {[...findeActual.rondas]
+              .sort((a, b) =>
+                (a.torneoNombre ?? "").localeCompare(b.torneoNombre ?? "", "es") || a.numero - b.numero
+              )
+              .map((r) => {
+                const hechos = conteos[r.id];
+                const inscritos = r.torneoId ? participantesPorTorneo[r.torneoId]?.length : 0;
+                const vacio = hechos === 0;
+                return (
+                  <li key={r.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                    <span className="min-w-0">
+                      <span className="font-medium">{r.torneoNombre ?? "Sin torneo"}</span>{" "}
+                      <span className="text-neutral-500">· Ronda {r.numero}</span>
+                    </span>
+                    <span
+                      className={`shrink-0 text-xs ${
+                        vacio ? "font-medium text-amber-600 dark:text-amber-400" : "text-neutral-500"
+                      }`}
+                    >
+                      {hechos === undefined
+                        ? "…"
+                        : vacio
+                          ? "Sin resultados todavía"
+                          : `${hechos}${inscritos ? ` / ${inscritos}` : ""} resultados`}
+                    </span>
+                  </li>
+                );
+              })}
+          </ul>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={onCerrarJornada}
+              disabled={cerrando}
+              className={`rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-40 ${
+                findeActual.cerradaEn
+                  ? "border border-neutral-300 dark:border-neutral-700"
+                  : "bg-accent text-white hover:bg-accent-hover"
+              }`}
+            >
+              {cerrando
+                ? "Procesando…"
+                : findeActual.cerradaEn
+                  ? "Recalcular pagos"
+                  : `Cerrar jornada ${findeActual.numero}`}
+            </button>
+            {avisoCierre && <p className="text-sm text-positive">{avisoCierre}</p>}
+          </div>
+        </section>
+      )}
+
+      {!jornadaId && !findeActual && (
         <p className="py-6 text-center text-sm text-neutral-500">
           {!torneoId
             ? "Elige un torneo para ver sus rondas."

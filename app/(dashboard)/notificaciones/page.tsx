@@ -228,7 +228,7 @@ export default function NotificacionesPage() {
 
     if (n.tipo === "pago_jornada") {
       const d = n.datosPago;
-      const donde = d ? `${d.torneo ? `${d.torneo} · ` : ""}Ronda ${d.ronda}` : "una ronda";
+      const donde = d?.jornada != null ? `la jornada ${d.jornada}` : "la jornada";
       const importe = n.importe ?? 0;
       const signo = importe > 0 ? "+" : "";
       if (d?.correccion) {

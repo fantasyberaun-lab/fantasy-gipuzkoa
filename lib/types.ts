@@ -154,11 +154,10 @@ export type TipoNotificacion =
   | "actualizacion_elo"
   | "pago_jornada";
 
-// Millones ingresados al terminar una ronda (0067). "importe" de la
+// Millones ingresados al cerrar una jornada (0068). "importe" de la
 // notificación es lo ingresado; en una corrección puede ser negativo.
 export interface DatosPagoJornada {
-  torneo: string | null;
-  ronda: number;
+  jornada: number | null;
   puntos: number;
   correccion: boolean;
 }
