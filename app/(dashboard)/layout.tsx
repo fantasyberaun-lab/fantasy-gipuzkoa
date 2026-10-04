@@ -3,6 +3,7 @@ import { GameStateProvider } from "@/components/GameStateProvider";
 import EquipoHeader, { EquipoAcciones } from "@/components/EquipoHeader";
 import LigaGate from "@/components/LigaGate";
 import LegalGate from "@/components/legal/LegalGate";
+import ActividadTracker from "@/components/ActividadTracker";
 import EnlacesLegales from "@/components/legal/EnlacesLegales";
 
 export default function DashboardLayout({
@@ -13,6 +14,7 @@ export default function DashboardLayout({
   return (
     <LegalGate>
     <GameStateProvider>
+      <ActividadTracker />
       <LigaGate>
         <header className="banner-tablero">
           <div className="mx-auto max-w-5xl px-4 pb-5 pt-[calc(env(safe-area-inset-top)+1rem)]">
