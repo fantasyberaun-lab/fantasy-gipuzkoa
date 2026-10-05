@@ -66,8 +66,8 @@ export default function ClasificacionPage() {
   const totalManagers =
     misLigas.find((l) => l.ligaId === equipo.leagueId)?.miembros ?? clasificacion.length;
 
-  // Primer desplegable: "total" o un torneo. Segundo (solo con torneo elegido):
-  // "" = todo el torneo, o el id de una jornada concreta.
+  // Primer desplegable: "total" o un torneo. Segundo: "" = todo (todo el
+  // torneo, o todas las jornadas si es "total"), o el id de una jornada concreta.
   const [torneoSel, setTorneoSel] = useState<string>(TOTAL);
   const [jornadaSel, setJornadaSel] = useState<string>("");
   const [busqueda, setBusqueda] = useState("");
@@ -174,26 +174,35 @@ export default function ClasificacionPage() {
   }, [clasificacion]);
 
   const torneoActual = torneosDisponibles.find((t) => t.clave === torneoSel) ?? null;
-  const jornadaActual = torneoActual?.jornadas.find((j) => j.clave === jornadaSel) ?? null;
+  // Con "Puntos totales" la jornada se busca entre las de todos los torneos;
+  // con un torneo elegido, solo entre las suyas.
+  const jornadaActual = (() => {
+    if (!jornadaSel) return null;
+    const torneos = torneoSel === TOTAL ? torneosDisponibles : torneoActual ? [torneoActual] : [];
+    for (const t of torneos) {
+      const j = t.jornadas.find((x) => x.clave === jornadaSel);
+      if (j) return { ...j, torneoEtiqueta: t.etiqueta };
+    }
+    return null;
+  })();
 
   const claveJornadaDe = (h: (typeof clasificacion)[number]["historialPuntos"][number]) =>
     h.id ?? `${h.torneo ?? SIN_TORNEO}:${h.jornada}`;
 
   // Texto que acompaña a los puntos de cada fila.
-  const etiquetaOrden =
-    torneoSel === TOTAL
+  const etiquetaOrden = jornadaActual
+    ? `${jornadaActual.torneoEtiqueta} · J${jornadaActual.numero}`
+    : torneoSel === TOTAL
       ? "este año"
-      : jornadaActual
-        ? `${torneoActual?.etiqueta} · J${jornadaActual.numero}`
-        : (torneoActual?.etiqueta ?? "");
+      : (torneoActual?.etiqueta ?? "");
 
   const puntosParaOrden = (entry: (typeof clasificacion)[number]) => {
-    if (torneoSel === TOTAL) return entry.puntos;
     if (jornadaActual) {
       return (
         entry.historialPuntos.find((h) => claveJornadaDe(h) === jornadaActual.clave)?.puntos ?? 0
       );
     }
+    if (torneoSel === TOTAL) return entry.puntos;
     // Todo el torneo: suma de sus jornadas.
     return entry.historialPuntos
       .filter((h) => (h.torneo ?? SIN_TORNEO) === torneoSel)
@@ -319,6 +328,25 @@ export default function ClasificacionPage() {
               </option>
             ))}
           </select>
+          {torneoSel === TOTAL && torneosDisponibles.length > 0 && (
+            <select
+              aria-label="Jornada"
+              value={jornadaSel}
+              onChange={(e) => setJornadaSel(e.target.value)}
+              className="min-w-0 rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900 sm:max-w-xs"
+            >
+              <option value="">Todas las jornadas</option>
+              {torneosDisponibles.map((t) => (
+                <optgroup key={t.clave} label={t.etiqueta}>
+                  {t.jornadas.map((j) => (
+                    <option key={j.clave} value={j.clave}>
+                      Jornada {j.numero}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          )}
           {torneoActual && (
             <select
               aria-label="Jornada"
