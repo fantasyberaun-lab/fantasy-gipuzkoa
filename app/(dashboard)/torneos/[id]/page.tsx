@@ -168,15 +168,19 @@ export default function TorneoDetallePage() {
                 {detalle.participantes.map((j) => (
                   <tr key={j.id} className="border-t border-neutral-200 dark:border-neutral-800">
                     <td className="px-3 py-2 font-medium">
-                      <Link
-                        href={`/jugadores/${j.id}?torneo=${torneo.id}`}
-                        className="hover:underline"
-                      >
-                        {j.nombre}
-                      </Link>
+                      {j.oculto ? (
+                        <span className="text-neutral-500">{j.nombre}</span>
+                      ) : (
+                        <Link
+                          href={`/jugadores/${j.id}?torneo=${torneo.id}`}
+                          className="hover:underline"
+                        >
+                          {j.nombre}
+                        </Link>
+                      )}
                     </td>
                     <td className="px-3 py-2 text-neutral-500">{j.club}</td>
-                    <td className="px-3 py-2">{j.categoria}ª</td>
+                    <td className="px-3 py-2">{j.categoria ? `${j.categoria}ª` : "–"}</td>
                     <td className="px-3 py-2">{j.elo}</td>
                     <td className="px-3 py-2 text-right">{j.partidas}</td>
                     <td className="px-3 py-2 text-right font-medium">
@@ -262,14 +266,18 @@ export default function TorneoDetallePage() {
               <p className="text-xs text-neutral-500">
                 Sin emparejar (descansan):{" "}
                 {jornadaActual.descansan.map((d, i) => (
-                  <span key={d.id}>
+                  <span key={d.clave}>
                     {i > 0 && ", "}
-                    <Link
-                      href={`/jugadores/${d.id}?torneo=${torneo.id}`}
-                      className="font-medium hover:underline"
-                    >
-                      {d.nombre}
-                    </Link>
+                    {d.id ? (
+                      <Link
+                        href={`/jugadores/${d.id}?torneo=${torneo.id}`}
+                        className="font-medium hover:underline"
+                      >
+                        {d.nombre}
+                      </Link>
+                    ) : (
+                      <span className="font-medium">{d.nombre}</span>
+                    )}
                   </span>
                 ))}
               </p>

@@ -12,8 +12,8 @@ export default function LigaGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   // En la liga pública no existe la lista de jugadores con clausulazos: si
-  // alguien entra por un enlace antiguo, se le lleva al Mercado. Los avisos
-  // (/notificaciones) sí existen: comunicados + ingresos por ronda.
+  // alguien entra por un enlace antiguo, se le lleva al Mercado. Los Avisos
+  // (/notificaciones) sí existen: allí van los comunicados del administrador.
   const rutaNoDisponible = esLigaPublica && pathname === "/jugadores";
 
   useEffect(() => {

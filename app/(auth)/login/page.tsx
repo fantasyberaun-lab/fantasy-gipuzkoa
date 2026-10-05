@@ -74,6 +74,11 @@ export default function LoginPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
+        <div className="mt-1.5 text-right">
+          <Link href="/recuperar" className="text-xs font-medium text-accent">
+            ¿Has olvidado tu contraseña?
+          </Link>
+        </div>
       </div>
 
       {error && <p className="text-sm text-negative">{error}</p>}

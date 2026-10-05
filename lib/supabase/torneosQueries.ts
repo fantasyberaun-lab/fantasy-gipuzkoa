@@ -103,7 +103,8 @@ export interface JugadorTorneo {
   id: string;
   nombre: string;
   club: string;
-  categoria: Categoria;
+  categoria: Categoria | null; // null si el jugador está oculto (activo = false)
+  oculto: boolean; // jugador desactivado: sin perfil enlazable, nombre anónimo
   elo: number;
   partidas: number; // partidas jugadas en este torneo
   puntos: number; // puntos de torneo: 1 por victoria, ½ por tablas
@@ -142,7 +143,9 @@ export interface JornadaTorneo {
   partidas: PartidaTorneo[];
   // Mesas publicadas que todavía no tienen resultado.
   emparejamientos: EmparejamientoTorneo[];
-  descansan: { id: string; nombre: string }[]; // sin emparejar en esta jornada
+  // Sin emparejar en esta jornada. "id" es null si el jugador está oculto
+  // (no se puede enlazar a su perfil).
+  descansan: { id: string | null; clave: string; nombre: string }[];
 }
 
 export interface DetalleTorneo {
@@ -157,7 +160,7 @@ export async function fetchDetalleTorneo(
   const [{ data: inscritos }, { data: jornadasDb }] = await Promise.all([
     supabase
       .from("tournament_players")
-      .select("players (id, nombre, club, categoria, elo)")
+      .select("players (id, nombre, club, categoria, elo, activo)")
       .eq("tournament_id", torneoId),
     supabase
       .from("matchdays")
@@ -168,7 +171,13 @@ export async function fetchDetalleTorneo(
 
   const jugadores = new Map<
     string,
-    { nombre: string; club: string; categoria: Categoria; elo: number }
+    {
+      nombre: string;
+      club: string;
+      categoria: Categoria;
+      elo: number;
+      activo: boolean;
+    }
   >();
   for (const fila of (inscritos ?? []) as any[]) {
     const p = fila.players;
@@ -178,6 +187,7 @@ export async function fetchDetalleTorneo(
       club: p.club ?? "",
       categoria: Number(p.categoria) as Categoria,
       elo: p.elo,
+      activo: p.activo !== false,
     });
   }
 
@@ -226,24 +236,42 @@ export async function fetchDetalleTorneo(
       if (id && !jugadores.has(id)) faltan.add(id);
     }
   }
-  const otros = new Map<string, { nombre: string; elo: number }>();
+  const otros = new Map<string, { nombre: string; elo: number; activo: boolean }>();
   if (faltan.size > 0) {
     const { data } = await supabase
       .from("players")
-      .select("id, nombre, elo")
+      .select("id, nombre, elo, activo")
       .in("id", [...faltan]);
     for (const p of (data ?? []) as any[]) {
-      otros.set(p.id, { nombre: p.nombre, elo: p.elo });
+      otros.set(p.id, { nombre: p.nombre, elo: p.elo, activo: p.activo !== false });
     }
   }
 
+  // Jugadores ocultos (activo = false): no se enseña su nombre ni se enlaza
+  // a su perfil. Salen como "jugador_desconocido1", "jugador_desconocido2"…
+  // con solo su Elo. La numeración es estable: por Elo (de más a menos) y,
+  // a igualdad, por id, para que no cambie entre cargas.
+  const ocultos = new Map<string, number>();
+  {
+    const ids = new Set<string>();
+    for (const [id, info] of jugadores) if (!info.activo) ids.add(id);
+    for (const [id, info] of otros) if (!info.activo) ids.add(id);
+    const eloOculto = (id: string) => jugadores.get(id)?.elo ?? otros.get(id)?.elo ?? 0;
+    [...ids]
+      .sort((x, y) => eloOculto(y) - eloOculto(x) || x.localeCompare(y))
+      .forEach((id, i) => ocultos.set(id, i + 1));
+  }
+  const esOculto = (id: string) => ocultos.has(id);
+
   const nombreDe = (id: string) =>
-    jugadores.get(id)?.nombre ?? otros.get(id)?.nombre ?? "Jugador desconocido";
+    esOculto(id)
+      ? `jugador_desconocido${ocultos.get(id)}`
+      : jugadores.get(id)?.nombre ?? otros.get(id)?.nombre ?? "Jugador desconocido";
   const eloDe = (id: string): number | null =>
     jugadores.get(id)?.elo ?? otros.get(id)?.elo ?? null;
 
   const lado = (fila: any): LadoPartida => ({
-    id: fila.player_id,
+    id: esOculto(fila.player_id) ? null : fila.player_id,
     nombre: nombreDe(fila.player_id),
     elo: eloDe(fila.player_id),
     puntosFantasy: fila.puntos_fantasy ?? null,
@@ -286,7 +314,7 @@ export async function fetchDetalleTorneo(
           a: lado(r),
           b: r.rival_player_id
             ? {
-                id: r.rival_player_id,
+                id: esOculto(r.rival_player_id) ? null : r.rival_player_id,
                 nombre: nombreDe(r.rival_player_id),
                 elo: eloDe(r.rival_player_id),
                 puntosFantasy: null,
@@ -313,7 +341,12 @@ export async function fetchDetalleTorneo(
 
     const ladoPublicado = (id: string | null, elo: number | null): LadoPartida =>
       id
-        ? { id, nombre: nombreDe(id), elo: eloDe(id), puntosFantasy: null }
+        ? {
+            id: esOculto(id) ? null : id,
+            nombre: nombreDe(id),
+            elo: eloDe(id),
+            puntosFantasy: null,
+          }
         : { id: null, nombre: "Rival externo", elo, puntosFantasy: null };
 
     const emparejamientos: EmparejamientoTorneo[] = publicadas
@@ -336,14 +369,22 @@ export async function fetchDetalleTorneo(
 
     // Descansan: los ya guardados como descanso más los anunciados en las
     // mesas publicadas (sin repetir).
-    const descansanPorId = new Map<string, { id: string; nombre: string }>();
+    const descansanPorId = new Map<
+      string,
+      { id: string | null; clave: string; nombre: string }
+    >();
     for (const d of filasDescansos.filter((d) => d.matchday_id === j.id)) {
-      descansanPorId.set(d.player_id, { id: d.player_id, nombre: nombreDe(d.player_id) });
+      descansanPorId.set(d.player_id, {
+        id: esOculto(d.player_id) ? null : d.player_id,
+        clave: d.player_id,
+        nombre: nombreDe(d.player_id),
+      });
     }
     for (const e of publicadas) {
       if (e.descansa && e.blanco_player_id && !conResultado.has(e.blanco_player_id)) {
         descansanPorId.set(e.blanco_player_id, {
-          id: e.blanco_player_id,
+          id: esOculto(e.blanco_player_id) ? null : e.blanco_player_id,
+          clave: e.blanco_player_id,
           nombre: nombreDe(e.blanco_player_id),
         });
       }
@@ -363,9 +404,14 @@ export async function fetchDetalleTorneo(
         rivalElo: r.rival_elo_en_el_momento ?? null,
       }))
     );
+    const oculto = esOculto(id);
     return {
       id,
-      ...info,
+      nombre: nombreDe(id),
+      club: oculto ? "" : info.club,
+      categoria: oculto ? null : info.categoria,
+      oculto,
+      elo: info.elo,
       partidas: estadisticas.partidas,
       puntos: estadisticas.puntos,
       rendimiento: estadisticas.rendimiento,
