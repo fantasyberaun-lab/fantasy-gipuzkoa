@@ -144,6 +144,8 @@ interface GameState {
   unirseLigaPublica: (nombreEquipo: string) => Promise<ResultadoAccion>;
   cambiarLigaActiva: (ligaId: string) => Promise<void>;
   salirLiga: (ligaId: string) => Promise<ResultadoAccion>;
+  // Vuelve a cargar los datos del juego (p. ej. el saldo tras cobrar la racha diaria).
+  recargar: () => Promise<void>;
 }
 
 const GameStateContext = createContext<GameState | null>(null);
@@ -703,6 +705,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         unirseLigaPublica,
         cambiarLigaActiva,
         salirLiga,
+        recargar: () => cargarTodo(),
       }}
     >
       {children}
