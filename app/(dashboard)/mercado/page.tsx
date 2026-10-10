@@ -16,6 +16,23 @@ import {
   msHastaOcultarPujas,
 } from "@/lib/mercadoCountdown";
 
+// Texto de una cuenta atrás que se actualiza solo cada segundo, sin repintar
+// el resto de la página.
+function CuentaAtras({ msHasta }: { msHasta: (ahora: Date) => number }) {
+  const [ahora, setAhora] = useState(() => new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setAhora(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  return <>{formatearCuentaAtrasConSegundos(msHasta(ahora))}</>;
+}
+
+function msHastaTanda(ahora: Date) {
+  return proximaTandaMercado(ahora).getTime() - ahora.getTime();
+}
+
 type Orden = "valor" | "elo" | "puntos" | "pujas" | "nombre" | "categoria";
 type MensajePuja = { tipo: "ok" | "error"; texto: string };
 
@@ -52,26 +69,18 @@ function MercadoConPujas() {
   const [enviando, setEnviando] = useState(false);
   const [puntosAbiertoId, setPuntosAbiertoId] = useState<string | null>(null);
   const [mensajePorJugador, setMensajePorJugador] = useState<Record<string, MensajePuja>>({});
-  const [ahora, setAhora] = useState(() => new Date());
-
-  useEffect(() => {
-    const id = setInterval(() => setAhora(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  const cuentaAtras = useMemo(() => {
-    const proxima = proximaTandaMercado(ahora);
-    return formatearCuentaAtrasConSegundos(proxima.getTime() - ahora.getTime());
-  }, [ahora]);
-
   // Las últimas 2 h antes de la tanda las pujas de los demás no se ven: solo
   // el número de pujas. La base de datos ya no las envía, pero aquí también se
   // filtran por si la pantalla llevaba abierta desde antes de que empezara.
-  const ocultas = pujasOcultas(ahora);
-  const cuentaAtrasOcultar = useMemo(
-    () => formatearCuentaAtrasConSegundos(msHastaOcultarPujas(ahora)),
-    [ahora]
-  );
+  // Se comprueba cada segundo, pero la página solo se repinta cuando cambia
+  // (React ignora un setState con el mismo valor). Las cuentas atrás, que sí
+  // cambian cada segundo, viven en <CuentaAtras> para no repintar la lista.
+  const [ocultas, setOcultas] = useState(() => pujasOcultas(new Date()));
+
+  useEffect(() => {
+    const id = setInterval(() => setOcultas(pujasOcultas(new Date())), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   // Pujas por listing, ya ordenadas de mayor a menor importe.
   const pujasPorListing = useMemo(() => {
@@ -167,12 +176,14 @@ function MercadoConPujas() {
             {ocultas ? t.mercado.pujasOcultas : t.mercado.pujasSeOcultanEn}
           </p>
           <p className="mt-0.5 text-2xl font-semibold tabular-nums">
-            {ocultas ? t.mercado.ocultas : cuentaAtrasOcultar}
+            {ocultas ? t.mercado.ocultas : <CuentaAtras msHasta={msHastaOcultarPujas} />}
           </p>
         </div>
         <div className="rounded-xl border border-neutral-200 p-3 dark:border-neutral-800">
           <p className="text-xs text-neutral-500">{t.mercado.seActualizaEn}</p>
-          <p className="mt-0.5 text-2xl font-semibold tabular-nums">{cuentaAtras}</p>
+          <p className="mt-0.5 text-2xl font-semibold tabular-nums">
+            <CuentaAtras msHasta={msHastaTanda} />
+          </p>
         </div>
       </div>
 

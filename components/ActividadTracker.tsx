@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+import { useLegalOk } from "@/components/legal/LegalGate";
 
 const MISMA_RUTA_MS = 30_000; // no se cuenta dos veces la misma pantalla en 30 s
 const VOLVER_TRAS_MS = 30 * 60_000; // la app (PWA) puede quedarse abierta horas
@@ -22,6 +23,9 @@ function normalizarRuta(ruta: string): string {
 // manager, para las métricas de Admin > Actividad. Si falla, no pasa nada.
 export default function ActividadTracker() {
   const pathname = usePathname();
+  // La app se monta (oculta) antes de comprobar la aceptación legal: no se
+  // registra nada hasta que esté aceptada.
+  const legalOk = useLegalOk();
   const ultimo = useRef<{ ruta: string; en: number }>({ ruta: "", en: 0 });
 
   function registrar(ruta: string) {
@@ -40,20 +44,20 @@ export default function ActividadTracker() {
   }
 
   useEffect(() => {
-    if (pathname) registrar(pathname);
+    if (legalOk && pathname) registrar(pathname);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
+  }, [pathname, legalOk]);
 
   // Si dejas la app abierta y vuelves horas después, cuenta como actividad de ese día.
   useEffect(() => {
     const alVolver = () => {
-      if (document.visibilityState !== "visible" || !pathname) return;
+      if (document.visibilityState !== "visible" || !pathname || !legalOk) return;
       if (Date.now() - ultimo.current.en > VOLVER_TRAS_MS) registrar(pathname);
     };
     document.addEventListener("visibilitychange", alVolver);
     return () => document.removeEventListener("visibilitychange", alVolver);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
+  }, [pathname, legalOk]);
 
   return null;
 }
