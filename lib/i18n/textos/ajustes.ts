@@ -35,6 +35,9 @@ export default definirTextos(
     saldoNegativo: "No puntuarás si sigues en negativo cuando empiece la jornada",
     cambiarLiga: "Cambiar o crear liga",
     miPerfil: "Mi perfil",
+    miPerfilDetalle: "Tus estadísticas",
+    cambiarLigaCorto: "Mis ligas",
+    cambiarLigaDetalle: "Cambia o crea una",
   },
   {
     eu: {
@@ -69,6 +72,9 @@ export default definirTextos(
       saldoNegativo: "Ez duzu puntuatuko jardunaldia hastean negatiboan jarraitzen baduzu",
       cambiarLiga: "Liga aldatu edo sortu",
       miPerfil: "Nire profila",
+      miPerfilDetalle: "Zure estatistikak",
+      cambiarLigaCorto: "Nire ligak",
+      cambiarLigaDetalle: "Aldatu edo sortu",
     },
     en: {
       boton: "Settings",
@@ -102,6 +108,9 @@ export default definirTextos(
       saldoNegativo: "You won't score if you're still in the red when the matchday starts",
       cambiarLiga: "Switch or create league",
       miPerfil: "My profile",
+      miPerfilDetalle: "Your stats",
+      cambiarLigaCorto: "My leagues",
+      cambiarLigaDetalle: "Switch or create",
     },
   }
 );

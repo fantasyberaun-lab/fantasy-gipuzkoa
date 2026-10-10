@@ -6,21 +6,14 @@ import { createClient } from "@/lib/supabase/client";
 import { useIdioma, useT } from "@/components/IdiomaProvider";
 import AlineacionesJornadas from "@/components/AlineacionesJornadas";
 import HistorialValorChart from "@/components/HistorialValorChart";
+import AvatarPerfil from "@/components/AvatarPerfil";
+import { useGameState } from "@/components/GameStateProvider";
 import {
   fetchEvolucionValorPlantilla,
   fetchPerfilManager,
 } from "@/lib/supabase/queries";
 import type { PerfilManager, PuntoValorPlantilla } from "@/lib/types";
 import type { PuntoValor } from "@/lib/supabase/jugadoresQueries";
-
-function iniciales(nombre: string) {
-  return nombre
-    .split(" ")
-    .slice(0, 2)
-    .map((p) => p[0])
-    .join("")
-    .toUpperCase();
-}
 
 function Cifra({ etiqueta, valor, detalle }: { etiqueta: string; valor: string; detalle?: string }) {
   return (
@@ -50,6 +43,8 @@ function PerfilManagerContenido() {
   const t = useT();
   const tm = t.managers;
   const { locale } = useIdioma();
+  // Avatares en prueba: solo root, y solo en su propio perfil (ver 0077).
+  const { esRoot, avatar } = useGameState();
 
   const [perfil, setPerfil] = useState<PerfilManager | null>(null);
   const [evolucion, setEvolucion] = useState<PuntoValorPlantilla[]>([]);
@@ -118,9 +113,12 @@ function PerfilManagerContenido() {
       </button>
 
       <div className="flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-neutral-100 text-sm font-semibold dark:bg-neutral-800">
-          {iniciales(perfil.nombreManager)}
-        </div>
+        <AvatarPerfil
+          avatar={esRoot && perfil.esMio ? avatar : null}
+          nombre={perfil.nombreManager}
+          tamano={perfil.esMio && esRoot && avatar ? 80 : 48}
+          ampliable
+        />
         <div>
           <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold">
             {perfil.nombreManager}

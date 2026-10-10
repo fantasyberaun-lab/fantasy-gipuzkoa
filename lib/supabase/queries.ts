@@ -591,6 +591,21 @@ export async function fetchMiRol(
   return data.rol as "root" | "manager";
 }
 
+// Avatar de perfil elegido (id de lib/avatares.ts) o null. Ver 0077.
+export async function fetchMiAvatar(
+  supabase: Supabase,
+  userId: string
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("avatar")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return (data.avatar as string | null) ?? null;
+}
+
 // ---------- Escrituras ----------
 
 export async function toggleTitularDB(
@@ -1034,6 +1049,16 @@ export async function cambiarNombreUsuarioDB(
   const { data, error } = await supabase.rpc("cambiar_nombre_usuario", { p_nombre: nombre });
   if (error) return { ok: false, mensaje: error.message };
   return data as ResultadoAccion & { nombre?: string; puede_cambiar_desde?: string };
+}
+
+// Elige (o quita, con null) el avatar de perfil. De momento solo root (0077).
+export async function cambiarAvatarDB(
+  supabase: Supabase,
+  avatar: string | null
+): Promise<ResultadoAccion & { avatar?: string | null }> {
+  const { data, error } = await supabase.rpc("cambiar_avatar", { p_avatar: avatar });
+  if (error) return { ok: false, mensaje: error.message };
+  return data as ResultadoAccion & { avatar?: string | null };
 }
 
 // Cambia la contraseña tras comprobar la actual (así una sesión abierta y

@@ -9,6 +9,7 @@ import AjustesCuenta from "@/components/AjustesCuenta";
 import { EliminarCuentaConfirmacion } from "@/components/EliminarCuentaButton";
 import SelectorIdioma from "@/components/SelectorIdioma";
 import BuzonSugerencias from "@/components/BuzonSugerencias";
+import SelectorAvatar from "@/components/SelectorAvatar";
 import Segmentado from "@/components/Segmentado";
 import { useT } from "@/components/IdiomaProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -127,7 +128,7 @@ function Apartado({ titulo, children }: { titulo: string; children: ReactNode })
   );
 }
 
-function VistaCuenta({ equipoId }: { equipoId: string }) {
+function VistaCuenta({ equipoId, esRoot }: { equipoId: string; esRoot: boolean }) {
   const supabase = createClient();
   const t = useT();
   const [nombre, setNombre] = useState<string | null>(null);
@@ -144,7 +145,18 @@ function VistaCuenta({ equipoId }: { equipoId: string }) {
   if (nombre === null) {
     return <p className="text-sm text-neutral-500">{t.comun.cargando}</p>;
   }
-  return <AjustesCuenta sinMarco nombreActual={nombre} onNombreCambiado={setNombre} />;
+  // Avatares en prueba: solo root (ver 0077).
+  if (!esRoot) {
+    return <AjustesCuenta sinMarco nombreActual={nombre} onNombreCambiado={setNombre} />;
+  }
+  return (
+    <div className="flex flex-col gap-6">
+      <SelectorAvatar />
+      <div className="border-t border-neutral-200 pt-5 dark:border-neutral-800">
+        <AjustesCuenta sinMarco nombreActual={nombre} onNombreCambiado={setNombre} />
+      </div>
+    </div>
+  );
 }
 
 function VistaConfiguracion({
@@ -341,7 +353,7 @@ export default function MenuAjustes() {
             </div>
           )}
 
-          {vista === "cuenta" && <VistaCuenta equipoId={equipo.id} />}
+          {vista === "cuenta" && <VistaCuenta equipoId={equipo.id} esRoot={esRoot} />}
 
           {vista === "configuracion" && <VistaConfiguracion tema={tema} onTema={cambiarTema} />}
 

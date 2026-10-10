@@ -27,6 +27,7 @@ import {
   fetchJugadoresLiga,
   fetchMercado,
   fetchMiPlantilla,
+  fetchMiAvatar,
   fetchMiRol,
   fetchMisLigas,
   fetchMisOfertas,
@@ -93,6 +94,10 @@ interface GameState {
   cargando: boolean;
   tieneEquipo: boolean;
   esRoot: boolean;
+  // Avatar de perfil elegido (id de lib/avatares.ts). En prueba: solo se carga
+  // y se enseña a los root.
+  avatar: string | null;
+  setAvatar: (avatar: string | null) => void;
   // La liga activa es la pública "todos contra todos": sin plantilla inicial,
   // todos los jugadores siempre disponibles y compra/venta instantánea.
   esLigaPublica: boolean;
@@ -182,6 +187,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const [cargando, setCargando] = useState(true);
   const [tieneEquipo, setTieneEquipo] = useState(false);
   const [esRoot, setEsRoot] = useState(false);
+  const [avatar, setAvatar] = useState<string | null>(null);
   const [esLigaPublica, setEsLigaPublica] = useState(false);
   const [equipo, setEquipo] = useState<EquipoManager>(EQUIPO_VACIO);
   const [misLigas, setMisLigas] = useState<LigaResumen[]>([]);
@@ -218,6 +224,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
     const rol = await fetchMiRol(supabase, user.id);
     setEsRoot(rol === "root");
+    setAvatar(rol === "root" ? await fetchMiAvatar(supabase, user.id) : null);
 
     const ligas = await fetchMisLigas(supabase);
     setMisLigas(ligas);
@@ -714,6 +721,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         cargando,
         tieneEquipo,
         esRoot,
+        avatar,
+        setAvatar,
         esLigaPublica,
         equipo,
         misLigas,
