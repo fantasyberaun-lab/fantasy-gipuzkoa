@@ -3,7 +3,7 @@
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import AjustesCuenta from "@/components/AjustesCuenta";
+import { useIdioma, useT } from "@/components/IdiomaProvider";
 import AlineacionesJornadas from "@/components/AlineacionesJornadas";
 import HistorialValorChart from "@/components/HistorialValorChart";
 import {
@@ -32,8 +32,8 @@ function Cifra({ etiqueta, valor, detalle }: { etiqueta: string; valor: string; 
   );
 }
 
-function fechaLarga(iso: string) {
-  return new Date(iso).toLocaleDateString("es-ES", {
+function fechaLarga(iso: string, locale: string) {
+  return new Date(iso).toLocaleDateString(locale, {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -47,6 +47,9 @@ function PerfilManagerContenido() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const supabase = createClient();
+  const t = useT();
+  const tm = t.managers;
+  const { locale } = useIdioma();
 
   const [perfil, setPerfil] = useState<PerfilManager | null>(null);
   const [evolucion, setEvolucion] = useState<PuntoValorPlantilla[]>([]);
@@ -86,20 +89,20 @@ function PerfilManagerContenido() {
   const valorActual = evolucion.length > 0 ? evolucion[evolucion.length - 1] : null;
 
   if (cargando) {
-    return <p className="text-sm text-neutral-500">Cargando perfil…</p>;
+    return <p className="text-sm text-neutral-500">{tm.cargando}</p>;
   }
 
   if (!perfil) {
     return (
       <div className="flex flex-col gap-3">
         <p className="text-sm text-neutral-500">
-          No se ha encontrado este manager (o no compartís liga).
+          {tm.noEncontrado}
         </p>
         <button
           onClick={() => router.back()}
           className="w-fit text-sm text-accent underline underline-offset-2"
         >
-          ← Volver
+          ← {t.comun.volver}
         </button>
       </div>
     );
@@ -111,7 +114,7 @@ function PerfilManagerContenido() {
         onClick={() => router.back()}
         className="w-fit text-sm text-neutral-500 underline underline-offset-2 hover:text-neutral-800 dark:hover:text-neutral-300"
       >
-        ← Volver
+        ← {t.comun.volver}
       </button>
 
       <div className="flex items-center gap-3">
@@ -123,13 +126,13 @@ function PerfilManagerContenido() {
             {perfil.nombreManager}
             {perfil.esMio && (
               <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-white">
-                Tu perfil
+                {tm.tuPerfil}
               </span>
             )}
           </h2>
           <p className="text-sm text-neutral-500">
             {perfil.nombreEquipo} · {perfil.ligaNombre}
-            {perfil.ligaPublica ? " · Todos contra todos" : ""}
+            {perfil.ligaPublica ? tm.todosContraTodos : ""}
           </p>
         </div>
       </div>
@@ -137,8 +140,8 @@ function PerfilManagerContenido() {
       <div className="flex gap-1 border-b border-neutral-200 dark:border-neutral-800">
         {(
           [
-            ["resumen", "Resumen"],
-            ["jornadas", "Jornadas"],
+            ["resumen", tm.resumen],
+            ["jornadas", tm.jornadas],
           ] as const
         ).map(([clave, etiqueta]) => (
           <button
@@ -158,52 +161,44 @@ function PerfilManagerContenido() {
       {pestana === "resumen" && (
         <>
         <div className="grid grid-cols-2 gap-2 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800 sm:grid-cols-3">
-          <Cifra etiqueta="Manager desde" valor={fechaLarga(perfil.miembroDesde)} />
+          <Cifra etiqueta={tm.managerDesde} valor={fechaLarga(perfil.miembroDesde, locale)} />
           <Cifra
-            etiqueta="Ligas ganadas"
+            etiqueta={tm.ligasGanadas}
             valor={String(perfil.ligasGanadas)}
-            detalle={perfil.ligasGanadas === 0 ? "Todavía ninguna" : undefined}
+            detalle={perfil.ligasGanadas === 0 ? tm.todaviaNinguna : undefined}
           />
-          <Cifra etiqueta="Ligas en las que juega" valor={String(perfil.ligasJugadas)} />
-          <Cifra etiqueta="Puntos en esta liga" valor={String(perfil.puntosTotales)} />
+          <Cifra etiqueta={tm.ligasJugadas} valor={String(perfil.ligasJugadas)} />
+          <Cifra etiqueta={tm.puntosLiga} valor={String(perfil.puntosTotales)} />
           <Cifra
-            etiqueta="Mejor jornada"
-            valor={perfil.puntosTotales > 0 ? `${perfil.mejorJornada} pts` : "–"}
+            etiqueta={tm.mejorJornada}
+            valor={perfil.puntosTotales > 0 ? tm.pts(perfil.mejorJornada) : "–"}
           />
           <Cifra
-            etiqueta="Valor de la plantilla"
+            etiqueta={tm.valorPlantilla}
             valor={valorActual ? `${valorActual.valor} M` : "–"}
-            detalle={valorActual ? `${valorActual.jugadores} jugadores` : undefined}
+            detalle={valorActual ? tm.jugadores(valorActual.jugadores) : undefined}
           />
         </div>
 
         <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
           <HistorialValorChart
             historial={puntos}
-            titulo="Evolución del valor de la plantilla"
-            textoVacio="Todavía no hay suficientes días de historial para dibujar la evolución."
+            titulo={tm.evolucionValorPlantilla}
+            textoVacio={tm.evolucionVacia}
           />
         </div>
         </>
       )}
 
       {pestana === "jornadas" && <AlineacionesJornadas equipoId={id} />}
-
-      {perfil.esMio && (
-        <AjustesCuenta
-          nombreActual={perfil.nombreManager}
-          onNombreCambiado={(nuevo) =>
-            setPerfil((prev) => (prev ? { ...prev, nombreManager: nuevo } : prev))
-          }
-        />
-      )}
     </div>
   );
 }
 
 export default function PerfilManagerPage() {
+  const tm = useT().managers;
   return (
-    <Suspense fallback={<p className="text-sm text-neutral-500">Cargando perfil…</p>}>
+    <Suspense fallback={<p className="text-sm text-neutral-500">{tm.cargando}</p>}>
       <PerfilManagerContenido />
     </Suspense>
   );

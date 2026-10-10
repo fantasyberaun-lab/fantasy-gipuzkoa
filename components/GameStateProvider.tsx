@@ -12,11 +12,8 @@ import { createClient } from "@/lib/supabase/client";
 import { redondear2 } from "@/lib/saldo";
 import { fetchComunicados } from "@/lib/supabase/comunicadosQueries";
 import { motivoBloqueoTitular } from "@/lib/titulares";
-import {
-  clausulazosCerrados,
-  MENSAJE_CLAUSULAZOS_CERRADOS,
-  proximaTandaMercado,
-} from "@/lib/mercadoCountdown";
+import { clausulazosCerrados, proximaTandaMercado } from "@/lib/mercadoCountdown";
+import { useT } from "@/components/IdiomaProvider";
 import {
   aceptarOfertaDB,
   blindarJugadorDB,
@@ -167,6 +164,7 @@ function guardarLigaActiva(ligaId: string) {
 }
 
 export function GameStateProvider({ children }: { children: ReactNode }) {
+  const t = useT();
   const supabase = createClient();
 
   const [cargando, setCargando] = useState(true);
@@ -455,7 +453,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   async function toggleTitular(id: string): Promise<ResultadoAccion> {
     const nuevoValor = !titulares[id];
     if (nuevoValor) {
-      const motivo = motivoBloqueoTitular(squad, titulares, id);
+      const motivo = motivoBloqueoTitular(squad, titulares, id, t.plantilla);
       if (motivo) return { ok: false, mensaje: motivo };
     }
     const capitanAnterior = capitanId;
@@ -472,9 +470,9 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   }
 
   async function toggleCapitan(id: string): Promise<ResultadoAccion> {
-    if (!equipo.id) return { ok: false, mensaje: "No tienes equipo todavía." };
+    if (!equipo.id) return { ok: false, mensaje: t.juego.sinEquipo };
     if (!titulares[id]) {
-      return { ok: false, mensaje: "El capitán tiene que ser titular." };
+      return { ok: false, mensaje: t.juego.capitanTitular };
     }
     const capitanAnterior = capitanId;
     const nuevoValor = capitanId !== id;
@@ -485,7 +483,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   }
 
   async function blindarJugador(jugadorId: string): Promise<ResultadoAccion> {
-    if (!equipo.leagueId) return { ok: false, mensaje: "No tienes equipo todavía." };
+    if (!equipo.leagueId) return { ok: false, mensaje: t.juego.sinEquipo };
     const resultado = await blindarJugadorDB(supabase, jugadorId, equipo.leagueId);
     if (resultado.ok) await cargarTodo();
     return resultado;
@@ -495,7 +493,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     id: string,
     valorMercado: number
   ): Promise<ResultadoAccion> {
-    if (!equipo.id) return { ok: false, mensaje: "No tienes equipo todavía." };
+    if (!equipo.id) return { ok: false, mensaje: t.juego.sinEquipo };
     const resultado = esLigaPublica
       ? await venderJugadorPublicoDB(supabase, id, equipo.leagueId)
       : await venderJugadorDB(supabase, equipo.id, id, valorMercado);
@@ -509,10 +507,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const saldoFuturo = redondear2(equipo.saldo - comprometidoEnPujas);
 
   async function pagarClausula(jugadorId: string): Promise<ResultadoAccion> {
-    if (!equipo.leagueId) return { ok: false, mensaje: "No tienes equipo todavía." };
+    if (!equipo.leagueId) return { ok: false, mensaje: t.juego.sinEquipo };
     // Aviso inmediato; la base de datos lo vuelve a comprobar (clausulazos_cerrados).
     if (!esLigaPublica && clausulazosCerrados()) {
-      return { ok: false, mensaje: MENSAJE_CLAUSULAZOS_CERRADOS };
+      return { ok: false, mensaje: t.mercado.clausulazosCerrados };
     }
     const resultado = await pagarClausulaDB(supabase, jugadorId, equipo.leagueId);
     if (resultado.ok) await cargarTodo();
@@ -523,14 +521,14 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     jugadorId: string,
     importe: number
   ): Promise<ResultadoAccion> {
-    if (!equipo.leagueId) return { ok: false, mensaje: "No tienes equipo todavía." };
+    if (!equipo.leagueId) return { ok: false, mensaje: t.juego.sinEquipo };
     if (!Number.isFinite(importe) || importe <= 0) {
-      return { ok: false, mensaje: "Introduce un importe válido." };
+      return { ok: false, mensaje: t.juego.importeInvalido };
     }
     if (importe > saldoFuturo) {
       return {
         ok: false,
-        mensaje: `No puedes pagar más de tu saldo futuro (${saldoFuturo} M).`,
+        mensaje: t.juego.pagarMasQueSaldo(saldoFuturo),
       };
     }
     const resultado = await subirClausulaDB(supabase, jugadorId, equipo.leagueId, importe);
@@ -542,14 +540,14 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     jugadorId: string,
     importe: number
   ): Promise<ResultadoAccion> {
-    if (!equipo.id) return { ok: false, mensaje: "No tienes equipo todavía." };
+    if (!equipo.id) return { ok: false, mensaje: t.juego.sinEquipo };
     if (!Number.isFinite(importe) || importe <= 0) {
-      return { ok: false, mensaje: "Introduce un importe válido." };
+      return { ok: false, mensaje: t.juego.importeInvalido };
     }
     if (importe > saldoFuturo) {
       return {
         ok: false,
-        mensaje: `No puedes ofertar más de tu saldo futuro (${saldoFuturo} M).`,
+        mensaje: t.juego.ofertarMasQueSaldo(saldoFuturo),
       };
     }
     const resultado = await hacerOfertaDB(supabase, equipo.id, jugadorId, importe);
@@ -570,7 +568,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   }
 
   async function ficharJugador(jugadorId: string): Promise<ResultadoAccion> {
-    if (!equipo.leagueId) return { ok: false, mensaje: "No tienes equipo todavía." };
+    if (!equipo.leagueId) return { ok: false, mensaje: t.juego.sinEquipo };
     const resultado = await ficharJugadorDB(supabase, jugadorId, equipo.leagueId);
     if (resultado.ok) await cargarTodo();
     return resultado;
@@ -580,9 +578,9 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     listingId: string,
     importe: number
   ): Promise<ResultadoAccion> {
-    if (!equipo.leagueId) return { ok: false, mensaje: "No tienes equipo todavía." };
+    if (!equipo.leagueId) return { ok: false, mensaje: t.juego.sinEquipo };
     if (!Number.isFinite(importe) || importe <= 0) {
-      return { ok: false, mensaje: "Introduce un importe válido." };
+      return { ok: false, mensaje: t.juego.importeInvalido };
     }
     // El límite (saldo + deuda máxima - otras pujas) lo valida el servidor.
     const resultado = await pujarMercadoDB(supabase, listingId, importe, equipo.leagueId);
@@ -591,7 +589,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   }
 
   async function cancelarPuja(listingId: string): Promise<ResultadoAccion> {
-    if (!equipo.leagueId) return { ok: false, mensaje: "No tienes equipo todavía." };
+    if (!equipo.leagueId) return { ok: false, mensaje: t.juego.sinEquipo };
     const resultado = await cancelarPujaMercadoDB(supabase, listingId, equipo.leagueId);
     if (resultado.ok) await cargarTodo();
     return resultado;

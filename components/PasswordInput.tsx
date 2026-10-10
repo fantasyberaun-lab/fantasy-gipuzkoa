@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, type InputHTMLAttributes } from "react";
+import { useT } from "@/components/IdiomaProvider";
 
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, "type">;
 
 // Campo de contraseña con botón de ojo para mostrarla/ocultarla.
 export default function PasswordInput({ className = "", ...props }: Props) {
   const [visible, setVisible] = useState(false);
+  const t = useT();
 
   return (
     <div className="relative mt-1">
@@ -18,7 +20,7 @@ export default function PasswordInput({ className = "", ...props }: Props) {
       <button
         type="button"
         onClick={() => setVisible((v) => !v)}
-        aria-label={visible ? "Ocultar contraseña" : "Mostrar contraseña"}
+        aria-label={visible ? t.auth.ocultarContrasena : t.auth.mostrarContrasena}
         aria-pressed={visible}
         className="absolute inset-y-0 right-0 flex items-center px-3 text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
       >

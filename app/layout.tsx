@@ -3,6 +3,8 @@ import { Barlow, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/react";
 import PwaProvider from "@/components/PwaProvider";
+import { IdiomaProvider } from "@/components/IdiomaProvider";
+import { getIdioma } from "@/lib/i18n/server";
 
 const fontSans = Barlow({
   subsets: ["latin", "latin-ext"],
@@ -51,16 +53,19 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const idioma = getIdioma();
   return (
     // suppressHydrationWarning: la clase "dark" la añade el ThemeToggle
     // en cliente a partir de localStorage / prefers-color-scheme.
     <html
-      lang="es"
+      lang={idioma}
       className={`${fontSans.variable} ${fontDisplay.variable}`}
       suppressHydrationWarning
     >
       <body className="min-h-screen font-sans antialiased">
-        <PwaProvider>{children}</PwaProvider>
+        <IdiomaProvider idiomaInicial={idioma}>
+          <PwaProvider>{children}</PwaProvider>
+        </IdiomaProvider>
         {/* Visitas, páginas, país y dispositivo (sin cookies). Se ve en Vercel > Analytics. */}
         <Analytics />
       </body>

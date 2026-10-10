@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import PasswordInput from "@/components/PasswordInput";
+import { useIdioma } from "@/components/IdiomaProvider";
 import {
   cambiarNombreUsuarioDB,
   cambiarPasswordDB,
@@ -11,7 +12,6 @@ import {
 import {
   DIAS_ENTRE_CAMBIOS_DE_NOMBRE,
   FORMATO_NOMBRE_USUARIO,
-  MENSAJE_FORMATO_NOMBRE_USUARIO,
   MIN_PASSWORD,
 } from "@/lib/cuenta";
 
@@ -31,21 +31,27 @@ function MensajeAviso({ aviso }: { aviso: Aviso }) {
   );
 }
 
-function fechaHora(d: Date) {
-  return d.toLocaleString("es-ES", { dateStyle: "long", timeStyle: "short" });
+function fechaHora(d: Date, locale: string) {
+  return d.toLocaleString(locale, { dateStyle: "long", timeStyle: "short" });
 }
 
-// Cambio de nombre de usuario y de contraseña. Solo se enseña en el perfil
-// propio; la base de datos (cambiar_nombre_usuario, 0050) es la que de verdad
+// Cambio de nombre de usuario y de contraseña. Vive en el menú de ajustes
+// (MenuAjustes, apartado "Mi cuenta"); la base de datos
+// (cambiar_nombre_usuario, 0050) es la que de verdad
 // impone el formato, la unicidad y el máximo de un cambio por semana.
 export default function AjustesCuenta({
   nombreActual,
   onNombreCambiado,
+  sinMarco = false,
 }: {
   nombreActual: string;
   onNombreCambiado: (nuevo: string) => void;
+  // Dentro del menú de ajustes ya hay título y fondo: sin tarjeta ni título.
+  sinMarco?: boolean;
 }) {
   const supabase = createClient();
+  const { t: textos, locale } = useIdioma();
+  const t = textos.cuenta;
 
   // Nombre de usuario
   const [nombre, setNombre] = useState(nombreActual);
@@ -73,11 +79,11 @@ export default function AjustesCuenta({
     const limpio = nombre.trim();
 
     if (!FORMATO_NOMBRE_USUARIO.test(limpio)) {
-      setAvisoNombre({ tipo: "error", texto: MENSAJE_FORMATO_NOMBRE_USUARIO });
+      setAvisoNombre({ tipo: "error", texto: t.formatoNombre });
       return;
     }
     if (limpio === nombreActual) {
-      setAvisoNombre({ tipo: "error", texto: "Ese ya es tu nombre de usuario." });
+      setAvisoNombre({ tipo: "error", texto: t.yaEsTuNombre });
       return;
     }
 
@@ -91,7 +97,7 @@ export default function AjustesCuenta({
       return;
     }
 
-    setAvisoNombre({ tipo: "ok", texto: "Nombre de usuario actualizado." });
+    setAvisoNombre({ tipo: "ok", texto: t.nombreActualizado });
     setPuedeCambiarDesde(r.puede_cambiar_desde ? new Date(r.puede_cambiar_desde) : null);
     onNombreCambiado(r.nombre ?? limpio);
   }
@@ -101,15 +107,15 @@ export default function AjustesCuenta({
     setAvisoPassword(null);
 
     if (nueva.length < MIN_PASSWORD) {
-      setAvisoPassword({ tipo: "error", texto: `La contraseña nueva debe tener al menos ${MIN_PASSWORD} caracteres.` });
+      setAvisoPassword({ tipo: "error", texto: t.passwordCorta(MIN_PASSWORD) });
       return;
     }
     if (nueva !== repetida) {
-      setAvisoPassword({ tipo: "error", texto: "Las contraseñas nuevas no coinciden." });
+      setAvisoPassword({ tipo: "error", texto: t.noCoinciden });
       return;
     }
     if (nueva === actual) {
-      setAvisoPassword({ tipo: "error", texto: "La contraseña nueva tiene que ser distinta de la actual." });
+      setAvisoPassword({ tipo: "error", texto: t.igualQueActual });
       return;
     }
 
@@ -124,15 +130,21 @@ export default function AjustesCuenta({
     setActual("");
     setNueva("");
     setRepetida("");
-    setAvisoPassword({ tipo: "ok", texto: "Contraseña actualizada." });
+    setAvisoPassword({ tipo: "ok", texto: t.passwordActualizada });
   }
 
   return (
-    <div className="flex flex-col gap-6 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
-      <h3 className="text-sm font-semibold">Ajustes de la cuenta</h3>
+    <div
+      className={
+        sinMarco
+          ? "flex flex-col gap-6"
+          : "flex flex-col gap-6 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800"
+      }
+    >
+      {!sinMarco && <h3 className="text-sm font-semibold">{t.tituloAjustes}</h3>}
 
       <form onSubmit={guardarNombre} className="flex flex-col gap-2">
-        <label className="text-xs font-medium text-neutral-500">Nombre de usuario</label>
+        <label className="text-xs font-medium text-neutral-500">{t.nombreUsuario}</label>
         <input
           type="text"
           minLength={3}
@@ -146,10 +158,10 @@ export default function AjustesCuenta({
           className={`${INPUT} disabled:opacity-60`}
         />
         <p className="text-xs text-neutral-500">
-          Puedes cambiarlo una vez cada {DIAS_ENTRE_CAMBIOS_DE_NOMBRE} días y no puede coincidir con el de otro usuario.
-          {bloqueadoPorSemana && puedeCambiarDesde && (
-            <> Podrás volver a cambiarlo el {fechaHora(puedeCambiarDesde)}.</>
-          )}
+          {t.ayudaNombre(DIAS_ENTRE_CAMBIOS_DE_NOMBRE)}
+          {bloqueadoPorSemana &&
+            puedeCambiarDesde &&
+            t.podrasCambiarlo(fechaHora(puedeCambiarDesde, locale))}
         </p>
         <MensajeAviso aviso={avisoNombre} />
         <div>
@@ -158,29 +170,29 @@ export default function AjustesCuenta({
             disabled={guardandoNombre || bloqueadoPorSemana || nombre.trim() === nombreActual}
             className={BOTON}
           >
-            {guardandoNombre ? "Guardando…" : "Cambiar nombre"}
+            {guardandoNombre ? textos.comun.guardando : t.cambiarNombre}
           </button>
         </div>
       </form>
 
       <form onSubmit={guardarPassword} className="flex flex-col gap-3 border-t border-neutral-200 pt-5 dark:border-neutral-800">
-        <p className="text-xs font-medium text-neutral-500">Cambiar contraseña</p>
+        <p className="text-xs font-medium text-neutral-500">{t.cambiarPassword}</p>
         <div>
-          <label className="text-xs text-neutral-500">Contraseña actual</label>
+          <label className="text-xs text-neutral-500">{t.passwordActual}</label>
           <PasswordInput required autoComplete="current-password" value={actual} onChange={(e) => setActual(e.target.value)} />
         </div>
         <div>
-          <label className="text-xs text-neutral-500">Contraseña nueva</label>
+          <label className="text-xs text-neutral-500">{t.passwordNueva}</label>
           <PasswordInput required minLength={MIN_PASSWORD} autoComplete="new-password" value={nueva} onChange={(e) => setNueva(e.target.value)} />
         </div>
         <div>
-          <label className="text-xs text-neutral-500">Repite la contraseña nueva</label>
+          <label className="text-xs text-neutral-500">{t.repitePassword}</label>
           <PasswordInput required minLength={MIN_PASSWORD} autoComplete="new-password" value={repetida} onChange={(e) => setRepetida(e.target.value)} />
         </div>
         <MensajeAviso aviso={avisoPassword} />
         <div>
           <button type="submit" disabled={guardandoPassword || !actual || !nueva || !repetida} className={BOTON}>
-            {guardandoPassword ? "Guardando…" : "Cambiar contraseña"}
+            {guardandoPassword ? textos.comun.guardando : t.cambiarPassword}
           </button>
         </div>
       </form>

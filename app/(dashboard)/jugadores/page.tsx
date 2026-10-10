@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
+import { useT } from "@/components/IdiomaProvider";
 
 type Orden =
   | "puntos"
@@ -27,6 +28,7 @@ export default function JugadoresPage() {
     esLigaPublica,
   } =
     useGameState();
+  const tj = useT().jugadores;
 
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [montoOferta, setMontoOferta] = useState("");
@@ -75,7 +77,7 @@ export default function JugadoresPage() {
   }, [busqueda, orden, jugadoresLiga]);
 
   if (cargando) {
-    return <p className="text-sm text-neutral-500">Cargando jugadores…</p>;
+    return <p className="text-sm text-neutral-500">{tj.cargando}</p>;
   }
 
   const toggleSeleccion = (id: string) => {
@@ -97,7 +99,7 @@ export default function JugadoresPage() {
     const resultado = await pagarClausula(jugadorId);
     setEnviando(false);
     if (resultado.ok) {
-      mostrarMensaje(jugadorId, "ok", "Cláusula pagada. El jugador ya está en tu plantilla.");
+      mostrarMensaje(jugadorId, "ok", tj.clausulaPagada);
       setSeleccionadoId(null);
     } else {
       mostrarMensaje(jugadorId, "error", resultado.mensaje);
@@ -112,7 +114,7 @@ export default function JugadoresPage() {
       jugadorId,
       resultado.ok ? "ok" : "error",
       resultado.ok
-        ? "Oferta cancelada. Tu saldo no se ha visto afectado."
+        ? tj.ofertaCancelada
         : resultado.mensaje
     );
   };
@@ -123,7 +125,7 @@ export default function JugadoresPage() {
     const resultado = await hacerOferta(jugadorId, importe);
     setEnviando(false);
     if (resultado.ok) {
-      mostrarMensaje(jugadorId, "ok", `Oferta de ${importe} M enviada al manager.`);
+      mostrarMensaje(jugadorId, "ok", tj.ofertaEnviada(importe));
       setMontoOferta("");
     } else {
       mostrarMensaje(jugadorId, "error", resultado.mensaje);
@@ -151,7 +153,7 @@ export default function JugadoresPage() {
             type="text"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar jugador o club..."
+            placeholder={tj.buscar}
             className="w-full rounded-lg border border-neutral-300 py-2 pl-9 pr-3 text-sm dark:border-neutral-700 dark:bg-neutral-900"
           />
         </div>
@@ -161,23 +163,23 @@ export default function JugadoresPage() {
           onChange={(e) => setOrden(e.target.value as Orden)}
           className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
         >
-          <option value="puntos">Ordenar por puntos</option>
-          <option value="nombre">Ordenar por nombre</option>
-          <option value="categoria">Ordenar por categoría</option>
-          <option value="valor-desc">Valor: de mayor a menor</option>
-          <option value="valor-asc">Valor: de menor a mayor</option>
-          <option value="elo-desc">Elo: de mayor a menor</option>
-          <option value="elo-asc">Elo: de menor a mayor</option>
-          <option value="club-asc">Club: A → Z</option>
-          <option value="club-desc">Club: Z → A</option>
+          <option value="puntos">{tj.orden.puntos}</option>
+          <option value="nombre">{tj.orden.nombre}</option>
+          <option value="categoria">{tj.orden.categoria}</option>
+          <option value="valor-desc">{tj.orden.valorDesc}</option>
+          <option value="valor-asc">{tj.orden.valorAsc}</option>
+          <option value="elo-desc">{tj.orden.eloDesc}</option>
+          <option value="elo-asc">{tj.orden.eloAsc}</option>
+          <option value="club-asc">{tj.orden.clubAsc}</option>
+          <option value="club-desc">{tj.orden.clubDesc}</option>
         </select>
       </div>
 
       {jugadoresFiltrados.length === 0 && (
         <p className="py-6 text-center text-sm text-neutral-500">
           {jugadoresLiga.length === 0
-            ? "Todavía no hay jugadores cargados en la liga."
-            : `No hay jugadores que coincidan con "${busqueda}".`}
+            ? tj.sinJugadoresLiga
+            : tj.sinCoincidencias(busqueda)}
         </p>
       )}
 
@@ -228,25 +230,25 @@ export default function JugadoresPage() {
                     </Link>
                   </p>
                   <p className="text-xs text-neutral-500">
-                    {jugador.club} · {jugador.categoria}ª cat. · Elo {jugador.elo} · Valor {jugador.valorMercado} M
+                    {jugador.club} · {tj.categoriaCorta(jugador.categoria)} · Elo {jugador.elo} · {tj.valor(jugador.valorMercado)}
                   </p>
                   <p className="mt-0.5 flex items-center gap-1 text-xs text-neutral-500">
                     <span>
                       {jugador.esMiEquipo
-                        ? "En tu plantilla"
+                        ? tj.enTuPlantilla
                         : jugador.propietario
-                          ? `Fichado por ${jugador.propietario}`
+                          ? tj.fichadoPor(jugador.propietario)
                           : esLigaPublica
-                            ? "Disponible"
-                            : "Libre"}
+                            ? tj.disponible
+                            : tj.libre}
                       {ofertaActual && !jugador.esMiEquipo
-                        ? ` · Oferta enviada: ${ofertaActual.importe} M`
+                        ? tj.ofertaEnviadaLinea(ofertaActual.importe)
                         : ""}
                     </span>
                     {jugador.propietario !== null &&
                       (jugador.blindado ? (
                         <span
-                          title="Blindado: no se le puede hacer un clausulazo hasta la próxima jornada"
+                          title={tj.blindadoTitulo}
                           className="flex items-center gap-0.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-800 dark:bg-violet-900/40 dark:text-violet-300"
                         >
                           <svg
@@ -262,11 +264,11 @@ export default function JugadoresPage() {
                               d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
                             />
                           </svg>
-                          Blindado
+                          {tj.blindado}
                         </span>
                       ) : jugador.candado ? (
                         <span
-                          title="Con candado: no se le puede hacer un clausulazo hasta la próxima jornada"
+                          title={tj.candadoTitulo}
                           className="flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
                         >
                           <svg
@@ -282,11 +284,11 @@ export default function JugadoresPage() {
                               d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
                             />
                           </svg>
-                          Candado
+                          {tj.candado}
                         </span>
                       ) : (
                         <span
-                          title="Clausulable: se le puede hacer un clausulazo ahora mismo"
+                          title={tj.clausulableTitulo}
                           className="flex items-center gap-0.5 rounded-full bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-800 dark:bg-sky-900/40 dark:text-sky-300"
                         >
                           <svg
@@ -302,12 +304,12 @@ export default function JugadoresPage() {
                               d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
                             />
                           </svg>
-                          Clausulable
+                          {tj.clausulable}
                         </span>
                       ))}
                   </p>
                 </div>
-                <span className="text-sm font-semibold">{jugador.puntosTotales} pts</span>
+                <span className="text-sm font-semibold">{tj.pts(jugador.puntosTotales)}</span>
               </div>
 
               {estaSeleccionado && (
@@ -318,7 +320,7 @@ export default function JugadoresPage() {
                     }
                     className="rounded-lg border border-neutral-300 py-2 text-sm font-medium dark:border-neutral-700"
                   >
-                    {puntosAbiertoId === jugador.id ? "Ocultar puntos" : "Ver puntos por jornada"}
+                    {puntosAbiertoId === jugador.id ? tj.ocultarPuntos : tj.verPuntos}
                   </button>
                   {puntosAbiertoId === jugador.id && (
                     <HistorialPuntosChart historial={jugador.historialPuntos} />
@@ -326,13 +328,13 @@ export default function JugadoresPage() {
 
                   {jugador.esMiEquipo && (
                     <p className="text-sm text-neutral-500">
-                      Ya lo tienes en tu plantilla.
+                      {tj.yaEnPlantilla}
                     </p>
                   )}
 
                   {!jugador.esMiEquipo && jugador.propietario === null && (
                     <p className="text-sm text-neutral-500">
-                      Está libre — fíchalo desde la pestaña Mercado.
+                      {tj.libreFichalo}
                     </p>
                   )}
 
@@ -340,7 +342,7 @@ export default function JugadoresPage() {
                     <div className="flex flex-col gap-3">
                       <div>
                         <label className="text-xs font-medium text-neutral-500">
-                          Importe de la oferta (M)
+                          {tj.importeOferta}
                         </label>
                         <input
                           type="number"
@@ -358,21 +360,21 @@ export default function JugadoresPage() {
                           disabled={!montoOferta || enviando}
                           className="flex-1 rounded-lg border border-neutral-300 py-2 text-sm font-medium disabled:opacity-40 dark:border-neutral-700"
                         >
-                          Hacer oferta
+                          {tj.hacerOferta}
                         </button>
                         <button
                           onClick={() => onPagarClausula(jugador.id)}
                           disabled={enviando || jugador.candado || jugador.blindado}
                           title={
                             jugador.blindado
-                              ? "Blindado: no se le puede hacer un clausulazo durante esta jornada"
+                              ? tj.blindadoJornadaTitulo
                               : jugador.candado
-                                ? "Con candado: no se le puede hacer un clausulazo hasta la próxima jornada"
+                                ? tj.candadoTitulo
                                 : undefined
                           }
                           className="flex-1 rounded-lg bg-neutral-900 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
                         >
-                          Pagar cláusula ({jugador.clausula} M)
+                          {tj.pagarClausula(jugador.clausula)}
                         </button>
                       </div>
 
@@ -382,21 +384,19 @@ export default function JugadoresPage() {
                           disabled={enviando}
                           className="rounded-lg border border-neutral-300 py-2 text-sm font-medium text-negative disabled:opacity-40 dark:border-neutral-700"
                         >
-                          Cancelar mi oferta ({ofertaActual.importe} M)
+                          {tj.cancelarMiOferta(ofertaActual.importe)}
                         </button>
                       )}
 
                       {jugador.blindado && (
                         <p className="text-xs text-violet-600 dark:text-violet-400">
-                          Este jugador está blindado: su dueño ha pagado para que no se le pueda
-                          hacer un clausulazo hasta la próxima jornada.
+                          {tj.notaBlindado}
                         </p>
                       )}
 
                       {jugador.candado && !jugador.blindado && (
                         <p className="text-xs text-amber-600 dark:text-amber-400">
-                          Este jugador tiene un candado: se acaba de fichar y no se le puede
-                          hacer un clausulazo hasta la próxima jornada.
+                          {tj.notaCandado}
                         </p>
                       )}
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useT } from "@/components/IdiomaProvider";
 import {
   fetchDetalleTorneo,
   fetchTorneo,
@@ -26,6 +27,7 @@ function LadoDePartida({
   torneoId: string;
   alineacion: "text-right" | "text-left";
 }) {
+  const t = useT();
   return (
     <div className={alineacion}>
       {lado.id ? (
@@ -42,7 +44,7 @@ function LadoDePartida({
         </span>
       )}
       {lado.puntosFantasy != null && (
-        <p className="text-xs text-neutral-500">{lado.puntosFantasy} pts</p>
+        <p className="text-xs text-neutral-500">{t.torneos.pts(lado.puntosFantasy)}</p>
       )}
     </div>
   );
@@ -51,6 +53,7 @@ function LadoDePartida({
 export default function TorneoDetallePage() {
   const { id } = useParams<{ id: string }>();
   const supabase = createClient();
+  const tt = useT().torneos;
 
   const [torneo, setTorneo] = useState<Torneo | null>(null);
   const [detalle, setDetalle] = useState<DetalleTorneo | null>(null);
@@ -75,15 +78,15 @@ export default function TorneoDetallePage() {
   }, [id]);
 
   if (cargando) {
-    return <p className="text-sm text-neutral-500">Cargando torneo…</p>;
+    return <p className="text-sm text-neutral-500">{tt.cargandoTorneo}</p>;
   }
 
   if (!torneo || !detalle) {
     return (
       <div className="flex flex-col gap-3">
-        <p className="text-sm text-neutral-500">No se ha encontrado este torneo.</p>
+        <p className="text-sm text-neutral-500">{tt.noEncontrado}</p>
         <Link href="/torneos" className="text-sm text-accent underline underline-offset-2">
-          ← Volver a torneos
+          {tt.volverATorneos}
         </Link>
       </div>
     );
@@ -99,24 +102,24 @@ export default function TorneoDetallePage() {
           href="/torneos"
           className="text-sm text-neutral-500 underline underline-offset-2 hover:text-neutral-800 dark:hover:text-neutral-300"
         >
-          ← Torneos
+          {tt.migaTorneos}
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <h2 className="text-lg font-semibold">{torneo.nombre}</h2>
           {estado && (
             <span className="rounded-full border border-neutral-300 px-2 py-0.5 text-xs text-neutral-500 dark:border-neutral-700">
-              {estado}
+              {tt.estados[estado]}
             </span>
           )}
         </div>
         {torneo.categoria && (
-          <p className="text-xs text-neutral-500">{torneo.categoria}ª categoría</p>
+          <p className="text-xs text-neutral-500">{tt.categoria(torneo.categoria)}</p>
         )}
       </div>
 
       <details open className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
         <summary className="cursor-pointer text-sm font-medium">
-          Información del torneo
+          {tt.informacion}
         </summary>
         <div className="mt-3">
           <FichaTorneo torneo={torneo} />
@@ -126,8 +129,8 @@ export default function TorneoDetallePage() {
       <div className="flex gap-2">
         {(
           [
-            ["jugadores", `Jugadores (${detalle.participantes.length})`],
-            ["resultados", `Resultados (${detalle.jornadas.length})`],
+            ["jugadores", tt.pestanaJugadores(detalle.participantes.length)],
+            ["resultados", tt.pestanaResultados(detalle.jornadas.length)],
           ] as [Pestana, string][]
         ).map(([clave, etiqueta]) => (
           <button
@@ -147,21 +150,21 @@ export default function TorneoDetallePage() {
       {pestana === "jugadores" &&
         (detalle.participantes.length === 0 ? (
           <p className="py-6 text-center text-sm text-neutral-500">
-            Todavía no hay jugadores inscritos en este torneo.
+            {tt.sinInscritos}
           </p>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-neutral-200 dark:border-neutral-800">
             <table className="w-full min-w-[640px] text-sm">
               <thead className="bg-neutral-50 text-left text-xs uppercase text-neutral-500 dark:bg-neutral-900">
                 <tr>
-                  <th className="px-3 py-2 font-medium">Jugador</th>
-                  <th className="px-3 py-2 font-medium">Club</th>
-                  <th className="px-3 py-2 font-medium">Cat.</th>
-                  <th className="px-3 py-2 font-medium">Elo</th>
-                  <th className="px-3 py-2 text-right font-medium">Partidas</th>
-                  <th className="px-3 py-2 text-right font-medium">Puntos</th>
-                  <th className="px-3 py-2 text-right font-medium">Perf. Elo</th>
-                  <th className="px-3 py-2 text-right font-medium">Pts Fantasy</th>
+                  <th className="px-3 py-2 font-medium">{tt.colJugador}</th>
+                  <th className="px-3 py-2 font-medium">{tt.colClub}</th>
+                  <th className="px-3 py-2 font-medium">{tt.colCat}</th>
+                  <th className="px-3 py-2 font-medium">{tt.colElo}</th>
+                  <th className="px-3 py-2 text-right font-medium">{tt.colPartidas}</th>
+                  <th className="px-3 py-2 text-right font-medium">{tt.colPuntos}</th>
+                  <th className="px-3 py-2 text-right font-medium">{tt.colPerf}</th>
+                  <th className="px-3 py-2 text-right font-medium">{tt.colPtsFantasy}</th>
                 </tr>
               </thead>
               <tbody>
@@ -180,7 +183,7 @@ export default function TorneoDetallePage() {
                       )}
                     </td>
                     <td className="px-3 py-2 text-neutral-500">{j.club}</td>
-                    <td className="px-3 py-2">{j.categoria ? `${j.categoria}ª` : "–"}</td>
+                    <td className="px-3 py-2">{j.categoria ? tt.catOrdinal(j.categoria) : "–"}</td>
                     <td className="px-3 py-2">{j.elo}</td>
                     <td className="px-3 py-2 text-right">{j.partidas}</td>
                     <td className="px-3 py-2 text-right font-medium">
@@ -198,7 +201,7 @@ export default function TorneoDetallePage() {
       {pestana === "resultados" &&
         (detalle.jornadas.length === 0 ? (
           <p className="py-6 text-center text-sm text-neutral-500">
-            Este torneo todavía no tiene jornadas.
+            {tt.sinJornadas}
           </p>
         ) : (
           <div className="flex flex-col gap-3">
@@ -209,7 +212,7 @@ export default function TorneoDetallePage() {
             >
               {detalle.jornadas.map((j) => (
                 <option key={j.id} value={j.id}>
-                  Jornada {j.numero}
+                  {tt.jornada(j.numero)}
                 </option>
               ))}
             </select>
@@ -219,14 +222,14 @@ export default function TorneoDetallePage() {
               jornadaActual.emparejamientos.length === 0 &&
               jornadaActual.descansan.length === 0 && (
                 <p className="py-6 text-center text-sm text-neutral-500">
-                  Todavía no hay resultados en esta jornada.
+                  {tt.sinResultados}
                 </p>
               )}
 
             {jornadaActual && jornadaActual.emparejamientos.length > 0 && (
               <div className="flex flex-col gap-2">
                 <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
-                  Emparejamientos · pendientes de resultado
+                  {tt.emparejamientosPendientes}
                 </p>
                 <ul className="divide-y divide-neutral-200 rounded-xl border border-neutral-200 dark:divide-neutral-800 dark:border-neutral-800">
                   {jornadaActual.emparejamientos.map((e) => (
@@ -236,7 +239,7 @@ export default function TorneoDetallePage() {
                     >
                       <LadoDePartida lado={e.blancas} torneoId={torneo.id} alineacion="text-right" />
                       <span className="min-w-[3.5rem] text-center text-xs text-neutral-500">
-                        {e.tablero != null ? `Mesa ${e.tablero}` : "vs"}
+                        {e.tablero != null ? tt.mesa(e.tablero) : "vs"}
                       </span>
                       <LadoDePartida lado={e.negras} torneoId={torneo.id} alineacion="text-left" />
                     </li>
@@ -264,7 +267,7 @@ export default function TorneoDetallePage() {
 
             {jornadaActual && jornadaActual.descansan.length > 0 && (
               <p className="text-xs text-neutral-500">
-                Sin emparejar (descansan):{" "}
+                {tt.descansan}{" "}
                 {jornadaActual.descansan.map((d, i) => (
                   <span key={d.clave}>
                     {i > 0 && ", "}

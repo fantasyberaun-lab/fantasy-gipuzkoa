@@ -5,9 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import PasswordInput from "@/components/PasswordInput";
 import InstallPwaButton from "@/components/InstallPwaButton";
+import { useT } from "@/components/IdiomaProvider";
 
 export default function LoginPage() {
   const router = useRouter();
+  const t = useT();
 
   const [identificador, setIdentificador] = useState("");
   const [password, setPassword] = useState("");
@@ -28,13 +30,13 @@ export default function LoginPage() {
       });
       resultado = await respuesta.json();
     } catch {
-      resultado = { ok: false, mensaje: "No se ha podido conectar. Inténtalo de nuevo." };
+      resultado = { ok: false, mensaje: t.auth.errorConexion };
     }
 
     setCargando(false);
 
     if (!resultado.ok) {
-      setError(resultado.mensaje ?? "No se ha podido iniciar sesión.");
+      setError(resultado.mensaje ?? t.auth.errorLogin);
       return;
     }
 
@@ -50,7 +52,7 @@ export default function LoginPage() {
     >
       <div>
         <label className="text-xs font-medium text-neutral-500">
-          Email o nombre de usuario
+          {t.auth.emailOUsuario}
         </label>
         <input
           type="text"
@@ -66,7 +68,7 @@ export default function LoginPage() {
 
       <div>
         <label className="text-xs font-medium text-neutral-500">
-          Contraseña
+          {t.auth.contrasena}
         </label>
         <PasswordInput
           required
@@ -76,7 +78,7 @@ export default function LoginPage() {
         />
         <div className="mt-1.5 text-right">
           <Link href="/recuperar" className="text-xs font-medium text-accent">
-            ¿Has olvidado tu contraseña?
+            {t.auth.olvidada}
           </Link>
         </div>
       </div>
@@ -88,13 +90,13 @@ export default function LoginPage() {
         disabled={cargando}
         className="rounded-lg bg-accent py-2.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
       >
-        {cargando ? "Entrando..." : "Entrar"}
+        {cargando ? t.auth.entrando : t.auth.entrar}
       </button>
 
       <p className="text-center text-sm text-neutral-500">
-        ¿No tienes cuenta todavía?{" "}
+        {t.auth.sinCuenta}{" "}
         <Link href="/registro" className="font-medium text-accent">
-          Regístrate
+          {t.auth.registrate}
         </Link>
       </p>
     </form>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useIdioma } from "@/components/IdiomaProvider";
 import { fetchTorneos } from "@/lib/supabase/torneosQueries";
 import { estadoTorneo, ordenarTorneos, rangoFechas, type Torneo } from "@/lib/torneos";
 
@@ -11,6 +12,8 @@ import { estadoTorneo, ordenarTorneos, rangoFechas, type Torneo } from "@/lib/to
 // que además queda protegido por el middleware y por RLS (es_root()).
 export default function TorneosPage() {
   const supabase = createClient();
+  const { t: textos, locale } = useIdioma();
+  const tt = textos.torneos;
   const [torneos, setTorneos] = useState<Torneo[]>([]);
   const [cargando, setCargando] = useState(true);
 
@@ -23,13 +26,13 @@ export default function TorneosPage() {
   }, []);
 
   if (cargando) {
-    return <p className="text-sm text-neutral-500">Cargando torneos…</p>;
+    return <p className="text-sm text-neutral-500">{tt.cargando}</p>;
   }
 
   if (torneos.length === 0) {
     return (
       <p className="py-6 text-center text-sm text-neutral-500">
-        Todavía no hay torneos.
+        {tt.vacio}
       </p>
     );
   }
@@ -37,13 +40,12 @@ export default function TorneosPage() {
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-neutral-500">
-        Los torneos reales de los que salen las jornadas del Fantasy. Entra en uno para ver
-        sus jugadores y resultados.
+        {tt.intro}
       </p>
       <ul className="flex flex-col gap-3">
         {torneos.map((t) => {
           const estado = estadoTorneo(t);
-          const fechas = rangoFechas(t);
+          const fechas = rangoFechas(t, locale);
           return (
             <li key={t.id}>
               <Link
@@ -52,21 +54,15 @@ export default function TorneosPage() {
               >
                 <h2 className="text-base font-semibold">{t.nombre}</h2>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-500">
-                  {t.categoria && <span>{t.categoria}ª categoría</span>}
+                  {t.categoria && <span>{tt.categoria(t.categoria)}</span>}
                   {estado && (
                     <span className="rounded-full border border-neutral-300 px-2 py-0.5 dark:border-neutral-700">
-                      {estado}
+                      {tt.estados[estado]}
                     </span>
                   )}
                   {fechas && <span>{fechas}</span>}
-                  <span>
-                    {t.participantes} jugador{t.participantes === 1 ? "" : "es"}
-                  </span>
-                  <span>
-                    {t.rondasCreadas}
-                    {t.numeroRondas != null ? ` / ${t.numeroRondas}` : ""} jornada
-                    {t.rondasCreadas === 1 ? "" : "s"}
-                  </span>
+                  <span>{tt.jugadores(t.participantes)}</span>
+                  <span>{tt.jornadas(t.rondasCreadas, t.numeroRondas)}</span>
                 </div>
               </Link>
             </li>

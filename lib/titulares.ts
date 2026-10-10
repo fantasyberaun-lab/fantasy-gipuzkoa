@@ -5,6 +5,7 @@
 
 import { gameConfig } from "@/lib/gameConfig";
 import type { PlantillaSlot } from "@/lib/types";
+import { TEXTOS, type Textos } from "@/lib/i18n/textos";
 
 const MAX_TITULARES = gameConfig.plantilla.maximoTitulares;
 const MAX_POR_TORNEO = gameConfig.plantilla.maximoTitularesPorTorneo;
@@ -26,17 +27,19 @@ export function titularesPorTorneo(
 }
 
 // Motivo por el que NO se puede poner de titular a este jugador, o null si se
-// puede. Pasar a suplente nunca está bloqueado.
+// puede. Pasar a suplente nunca está bloqueado. `textos` es la sección
+// plantilla del idioma actual (por defecto, castellano).
 export function motivoBloqueoTitular(
   squad: PlantillaSlot[],
   titulares: Record<string, boolean>,
-  jugadorId: string
+  jugadorId: string,
+  textos: Textos["plantilla"] = TEXTOS.es.plantilla
 ): string | null {
   if (titulares[jugadorId]) return null;
 
   const total = squad.filter((s) => titulares[s.jugador.id]).length;
   if (total >= MAX_TITULARES) {
-    return `Ya tienes ${MAX_TITULARES} titulares — pasa a suplente a otro primero.`;
+    return textos.bloqueoMaxTitulares(MAX_TITULARES);
   }
 
   const slot = squad.find((s) => s.jugador.id === jugadorId);
@@ -48,7 +51,7 @@ export function motivoBloqueoTitular(
     .map((t) => t.nombre);
 
   if (llenos.length > 0) {
-    return `Ya tienes ${MAX_POR_TORNEO} titulares en ${llenos.join(", ")} — pasa a suplente a otro primero.`;
+    return textos.bloqueoMaxPorTorneo(MAX_POR_TORNEO, llenos.join(", "));
   }
   return null;
 }

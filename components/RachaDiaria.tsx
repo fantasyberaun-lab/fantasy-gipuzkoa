@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useGameState } from "@/components/GameStateProvider";
+import { useT } from "@/components/IdiomaProvider";
 import { redondear2 } from "@/lib/saldo";
 import {
   fetchEstadoRacha,
@@ -31,23 +32,24 @@ function PuntosCiclo({ hechos, total }: { hechos: number; total: number }) {
 
 // Modal del cofre: primero cerrado, al pulsar se abre y enseña el premio.
 function ModalCofre({ cobro, onCerrar }: { cobro: Cobro; onCerrar: () => void }) {
+  const t = useT();
   const [abierto, setAbierto] = useState(false);
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Cofre de racha"
+      aria-label={t.racha.cofreAria}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
     >
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl dark:bg-neutral-900">
-        <p className="text-sm font-medium text-neutral-500">¡{cobro.racha} días de racha!</p>
+        <p className="text-sm font-medium text-neutral-500">{t.racha.diasDeRachaExclamacion(cobro.racha)}</p>
         <button
           onClick={() => setAbierto(true)}
           disabled={abierto}
           className={`mx-auto mt-4 block text-7xl transition-transform duration-300 ${
             abierto ? "scale-110" : "animate-bounce hover:scale-110"
           }`}
-          aria-label="Abrir cofre"
+          aria-label={t.racha.abrirCofre}
         >
           {abierto ? "💰" : "🎁"}
         </button>
@@ -57,18 +59,18 @@ function ModalCofre({ cobro, onCerrar }: { cobro: Cobro; onCerrar: () => void })
               +{redondear2(cobro.importeCofre)} M
             </p>
             <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-              Más el millón de hoy, en {cobro.equipos === 1 ? "tu equipo" : `tus ${cobro.equipos} equipos`}.
+              {t.racha.masElMillon(cobro.equipos)}
             </p>
             <button
               onClick={onCerrar}
               className="mt-5 w-full rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover"
             >
-              ¡A fichar!
+              {t.racha.aFichar}
             </button>
           </>
         ) : (
           <p className="mt-4 text-sm text-neutral-600 dark:text-neutral-400">
-            Toca el cofre para abrirlo
+            {t.racha.tocaCofre}
           </p>
         )}
       </div>
@@ -79,6 +81,7 @@ function ModalCofre({ cobro, onCerrar }: { cobro: Cobro; onCerrar: () => void })
 // Tarjeta de la racha diaria (encima de las pestañas). Ver 0075_racha_diaria.sql.
 export default function RachaDiaria() {
   const supabase = createClient();
+  const t = useT();
   const { recargar, cargando } = useGameState();
   const [estado, setEstado] = useState<EstadoRacha | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -128,26 +131,24 @@ export default function RachaDiaria() {
         <div className="min-w-0">
           <p className="flex items-center gap-1.5 text-sm font-semibold text-neutral-900 dark:text-neutral-100">
             <span aria-hidden="true">🔥</span>
-            {estado.racha === 0
-              ? "Empieza tu racha"
-              : `${estado.racha} día${estado.racha === 1 ? "" : "s"} de racha`}
+            {estado.racha === 0 ? t.racha.empiezaRacha : t.racha.diasDeRacha(estado.racha)}
           </p>
           <p className="mt-0.5 text-xs text-neutral-500">
             {estado.reclamadaHoy
-              ? `Vuelve mañana · ${
+              ? t.racha.vuelveManana(
                   estado.diasParaCofre === estado.diasCofre
-                    ? `próximo cofre en ${estado.diasCofre} días`
-                    : `cofre en ${estado.diasParaCofre} día${estado.diasParaCofre === 1 ? "" : "s"}`
-                }`
+                    ? t.racha.proximoCofreEn(estado.diasCofre)
+                    : t.racha.cofreEn(estado.diasParaCofre)
+                )
               : tocaCofreHoy
-                ? "¡Hoy abres el cofre de 5 a 10 M!"
-                : `Cofre de 5 a 10 M en ${estado.diasParaCofre} días`}
+                ? t.racha.hoyCofre
+                : t.racha.cofreEnDias(estado.diasParaCofre)}
           </p>
         </div>
 
         {estado.reclamadaHoy ? (
           <span className="shrink-0 rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-500 dark:bg-neutral-800">
-            {cobro ? `+${redondear2(cobro.importeDiario + cobro.importeCofre)} M` : "Reclamada"}
+            {cobro ? `+${redondear2(cobro.importeDiario + cobro.importeCofre)} M` : t.racha.reclamada}
           </span>
         ) : (
           <button
@@ -155,7 +156,7 @@ export default function RachaDiaria() {
             disabled={enviando}
             className="shrink-0 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
           >
-            {enviando ? "…" : `Reclamar ${redondear2(estado.recompensaDiaria)} M`}
+            {enviando ? "…" : t.racha.reclamar(redondear2(estado.recompensaDiaria))}
           </button>
         )}
       </div>
@@ -170,7 +171,7 @@ export default function RachaDiaria() {
       {error && <p className="mt-2 text-xs text-negative dark:text-red-400">{error}</p>}
       {cobro && cobro.equipos > 1 && !mostrarCofre && (
         <p className="mt-2 text-xs text-neutral-500">
-          Ingresado en tus {cobro.equipos} equipos.
+          {t.racha.ingresadoEquipos(cobro.equipos)}
         </p>
       )}
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import ProximoRivalLinea from "@/components/ProximoRival";
 import { useEffect, useMemo, useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
+import { useT } from "@/components/IdiomaProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import MercadoPublico from "@/components/MercadoPublico";
 import SaldoConPujas from "@/components/SaldoConPujas";
@@ -21,9 +22,10 @@ type MensajePuja = { tipo: "ok" | "error"; texto: string };
 // Ligas privadas: mercado por tandas con pujas.
 export default function MercadoPage() {
   const { esLigaPublica, cargando } = useGameState();
+  const t = useT();
 
   if (cargando) {
-    return <p className="text-sm text-neutral-500">Cargando el mercado…</p>;
+    return <p className="text-sm text-neutral-500">{t.mercado.cargando}</p>;
   }
 
   return esLigaPublica ? <MercadoPublico /> : <MercadoConPujas />;
@@ -39,6 +41,7 @@ function MercadoConPujas() {
     cargando,
     comprometidoEnPujas,
   } = useGameState();
+  const t = useT();
 
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
@@ -103,7 +106,7 @@ function MercadoConPujas() {
   }, [busqueda, orden, mercado]);
 
   if (cargando) {
-    return <p className="text-sm text-neutral-500">Cargando el mercado…</p>;
+    return <p className="text-sm text-neutral-500">{t.mercado.cargando}</p>;
   }
 
   const toggleSeleccion = (id: string) => {
@@ -121,7 +124,7 @@ function MercadoConPujas() {
     setMensajePorJugador((prev) => ({
       ...prev,
       [jugadorId]: resultado.ok
-        ? { tipo: "ok", texto: "Puja registrada." }
+        ? { tipo: "ok", texto: t.mercado.pujaRegistrada }
         : { tipo: "error", texto: resultado.mensaje },
     }));
 
@@ -136,7 +139,7 @@ function MercadoConPujas() {
     setMensajePorJugador((prev) => ({
       ...prev,
       [jugadorId]: resultado.ok
-        ? { tipo: "ok", texto: "Puja cancelada. Tu saldo no se ha visto afectado." }
+        ? { tipo: "ok", texto: t.mercado.pujaCancelada }
         : { tipo: "error", texto: resultado.mensaje },
     }));
   };
@@ -144,9 +147,9 @@ function MercadoConPujas() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Mercado</h2>
+        <h2 className="text-lg font-semibold">{t.mercado.titulo}</h2>
         <span className="text-sm text-neutral-500">
-          Tu saldo: <SaldoConPujas saldo={equipo.saldo} comprometido={comprometidoEnPujas} />
+          {t.mercado.tuSaldo} <SaldoConPujas saldo={equipo.saldo} comprometido={comprometidoEnPujas} />
         </span>
       </div>
 
@@ -159,23 +162,21 @@ function MercadoConPujas() {
           }`}
         >
           <p className="text-xs text-neutral-500">
-            {ocultas ? "Pujas ocultas" : "Las pujas se ocultan en"}
+            {ocultas ? t.mercado.pujasOcultas : t.mercado.pujasSeOcultanEn}
           </p>
           <p className="mt-0.5 text-2xl font-semibold tabular-nums">
-            {ocultas ? "Ocultas" : cuentaAtrasOcultar}
+            {ocultas ? t.mercado.ocultas : cuentaAtrasOcultar}
           </p>
         </div>
         <div className="rounded-xl border border-neutral-200 p-3 dark:border-neutral-800">
-          <p className="text-xs text-neutral-500">El mercado se actualiza en</p>
+          <p className="text-xs text-neutral-500">{t.mercado.seActualizaEn}</p>
           <p className="mt-0.5 text-2xl font-semibold tabular-nums">{cuentaAtras}</p>
         </div>
       </div>
 
       <p className="text-xs text-neutral-500">
-        {mercado.length} jugadores en la tanda de hoy.{" "}
-        {ocultas
-          ? "En las últimas 2 horas solo ves cuánta gente ha pujado, no los importes."
-          : "2 horas antes de que se actualice el mercado dejarán de verse las pujas de los demás: solo verás cuánta gente ha pujado, no el precio."}
+        {t.mercado.jugadoresEnTanda(mercado.length)}{" "}
+        {ocultas ? t.mercado.avisoOcultas : t.mercado.avisoAntesOcultar}
       </p>
 
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -197,7 +198,7 @@ function MercadoConPujas() {
             type="text"
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar jugador por nombre..."
+            placeholder={t.mercado.buscarJugador}
             className="w-full rounded-lg border border-neutral-300 py-2 pl-9 pr-3 text-sm dark:border-neutral-700 dark:bg-neutral-900"
           />
         </div>
@@ -207,20 +208,20 @@ function MercadoConPujas() {
           onChange={(e) => setOrden(e.target.value as Orden)}
           className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
         >
-          <option value="valor">Ordenar por valor</option>
-          <option value="elo">Ordenar por Elo</option>
-          <option value="puntos">Ordenar por puntos</option>
-          <option value="pujas">Ordenar por número de pujas</option>
-          <option value="nombre">Ordenar por nombre</option>
-          <option value="categoria">Ordenar por categoría</option>
+          <option value="valor">{t.mercado.ordenarValor}</option>
+          <option value="elo">{t.mercado.ordenarElo}</option>
+          <option value="puntos">{t.mercado.ordenarPuntos}</option>
+          <option value="pujas">{t.mercado.ordenarPujas}</option>
+          <option value="nombre">{t.mercado.ordenarNombre}</option>
+          <option value="categoria">{t.mercado.ordenarCategoria}</option>
         </select>
       </div>
 
       {jugadoresFiltrados.length === 0 && (
         <p className="py-6 text-center text-sm text-neutral-500">
           {mercado.length === 0
-            ? "No hay jugadores en el mercado ahora mismo."
-            : `No hay jugadores que coincidan con "${busqueda}".`}
+            ? t.mercado.sinJugadores
+            : t.mercado.sinCoincidencias(busqueda)}
         </p>
       )}
 
@@ -276,19 +277,19 @@ function MercadoConPujas() {
                     </Link>
                   </p>
                   <p className="text-xs text-neutral-500">
-                    {jugador.club} · {jugador.categoria}ª cat. · Elo {jugador.elo}
+                    {jugador.club} · {t.ficha.categoria(jugador.categoria)} · Elo {jugador.elo}
                   </p>
                   <ProximoRivalLinea rivales={jugador.proximosRivales} className="mt-0.5" />
                   <p className="mt-0.5 text-xs text-neutral-500">
-                    {jugador.puntosTotales} pts esta temporada
+                    {t.mercado.ptsTemporada(jugador.puntosTotales)}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-semibold">{jugador.valorMercado} M</p>
-                  <p className="text-xs text-neutral-500">{jugador.numeroPujas} pujas</p>
+                  <p className="text-xs text-neutral-500">{t.mercado.numPujas(jugador.numeroPujas)}</p>
                   {miPuja && (
                     <p className="text-xs font-medium text-accent">
-                      Tu puja: {miPuja.importe} M
+                      {t.mercado.tuPujaImporte(miPuja.importe)}
                     </p>
                   )}
                 </div>
@@ -302,7 +303,7 @@ function MercadoConPujas() {
                     }
                     className="rounded-lg border border-neutral-300 py-2 text-sm font-medium dark:border-neutral-700"
                   >
-                    {puntosAbiertoId === jugador.id ? "Ocultar puntos" : "Ver puntos por jornada"}
+                    {puntosAbiertoId === jugador.id ? t.mercado.ocultarPuntos : t.mercado.verPuntosJornada}
                   </button>
                   {puntosAbiertoId === jugador.id && (
                     <HistorialPuntosChart historial={jugador.historialPuntos} />
@@ -310,28 +311,21 @@ function MercadoConPujas() {
 
                   <div className="rounded-lg bg-neutral-50 p-3 text-sm dark:bg-neutral-900">
                     <p className="mb-2 text-xs font-medium text-neutral-500">
-                      Pujas por este jugador
+                      {t.mercado.pujasPorEsteJugador}
                     </p>
 
                     {ocultas && (
                       <p className="mb-2 text-xs text-neutral-500">
                         {jugador.numeroPujas === 0
-                          ? "Nadie ha pujado por ahora."
-                          : `${jugador.numeroPujas} ${
-                              jugador.numeroPujas === 1 ? "puja" : "pujas"
-                            } en total${
-                              miPuja
-                                ? ` (${otrasPujas === 0 ? "solo la tuya" : `la tuya y ${otrasPujas} más`})`
-                                : ""
-                            }. Los importes están ocultos hasta que se actualice el mercado.`}
+                          ? t.mercado.nadiePorAhora
+                          : t.mercado.resumenPujasOcultas(jugador.numeroPujas, !!miPuja, otrasPujas)}
                       </p>
                     )}
 
                     {pujas.length === 0 ? (
                       !ocultas || jugador.numeroPujas === 0 ? (
                         <p className="text-xs text-neutral-500">
-                          Nadie ha pujado todavía. Con la puja mínima ({jugador.valorMercado} M) te
-                          lo llevarías si nadie puja más.
+                          {t.mercado.nadieTodavia(jugador.valorMercado)}
                         </p>
                       ) : null
                     ) : (
@@ -339,10 +333,10 @@ function MercadoConPujas() {
                         {miPuja && (
                           <li className="flex items-center justify-between gap-2 font-medium">
                             <span>
-                              Tu puja
+                              {t.mercado.tuPuja}
                               {pujaMasAlta?.esMia && (
                                 <span className="ml-2 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-white">
-                                  la más alta
+                                  {t.mercado.laMasAlta}
                                 </span>
                               )}
                             </span>
@@ -358,7 +352,7 @@ function MercadoConPujas() {
                               {p.nombreEquipo}
                               {pujaMasAlta?.equipoId === p.equipoId && (
                                 <span className="ml-2 rounded-full border border-neutral-300 px-2 py-0.5 text-[10px] text-neutral-500 dark:border-neutral-700">
-                                  la más alta
+                                  {t.mercado.laMasAlta}
                                 </span>
                               )}
                             </span>
@@ -370,17 +364,14 @@ function MercadoConPujas() {
 
                     {miPujaPorDebajo && (
                       <p className="mt-2 text-xs text-neutral-500">
-                        El valor del jugador ha subido a {jugador.valorMercado} M, pero tu puja de{" "}
-                        {miPuja!.importe} M se mantiene. Compite con su importe: si alguien puja
-                        ahora, tendrá que llegar al valor actual.
+                        {t.mercado.valorSubio(jugador.valorMercado, miPuja!.importe)}
                       </p>
                     )}
                   </div>
 
                   <div>
                     <label className="text-xs font-medium text-neutral-500">
-                      {miPuja ? "Mejorar tu puja" : "Importe de la puja"} (M) — mínimo{" "}
-                      {jugador.valorMercado} M
+                      {t.mercado.etiquetaImporte(!!miPuja, jugador.valorMercado)}
                     </label>
                     <input
                       type="number"
@@ -398,7 +389,7 @@ function MercadoConPujas() {
                     disabled={!montoPuja || Number(montoPuja) < jugador.valorMercado || enviando}
                     className="rounded-lg bg-neutral-900 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
                   >
-                    Pujar
+                    {t.mercado.pujar}
                   </button>
 
                   {miPuja && (
@@ -407,7 +398,7 @@ function MercadoConPujas() {
                       disabled={enviando}
                       className="rounded-lg border border-neutral-300 py-2 text-sm font-medium text-negative disabled:opacity-40 dark:border-neutral-700"
                     >
-                      Cancelar mi puja ({miPuja.importe} M)
+                      {t.mercado.cancelarMiPuja(miPuja.importe)}
                     </button>
                   )}
 

@@ -1,4 +1,5 @@
 import type { Bloque, Seccion } from "@/lib/legal/tipos";
+import { getIdioma, getT } from "@/lib/i18n/server";
 
 // Convierte **negrita**, correos y la web del club en elementos.
 function Texto({ texto }: { texto: string }) {
@@ -88,8 +89,16 @@ export default function LegalDocument({
   pie: string;
   children?: React.ReactNode;
 }) {
+  // Los documentos legales solo existen en castellano.
+  const enOtroIdioma = getIdioma() !== "es";
+  const t = getT();
   return (
     <article className="flex flex-col gap-6">
+      {enOtroIdioma && (
+        <p className="rounded-lg border border-neutral-200 bg-neutral-50 p-3 text-sm text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-400">
+          {t.legal.soloCastellano}
+        </p>
+      )}
       <header>
         <h1 className="font-display text-2xl font-semibold">{titulo}</h1>
         <p className="mt-1 text-sm text-neutral-500">{subtitulo}</p>

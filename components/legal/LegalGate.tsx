@@ -10,6 +10,7 @@ import AceptacionLegalFields, {
   type AceptacionLegal,
 } from "@/components/legal/AceptacionLegalFields";
 import InfoBasicaRGPD from "@/components/legal/InfoBasicaRGPD";
+import { useT } from "@/components/IdiomaProvider";
 
 type Estado = "cargando" | "ok" | "pendiente" | "error";
 
@@ -19,6 +20,7 @@ type Estado = "cargando" | "ok" | "pendiente" | "error";
 export default function LegalGate({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
   const router = useRouter();
+  const t = useT();
   const [estado, setEstado] = useState<Estado>("cargando");
   const [aceptacion, setAceptacion] = useState<AceptacionLegal>(ACEPTACION_INICIAL);
   const [enviando, setEnviando] = useState(false);
@@ -63,7 +65,7 @@ export default function LegalGate({ children }: { children: React.ReactNode }) {
     setEnviando(false);
 
     if (error || (data && data.ok === false)) {
-      setError(error?.message ?? data?.mensaje ?? "No se ha podido guardar la aceptación.");
+      setError(error?.message ?? data?.mensaje ?? t.legal.errorGuardar);
       return;
     }
     setEstado("ok");
@@ -80,7 +82,7 @@ export default function LegalGate({ children }: { children: React.ReactNode }) {
   if (estado === "cargando") {
     return (
       <div className="mx-auto max-w-sm px-4 pt-24 text-center text-sm text-neutral-500">
-        Cargando…
+        {t.comun.cargando}
       </div>
     );
   }
@@ -88,9 +90,9 @@ export default function LegalGate({ children }: { children: React.ReactNode }) {
   if (estado === "error") {
     return (
       <div className="mx-auto max-w-sm px-4 pt-24 text-center text-sm">
-        <p className="text-negative">No se ha podido comprobar la aceptación de las condiciones.</p>
+        <p className="text-negative">{t.legal.errorComprobar}</p>
         <button onClick={comprobar} className="mt-3 font-medium text-accent">
-          Reintentar
+          {t.legal.reintentar}
         </button>
       </div>
     );
@@ -99,10 +101,9 @@ export default function LegalGate({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto flex max-w-md flex-col gap-4 px-4 py-10">
       <div>
-        <h1 className="font-display text-2xl font-semibold">Antes de continuar</h1>
+        <h1 className="font-display text-2xl font-semibold">{t.legal.antesDeContinuar}</h1>
         <p className="mt-1 text-sm text-neutral-500">
-          Hemos incorporado unas Condiciones de Uso y una Política de Privacidad. Para seguir
-          usando Fantasy Beraun Bera necesitamos que las leas y las aceptes.
+          {t.legal.gateIntro}
         </p>
       </div>
 
@@ -117,11 +118,11 @@ export default function LegalGate({ children }: { children: React.ReactNode }) {
         disabled={!aceptacionCompleta(aceptacion) || enviando}
         className="rounded-lg bg-accent py-2.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
       >
-        {enviando ? "Guardando…" : "Aceptar y continuar"}
+        {enviando ? t.comun.guardando : t.legal.aceptarContinuar}
       </button>
 
       <button onClick={cerrarSesion} className="text-xs text-neutral-500 underline underline-offset-2">
-        No acepto — cerrar sesión
+        {t.legal.noAcepto}
       </button>
     </div>
   );

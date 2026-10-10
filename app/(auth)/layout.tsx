@@ -1,17 +1,19 @@
 import Image from "next/image";
 import EnlacesLegales from "@/components/legal/EnlacesLegales";
+import { getT } from "@/lib/i18n/server";
 
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const t = getT();
   return (
     <div className="flex min-h-screen flex-col">
       <div className="banner-tablero px-4 pb-16 pt-[calc(env(safe-area-inset-top)+2.5rem)] text-center text-white">
         <Image
           src="/icons/icon-192.png"
-          alt="Escudo Beraun"
+          alt={t.auth.altEscudo}
           width={72}
           height={72}
           className="mx-auto mb-3 rounded-full"
@@ -20,7 +22,7 @@ export default function AuthLayout({
         <h1 className="font-display text-3xl font-semibold">
           Beraun Fantasy
         </h1>
-        <p className="mt-1 text-sm text-white/70">Campeonatos de Gipuzkoa</p>
+        <p className="mt-1 text-sm text-white/70">{t.auth.subtituloCabecera}</p>
       </div>
 
       {/* El formulario ya trae borde y esquinas redondeadas; aquí solo se

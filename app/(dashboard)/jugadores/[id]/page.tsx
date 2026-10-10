@@ -5,6 +5,8 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useGameState } from "@/components/GameStateProvider";
+import { useIdioma, useT } from "@/components/IdiomaProvider";
+import type { Textos } from "@/lib/i18n/textos";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import HistorialValorChart from "@/components/HistorialValorChart";
 import HistorialEloChart from "@/components/HistorialEloChart";
@@ -39,9 +41,13 @@ function Dato({ etiqueta, valor }: { etiqueta: string; valor: string | number | 
 }
 
 // "1990 (▲ 12)" respecto al mes anterior; "debut" si antes no tenía Elo.
-function textoElo(elo: number, anterior: number | null): string | number {
+function textoElo(
+  elo: number,
+  anterior: number | null,
+  tj: Textos["jugadores"]
+): string | number {
   if (anterior === null || anterior === elo) return elo;
-  if (anterior === 0) return `${elo} (debut)`;
+  if (anterior === 0) return tj.eloDebut(elo);
   const d = elo - anterior;
   return `${elo} (${d > 0 ? "▲" : "▼"} ${Math.abs(d)})`;
 }
@@ -67,8 +73,10 @@ function TarjetaTorneo({
   torneo: TorneoPerfil;
   destacado: boolean;
 }) {
+  const { t, locale } = useIdioma();
+  const tj = t.jugadores;
   const estado = estadoTorneo(torneo);
-  const fechas = rangoFechas(torneo);
+  const fechas = rangoFechas(torneo, locale);
   const { estadisticas } = torneo;
 
   const filas: FilaHistorial[] = [
@@ -95,21 +103,21 @@ function TarjetaTorneo({
             {torneo.nombre}
           </Link>
           <p className="text-xs text-neutral-500">
-            {[torneo.categoria ? `${torneo.categoria}ª categoría` : null, fechas]
+            {[torneo.categoria ? tj.categoria(torneo.categoria) : null, fechas]
               .filter(Boolean)
               .join(" · ")}
           </p>
         </div>
         {estado && (
           <span className="rounded-full border border-neutral-300 px-2 py-0.5 text-xs text-neutral-500 dark:border-neutral-700">
-            {estado}
+            {t.torneos.estados[estado]}
           </span>
         )}
       </div>
 
       <div className="grid grid-cols-3 gap-2">
         <Cifra
-          etiqueta="Puntos"
+          etiqueta={tj.puntos}
           valor={
             estadisticas.partidas > 0
               ? `${formatearPuntos(estadisticas.puntos)} / ${estadisticas.partidas}`
@@ -117,25 +125,25 @@ function TarjetaTorneo({
           }
         />
         <Cifra
-          etiqueta="Performance Elo"
+          etiqueta={tj.performanceElo}
           valor={estadisticas.rendimiento != null ? String(estadisticas.rendimiento) : "–"}
         />
-        <Cifra etiqueta="Pts Fantasy" valor={String(torneo.puntosFantasy)} />
+        <Cifra etiqueta={tj.ptsFantasy} valor={String(torneo.puntosFantasy)} />
       </div>
 
       {filas.length === 0 ? (
-        <p className="text-xs text-neutral-500">Todavía no ha jugado ninguna partida.</p>
+        <p className="text-xs text-neutral-500">{tj.sinPartidas}</p>
       ) : (
         <ul className="divide-y divide-neutral-200 text-sm dark:divide-neutral-800">
           {filas.map((fila) =>
             fila.tipo === "descanso" ? (
               <li key={`d-${fila.jornada}`} className="flex gap-3 py-2 text-neutral-500">
-                <span className="w-8 font-medium">J{fila.jornada}</span>
-                <span>Sin emparejar (descansa)</span>
+                <span className="w-8 font-medium">{t.graficas.jornadaCorta(fila.jornada)}</span>
+                <span>{tj.sinEmparejar}</span>
               </li>
             ) : (
               <li key={`p-${fila.jornada}`} className="flex items-center gap-3 py-2">
-                <span className="w-8 font-medium text-neutral-500">J{fila.jornada}</span>
+                <span className="w-8 font-medium text-neutral-500">{t.graficas.jornadaCorta(fila.jornada)}</span>
                 <span className="w-12 text-center font-semibold">
                   {MARCADOR[fila.partida.resultado]}
                 </span>
@@ -145,16 +153,16 @@ function TarjetaTorneo({
                       href={`/jugadores/${fila.partida.rivalId}?torneo=${torneo.id}`}
                       className="hover:underline"
                     >
-                      {fila.partida.rivalNombre ?? "Rival"}
+                      {fila.partida.rivalNombre ?? tj.rival}
                     </Link>
                   ) : (
-                    "Rival externo"
+                    tj.rivalExterno
                   )}
                   {fila.partida.rivalElo != null && (
                     <span className="text-neutral-500"> ({fila.partida.rivalElo})</span>
                   )}
                 </span>
-                <span className="text-xs text-neutral-500">{fila.partida.puntosFantasy} pts</span>
+                <span className="text-xs text-neutral-500">{tj.pts(fila.partida.puntosFantasy)}</span>
               </li>
             )
           )}
@@ -170,6 +178,8 @@ function PerfilJugadorContenido() {
   const router = useRouter();
   const supabase = createClient();
   const { jugadoresLiga } = useGameState();
+  const t = useT();
+  const tj = t.jugadores;
 
   const [perfil, setPerfil] = useState<PerfilJugador | null>(null);
   const [historialValor, setHistorialValor] = useState<PuntoValor[]>([]);
@@ -206,18 +216,18 @@ function PerfilJugadorContenido() {
   const enLiga = jugadoresLiga.find((j) => j.id === id) ?? null;
 
   if (cargando) {
-    return <p className="text-sm text-neutral-500">Cargando jugador…</p>;
+    return <p className="text-sm text-neutral-500">{tj.cargandoJugador}</p>;
   }
 
   if (!perfil) {
     return (
       <div className="flex flex-col gap-3">
-        <p className="text-sm text-neutral-500">No se ha encontrado este jugador.</p>
+        <p className="text-sm text-neutral-500">{tj.noEncontrado}</p>
         <button
           onClick={() => router.back()}
           className="w-fit text-sm text-accent underline underline-offset-2"
         >
-          ← Volver
+          ← {t.comun.volver}
         </button>
       </div>
     );
@@ -229,7 +239,7 @@ function PerfilJugadorContenido() {
         onClick={() => router.back()}
         className="w-fit text-sm text-neutral-500 underline underline-offset-2 hover:text-neutral-800 dark:hover:text-neutral-300"
       >
-        ← Volver
+        ← {t.comun.volver}
       </button>
 
       <div className="flex items-center gap-3">
@@ -239,7 +249,7 @@ function PerfilJugadorContenido() {
         <div>
           <h2 className="text-lg font-semibold">{perfil.nombre}</h2>
           <p className="text-sm text-neutral-500">
-            {[perfil.club, `${perfil.categoria}ª categoría`, `Elo ${perfil.elo}`]
+            {[perfil.club, tj.categoria(perfil.categoria), `Elo ${perfil.elo}`]
               .filter(Boolean)
               .join(" · ")}
           </p>
@@ -247,26 +257,26 @@ function PerfilJugadorContenido() {
       </div>
 
       <dl className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl border border-neutral-200 p-4 text-sm dark:border-neutral-800 sm:grid-cols-3">
-        <Dato etiqueta="Club" valor={perfil.club} />
-        <Dato etiqueta="Categoría" valor={`${perfil.categoria}ª`} />
-        <Dato etiqueta="Elo" valor={textoElo(perfil.elo, perfil.eloAnterior)} />
-        <Dato etiqueta="Año de nacimiento" valor={perfil.nacimiento} />
-        <Dato etiqueta="Sexo" valor={perfil.sexo === "F" ? "Mujer" : perfil.sexo === "M" ? "Hombre" : null} />
-        <Dato etiqueta="ID Fantasy" valor={perfil.fideId} />
-        <Dato etiqueta="Valor de mercado" valor={`${perfil.valorMercado} M`} />
+        <Dato etiqueta={tj.club} valor={perfil.club} />
+        <Dato etiqueta={tj.categoriaEtiqueta} valor={tj.categoriaValor(perfil.categoria)} />
+        <Dato etiqueta={tj.elo} valor={textoElo(perfil.elo, perfil.eloAnterior, tj)} />
+        <Dato etiqueta={tj.nacimiento} valor={perfil.nacimiento} />
+        <Dato etiqueta={tj.sexo} valor={perfil.sexo === "F" ? tj.mujer : perfil.sexo === "M" ? tj.hombre : null} />
+        <Dato etiqueta={tj.idFantasy} valor={perfil.fideId} />
+        <Dato etiqueta={tj.valorMercado} valor={`${perfil.valorMercado} M`} />
         {enLiga && (
           <>
             <Dato
-              etiqueta="En tu liga"
+              etiqueta={tj.enTuLiga}
               valor={
                 enLiga.esMiEquipo
-                  ? "En tu plantilla"
+                  ? tj.enTuPlantilla
                   : enLiga.propietario
-                    ? `Fichado por ${enLiga.propietario}`
-                    : "Libre"
+                    ? tj.fichadoPor(enLiga.propietario)
+                    : tj.libre
               }
             />
-            <Dato etiqueta="Puntos Fantasy" valor={enLiga.puntosTotales} />
+            <Dato etiqueta={tj.puntosFantasy} valor={enLiga.puntosTotales} />
           </>
         )}
       </dl>
@@ -286,11 +296,11 @@ function PerfilJugadorContenido() {
       )}
 
       <div className="flex flex-col gap-3">
-        <h3 className="text-sm font-medium">Torneos</h3>
+        <h3 className="text-sm font-medium">{tj.torneos}</h3>
 
         {torneos.length === 0 ? (
           <p className="text-sm text-neutral-500">
-            Todavía no está inscrito en ningún torneo.
+            {tj.sinTorneos}
           </p>
         ) : (
           <>
@@ -298,8 +308,7 @@ function PerfilJugadorContenido() {
               <TarjetaTorneo key={t.id} torneo={t} destacado={t.id === torneoContexto} />
             ))}
             <p className="text-xs text-neutral-500">
-              Performance Elo: media del Elo de los rivales más la diferencia que da la
-              tabla de la FIDE según el porcentaje de puntos.
+              {tj.notaPerformance}
             </p>
           </>
         )}
@@ -309,8 +318,9 @@ function PerfilJugadorContenido() {
 }
 
 export default function PerfilJugadorPage() {
+  const tj = useT().jugadores;
   return (
-    <Suspense fallback={<p className="text-sm text-neutral-500">Cargando jugador…</p>}>
+    <Suspense fallback={<p className="text-sm text-neutral-500">{tj.cargandoJugador}</p>}>
       <PerfilJugadorContenido />
     </Suspense>
   );

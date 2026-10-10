@@ -57,6 +57,8 @@ export function formatearCuentaAtras(msRestantes: number): string {
 // Clausulazos cerrados: desde el viernes a las 16:00 (un día antes de que
 // empiece la jornada) hasta el sábado a las 18:00 (hora de Madrid). Mantener
 // igual que clausulazos_cerrados() en 0050_horarios_mercado_y_clausulazos.sql.
+// Texto en castellano; las traducciones están en t.mercado.clausulazosCerrados
+// (lib/i18n/textos/mercado.ts).
 export const MENSAJE_CLAUSULAZOS_CERRADOS =
   "Los clausulazos están cerrados: no se pueden hacer desde el viernes a las 16:00 hasta el sábado a las 18:00.";
 

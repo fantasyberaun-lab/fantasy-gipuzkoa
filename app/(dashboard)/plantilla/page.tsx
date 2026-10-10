@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import PlayerCard from "@/components/PlayerCard";
+import { useT } from "@/components/IdiomaProvider";
 import { useGameState } from "@/components/GameStateProvider";
 import { resumenPlantilla } from "@/lib/plantillaStats";
 import { gameConfig } from "@/lib/gameConfig";
@@ -91,6 +92,7 @@ function ResumenDePlantilla({
   squad: Parameters<typeof resumenPlantilla>[0];
   titulares: Record<string, boolean>;
 }) {
+  const tp = useT().plantilla;
   const r = resumenPlantilla(squad, titulares);
   const sinTitulares = r.numTitulares === 0;
 
@@ -98,27 +100,27 @@ function ResumenDePlantilla({
     <div className="mb-4 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Cifra
-          etiqueta="Valor de la plantilla"
+          etiqueta={tp.valorPlantilla}
           valor={`${r.valorPlantilla} M`}
-          detalle={`${squad.length} jugador${squad.length === 1 ? "" : "es"}`}
+          detalle={tp.jugadores(squad.length)}
         />
         <Cifra
-          etiqueta="Valor de titulares"
+          etiqueta={tp.valorTitulares}
           valor={sinTitulares ? "–" : `${r.valorTitulares} M`}
-          detalle={sinTitulares ? "Sin titulares" : `${r.numTitulares} titular${r.numTitulares === 1 ? "" : "es"}`}
+          detalle={sinTitulares ? tp.sinTitulares : tp.titulares(r.numTitulares)}
         />
         <Cifra
-          etiqueta="Elo medio plantilla"
+          etiqueta={tp.eloMedioPlantilla}
           valor={r.eloMedioPlantilla === null ? "–" : String(r.eloMedioPlantilla)}
         />
         <Cifra
-          etiqueta="Elo medio titulares"
+          etiqueta={tp.eloMedioTitulares}
           valor={r.eloMedioTitulares === null ? "–" : String(r.eloMedioTitulares)}
         />
       </div>
       {r.sinElo > 0 && (
         <p className="mt-2 text-[11px] text-neutral-400">
-          Las medias de Elo no cuentan a {r.sinElo} jugador{r.sinElo === 1 ? "" : "es"} sin Elo.
+          {tp.notaSinElo(r.sinElo)}
         </p>
       )}
     </div>
@@ -127,6 +129,7 @@ function ResumenDePlantilla({
 
 function OfertasRecibidas({ ofertas }: { ofertas: OfertaRecibida[] }) {
   const { aceptarOferta, rechazarOferta } = useGameState();
+  const tp = useT().plantilla;
   const [abierto, setAbierto] = useState(false);
   const [enviandoId, setEnviandoId] = useState<string | null>(null);
   const [errorPorOferta, setErrorPorOferta] = useState<Record<string, string>>({});
@@ -158,7 +161,7 @@ function OfertasRecibidas({ ofertas }: { ofertas: OfertaRecibida[] }) {
         className="flex w-full items-center justify-between p-3 text-left"
       >
         <span className="flex items-center gap-2 text-sm font-semibold">
-          Ofertas recibidas
+          {tp.ofertasRecibidas}
           {ofertas.length > 0 && (
             <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
               {ofertas.length}
@@ -171,7 +174,7 @@ function OfertasRecibidas({ ofertas }: { ofertas: OfertaRecibida[] }) {
       {abierto && (
         <div className="flex flex-col gap-2 border-t border-neutral-200 p-3 dark:border-neutral-800">
           {ofertas.length === 0 ? (
-            <p className="text-sm text-neutral-500">No hay ofertas recibidas.</p>
+            <p className="text-sm text-neutral-500">{tp.sinOfertas}</p>
           ) : (
             ofertas.map((oferta) => (
               <div
@@ -179,9 +182,12 @@ function OfertasRecibidas({ ofertas }: { ofertas: OfertaRecibida[] }) {
                 className="flex flex-col gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-900/50 dark:bg-amber-900/10 sm:flex-row sm:items-center sm:justify-between"
               >
                 <p>
-                  <span className="font-medium">{oferta.equipoOferenteNombre}</span> te ofrece{" "}
-                  <span className="font-semibold">{oferta.importe} M</span> por{" "}
-                  <span className="font-medium">{oferta.jugadorNombre}</span>.
+                  <span className="font-medium">{oferta.equipoOferenteNombre}</span>
+                  {tp.ofertaTrasEquipo}
+                  <span className="font-semibold">{oferta.importe} M</span>
+                  {tp.ofertaTrasImporte}
+                  <span className="font-medium">{oferta.jugadorNombre}</span>
+                  {tp.ofertaFin}
                 </p>
                 <div className="flex items-center gap-2">
                   {errorPorOferta[oferta.id] && (
@@ -192,14 +198,14 @@ function OfertasRecibidas({ ofertas }: { ofertas: OfertaRecibida[] }) {
                     disabled={enviandoId === oferta.id}
                     className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium disabled:opacity-40 dark:border-neutral-700"
                   >
-                    Rechazar
+                    {tp.rechazar}
                   </button>
                   <button
                     onClick={() => onAceptar(oferta.id)}
                     disabled={enviandoId === oferta.id}
                     className="rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
                   >
-                    Aceptar
+                    {tp.aceptar}
                   </button>
                 </div>
               </div>
@@ -226,18 +232,18 @@ export default function PlantillaPage() {
     cargando,
     tieneEquipo,
   } = useGameState();
+  const tp = useT().plantilla;
 
   const [avisoTitular, setAvisoTitular] = useState<string | null>(null);
 
   if (cargando) {
-    return <p className="text-sm text-neutral-500">Cargando tu plantilla…</p>;
+    return <p className="text-sm text-neutral-500">{tp.cargando}</p>;
   }
 
   if (!tieneEquipo) {
     return (
       <p className="text-sm text-neutral-500">
-        No se ha encontrado un equipo Fantasy asociado a tu cuenta. Si acabas
-        de registrarte, prueba a recargar la página en unos segundos.
+        {tp.sinEquipo}
       </p>
     );
   }
@@ -278,27 +284,27 @@ export default function PlantillaPage() {
 
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
         <ContadorSlots
-          label="Titulares en un mismo torneo"
+          label={tp.titularesMismoTorneo}
           actual={titularesEnTorneoMasLleno}
           max={MAX_POR_TORNEO}
           detalle={
             torneoMasLleno && titularesEnTorneoMasLleno > 0
               ? torneoMasLleno.nombre
-              : "Sin titulares en ningún torneo"
+              : tp.sinTitularesTorneo
           }
-          avisoTope="Límite alcanzado — no puedes poner más titulares de ese torneo."
+          avisoTope={tp.topeTorneo}
         />
         <ContadorSlots
-          label="Titulares seleccionados"
+          label={tp.titularesSeleccionados}
           actual={titularesSeleccionados}
           max={MAX_TITULARES}
-          avisoTope="Límite alcanzado — no puedes poner más titulares."
+          avisoTope={tp.topeTitulares}
         />
         <ContadorSlots
-          label="Jugadores en plantilla"
+          label={tp.jugadoresEnPlantilla}
           actual={totalPlantilla}
           max={MAX_PLANTILLA}
-          avisoTope="Plantilla completa."
+          avisoTope={tp.plantillaCompleta}
         />
       </div>
 
@@ -311,14 +317,14 @@ export default function PlantillaPage() {
       {squad.length === 0 ? (
         <p className="text-sm text-neutral-500">
           {esLigaPublica
-            ? "Todavía no tienes jugadores. Ve a la pestaña Mercado y ficha a los que quieras: todos están disponibles y el fichaje es inmediato."
-            : "Todavía no tienes jugadores en tu plantilla. Ve a la pestaña Jugadores para pagar una cláusula, o espera a que haya jugadores libres en el Mercado."}
+            ? tp.vacioPublica
+            : tp.vacioPrivada}
         </p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {squad.map((slot) => {
             const esTitular = !!titulares[slot.jugador.id];
-            const motivoBloqueo = motivoBloqueoTitular(squad, titulares, slot.jugador.id) ?? undefined;
+            const motivoBloqueo = motivoBloqueoTitular(squad, titulares, slot.jugador.id, tp) ?? undefined;
             const bloqueadoPorTope = motivoBloqueo !== undefined;
 
             return (

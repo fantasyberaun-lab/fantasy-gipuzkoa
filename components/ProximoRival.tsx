@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useT } from "@/components/IdiomaProvider";
 import type { ProximoRival } from "@/lib/types";
 
 // Línea "Próx. rival" para la tarjeta de un jugador (plantilla y mercado).
@@ -11,6 +14,7 @@ export default function ProximoRivalLinea({
   rivales?: ProximoRival[];
   className?: string;
 }) {
+  const tg = useT().graficas;
   if (!rivales || rivales.length === 0) return null;
 
   return (
@@ -18,8 +22,8 @@ export default function ProximoRivalLinea({
       {rivales.map((r, i) => {
         const detalle = [
           r.torneo,
-          `Ronda ${r.jornada}`,
-          r.tablero != null ? `Mesa ${r.tablero}` : null,
+          tg.ronda(r.jornada),
+          r.tablero != null ? tg.mesa(r.tablero) : null,
         ]
           .filter(Boolean)
           .join(" · ");
@@ -27,8 +31,8 @@ export default function ProximoRivalLinea({
         if (r.descansa) {
           return (
             <p key={i} className="text-xs text-neutral-500">
-              <span className="font-medium text-neutral-600 dark:text-neutral-400">Próx. rival:</span>{" "}
-              <span className="font-medium text-neutral-700 dark:text-neutral-300">Sin emparejar</span>{" "}
+              <span className="font-medium text-neutral-600 dark:text-neutral-400">{tg.proxRival}</span>{" "}
+              <span className="font-medium text-neutral-700 dark:text-neutral-300">{tg.sinEmparejar}</span>{" "}
               <span className="text-neutral-400">· {detalle}</span>
             </p>
           );
@@ -36,10 +40,10 @@ export default function ProximoRivalLinea({
 
         return (
           <p key={i} className="text-xs text-neutral-500">
-            <span className="font-medium text-neutral-600 dark:text-neutral-400">Próx. rival:</span>{" "}
+            <span className="font-medium text-neutral-600 dark:text-neutral-400">{tg.proxRival}</span>{" "}
             {r.color && (
               <span
-                title={r.color === "blancas" ? "Juega con blancas" : "Juega con negras"}
+                title={r.color === "blancas" ? tg.juegaBlancas : tg.juegaNegras}
                 className={`mr-1 inline-block h-2.5 w-2.5 rounded-sm border align-middle ${
                   r.color === "blancas"
                     ? "border-neutral-400 bg-white"

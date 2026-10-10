@@ -6,6 +6,7 @@ import type { PlantillaSlot } from "@/lib/types";
 import { gameConfig } from "@/lib/gameConfig";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import ProximoRivalLinea from "@/components/ProximoRival";
+import { useT } from "@/components/IdiomaProvider";
 
 function iniciales(nombre: string) {
   return nombre
@@ -62,6 +63,7 @@ export default function PlayerCard({
   onVender,
   onSubirClausula,
 }: Props) {
+  const t = useT();
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
   const [mostrarSubirClausula, setMostrarSubirClausula] = useState(false);
@@ -91,7 +93,7 @@ export default function PlayerCard({
     setErrorCapitan(null);
     const resultado = await onToggleCapitan();
     if (!resultado.ok) {
-      setErrorCapitan(resultado.mensaje ?? "No se ha podido cambiar el capitán.");
+      setErrorCapitan(resultado.mensaje ?? t.ficha.errorCapitan);
     }
   };
 
@@ -103,7 +105,7 @@ export default function PlayerCard({
     if (resultado.ok) {
       setMostrarBlindaje(false);
     } else {
-      setErrorBlindaje(resultado.mensaje ?? "No se ha podido blindar al jugador.");
+      setErrorBlindaje(resultado.mensaje ?? t.ficha.errorBlindar);
     }
   };
 
@@ -112,7 +114,7 @@ export default function PlayerCard({
 
   const confirmarSubirClausula = async () => {
     if (!importeNumerico || importeNumerico <= 0) {
-      setErrorClausula("Introduce un importe válido.");
+      setErrorClausula(t.ficha.importeInvalido);
       return;
     }
     setEnviandoClausula(true);
@@ -123,7 +125,7 @@ export default function PlayerCard({
       setMostrarSubirClausula(false);
       setImporteClausula("");
     } else {
-      setErrorClausula(resultado.mensaje ?? "No se ha podido subir la cláusula.");
+      setErrorClausula(resultado.mensaje ?? t.ficha.errorSubirClausula);
     }
   };
 
@@ -152,11 +154,11 @@ export default function PlayerCard({
                     : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"
                 }`}
               >
-                {esTitular ? "Titular" : "Suplente"}
+                {esTitular ? t.ficha.titular : t.ficha.suplente}
               </span>
               {esCapitan && (
                 <span
-                  title={`Capitán: puntúa x${gameConfig.capitan.multiplicador} esta jornada`}
+                  title={t.ficha.capitanTitle(gameConfig.capitan.multiplicador)}
                   className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-bold text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300"
                 >
                   C · x{gameConfig.capitan.multiplicador}
@@ -165,7 +167,7 @@ export default function PlayerCard({
               {!ligaPublica &&
                 (blindado ? (
                 <span
-                  title="Blindado: no se le puede hacer un clausulazo hasta la próxima jornada"
+                  title={t.ficha.blindadoTitle}
                   className="flex items-center gap-0.5 rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-800 dark:bg-violet-900/40 dark:text-violet-300"
                 >
                   <svg
@@ -181,11 +183,11 @@ export default function PlayerCard({
                       d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
                     />
                   </svg>
-                  Blindado
+                  {t.ficha.blindado}
                 </span>
               ) : candado ? (
                 <span
-                  title="Con candado: no se le puede hacer un clausulazo hasta la próxima jornada"
+                  title={t.ficha.candadoTitle}
                   className="flex items-center gap-0.5 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
                 >
                   <svg
@@ -201,11 +203,11 @@ export default function PlayerCard({
                       d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
                     />
                   </svg>
-                  Candado
+                  {t.ficha.candado}
                 </span>
               ) : (
                 <span
-                  title="Clausulable: se le puede hacer un clausulazo ahora mismo"
+                  title={t.ficha.clausulableTitle}
                   className="flex items-center gap-0.5 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-800 dark:bg-sky-900/40 dark:text-sky-300"
                 >
                   <svg
@@ -221,12 +223,12 @@ export default function PlayerCard({
                       d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
                     />
                   </svg>
-                  Clausulable
+                  {t.ficha.clausulable}
                 </span>
                 ))}
             </div>
             <p className="text-sm text-neutral-500">
-              {jugador.club} · {jugador.categoria}ª cat. · Elo {jugador.elo}
+              {jugador.club} · {t.ficha.categoria(jugador.categoria)} · Elo {jugador.elo}
             </p>
             <ProximoRivalLinea rivales={proximosRivales} className="mt-0.5" />
           </div>
@@ -239,7 +241,7 @@ export default function PlayerCard({
             ))}
           </div>
           <div className="flex items-center gap-3">
-            <span>{puntosJornada} pts</span>
+            <span>{t.ficha.pts(puntosJornada)}</span>
             <span className="font-medium">{jugador.valorMercado} M</span>
             <span className={deltaColor}>
               {valorMercadoDelta > 0 ? `+${valorMercadoDelta}` : valorMercadoDelta}
@@ -253,7 +255,7 @@ export default function PlayerCard({
             disabled={bloqueadoPorTope}
             title={
               bloqueadoPorTope
-                ? (motivoBloqueo ?? `Ya tienes ${gameConfig.plantilla.maximoTitularesPorTorneo} titulares en ese torneo — pasa a suplente a otro primero.`)
+                ? (motivoBloqueo ?? t.ficha.topeTitulares(gameConfig.plantilla.maximoTitularesPorTorneo))
                 : undefined
             }
             className={`flex-1 rounded-lg border bg-white py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 dark:bg-neutral-900 ${
@@ -262,13 +264,13 @@ export default function PlayerCard({
                 : "border-green-300 text-green-700 hover:bg-green-50 dark:border-green-800 dark:text-green-300"
             }`}
           >
-            {esTitular ? "Suplente" : "Titular"}
+            {esTitular ? t.ficha.pasarASuplente : t.ficha.pasarATitular}
           </button>
           <button
             onClick={() => setMostrarConfirmacion(true)}
             className="flex-1 rounded-lg border border-neutral-300 bg-white py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300"
           >
-            Vender
+            {t.ficha.vender}
           </button>
         </div>
 
@@ -278,10 +280,10 @@ export default function PlayerCard({
             disabled={!esTitular}
             title={
               !esTitular
-                ? "Solo un titular puede ser capitán."
+                ? t.ficha.capitanSoloTitular
                 : esCapitan
-                  ? "Quitar la capitanía"
-                  : `El capitán puntúa x${gameConfig.capitan.multiplicador} esta jornada`
+                  ? t.ficha.quitarCapitania
+                  : t.ficha.capitanPuntua(gameConfig.capitan.multiplicador)
             }
             className={`flex-1 rounded-lg border py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40 ${
               esCapitan
@@ -289,7 +291,7 @@ export default function PlayerCard({
                 : "border-yellow-300 bg-white text-yellow-700 hover:bg-yellow-50 dark:border-yellow-800 dark:bg-neutral-900 dark:text-yellow-300"
             }`}
           >
-            {esCapitan ? "Quitar capitán" : "Capitán"}
+            {esCapitan ? t.ficha.quitarCapitan : t.ficha.capitan}
           </button>
           {!ligaPublica && (
             <button
@@ -300,14 +302,14 @@ export default function PlayerCard({
               disabled={!!blindado || blindajeAgotado}
               title={
                 blindado
-                  ? "Ya está blindado hasta la próxima jornada"
+                  ? t.ficha.yaBlindado
                   : blindajeAgotado
-                    ? "Ya has blindado a otro jugador esta jornada (solo se permite uno)"
-                    : "Evita que te lo puedan clausular hasta la próxima jornada"
+                    ? t.ficha.blindajeAgotado
+                    : t.ficha.blindarTitle
               }
               className="flex-1 rounded-lg border border-violet-300 bg-white py-2 text-sm font-medium text-violet-700 hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-violet-800 dark:bg-neutral-900 dark:text-violet-300"
             >
-              {blindado ? "Blindado" : `Blindar (${precioBlindaje} M)`}
+              {blindado ? t.ficha.blindado : t.ficha.blindar(precioBlindaje)}
             </button>
           )}
         </div>
@@ -318,7 +320,7 @@ export default function PlayerCard({
             onClick={() => setMostrarSubirClausula(true)}
             className="mt-2 w-full rounded-lg border border-sky-300 bg-white py-2 text-sm font-medium text-sky-700 hover:bg-sky-50 dark:border-sky-800 dark:bg-neutral-900 dark:text-sky-300"
           >
-            Subir cláusula ({clausula} M)
+            {t.ficha.subirClausula(clausula)}
           </button>
         )}
 
@@ -326,7 +328,7 @@ export default function PlayerCard({
           onClick={() => setMostrarHistorial((prev) => !prev)}
           className="mt-2 flex w-full items-center justify-center gap-1 py-1 text-xs font-medium text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300"
         >
-          {mostrarHistorial ? "Ocultar" : "Puntos por jornada"}
+          {mostrarHistorial ? t.ficha.ocultar : t.ficha.puntosPorJornada}
           <svg
             className={`h-3 w-3 transition-transform ${mostrarHistorial ? "rotate-180" : ""}`}
             fill="none"
@@ -354,9 +356,9 @@ export default function PlayerCard({
           <div className="relative w-full max-w-sm rounded-t-2xl bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-xl dark:bg-neutral-900 sm:rounded-2xl sm:pb-5">
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-neutral-300 dark:bg-neutral-700 sm:hidden" />
 
-            <p className="text-base font-semibold">Vender a {jugador.nombre}</p>
+            <p className="text-base font-semibold">{t.ficha.venderA(jugador.nombre)}</p>
             <p className="mt-1 text-sm text-neutral-500">
-              Recibirás {jugador.valorMercado} M en tu saldo. Esta acción no se puede deshacer.
+              {t.ficha.recibiras(jugador.valorMercado)}
             </p>
 
             <div className="mt-5 flex gap-2">
@@ -364,13 +366,13 @@ export default function PlayerCard({
                 onClick={() => setMostrarConfirmacion(false)}
                 className="flex-1 rounded-lg border border-neutral-300 py-2.5 text-sm font-medium dark:border-neutral-700"
               >
-                Cancelar
+                {t.comun.cancelar}
               </button>
               <button
                 onClick={confirmarVenta}
                 className="flex-1 rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white dark:bg-white dark:text-neutral-900"
               >
-                Sí, vender
+                {t.ficha.siVender}
               </button>
             </div>
           </div>
@@ -386,15 +388,14 @@ export default function PlayerCard({
           <div className="relative w-full max-w-sm rounded-t-2xl bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-xl dark:bg-neutral-900 sm:rounded-2xl sm:pb-5">
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-neutral-300 dark:bg-neutral-700 sm:hidden" />
 
-            <p className="text-base font-semibold">Blindar a {jugador.nombre}</p>
+            <p className="text-base font-semibold">{t.ficha.blindarA(jugador.nombre)}</p>
             <p className="mt-1 text-sm text-neutral-500">
-              Pagarás {precioBlindaje} M ({Math.round(gameConfig.blindaje.porcentaje * 100)} % de su
-              valor). Nadie podrá hacerle un clausulazo hasta que empiece la próxima jornada.
+              {t.ficha.pagarasBlindaje(precioBlindaje, Math.round(gameConfig.blindaje.porcentaje * 100))}
             </p>
             <p className="mt-2 rounded-lg bg-violet-50 p-3 text-xs text-violet-800 dark:bg-violet-900/20 dark:text-violet-300">
-              Solo puedes blindar a <span className="font-semibold">un jugador por jornada</span>.
-              Una vez lo blindes no podrás blindar a otro hasta que empiece la siguiente jornada,
-              aunque vendas al jugador blindado.
+              {t.ficha.unoPorJornadaAntes}
+              <span className="font-semibold">{t.ficha.unoPorJornadaNegrita}</span>
+              {t.ficha.unoPorJornadaDespues}
             </p>
 
             {errorBlindaje && <p className="mt-2 text-xs text-negative">{errorBlindaje}</p>}
@@ -404,14 +405,14 @@ export default function PlayerCard({
                 onClick={() => setMostrarBlindaje(false)}
                 className="flex-1 rounded-lg border border-neutral-300 py-2.5 text-sm font-medium dark:border-neutral-700"
               >
-                Cancelar
+                {t.comun.cancelar}
               </button>
               <button
                 onClick={confirmarBlindaje}
                 disabled={enviandoBlindaje}
                 className="flex-1 rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
               >
-                {enviandoBlindaje ? "Pagando…" : "Confirmar"}
+                {enviandoBlindaje ? t.ficha.pagando : t.ficha.confirmar}
               </button>
             </div>
           </div>
@@ -430,14 +431,13 @@ export default function PlayerCard({
           <div className="relative w-full max-w-sm rounded-t-2xl bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-xl dark:bg-neutral-900 sm:rounded-2xl sm:pb-5">
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-neutral-300 dark:bg-neutral-700 sm:hidden" />
 
-            <p className="text-base font-semibold">Subir cláusula de {jugador.nombre}</p>
+            <p className="text-base font-semibold">{t.ficha.subirClausulaDe(jugador.nombre)}</p>
             <p className="mt-1 text-sm text-neutral-500">
-              Cláusula actual: {clausula} M. Cada M que pagues la sube{" "}
-              {gameConfig.subidaClausula.multiplicador} M.
+              {t.ficha.clausulaActual(clausula, gameConfig.subidaClausula.multiplicador)}
             </p>
 
             <div className="mt-4">
-              <label className="text-xs font-medium text-neutral-500">Importe a pagar (M)</label>
+              <label className="text-xs font-medium text-neutral-500">{t.ficha.importeAPagar}</label>
               <input
                 type="number"
                 value={importeClausula}
@@ -448,7 +448,7 @@ export default function PlayerCard({
 
             {importeNumerico > 0 && (
               <p className="mt-2 text-sm text-neutral-500">
-                Nueva cláusula: <span className="font-medium">{nuevaClausula} M</span>
+                {t.ficha.nuevaClausula} <span className="font-medium">{nuevaClausula} M</span>
               </p>
             )}
 
@@ -462,14 +462,14 @@ export default function PlayerCard({
                 }}
                 className="flex-1 rounded-lg border border-neutral-300 py-2.5 text-sm font-medium dark:border-neutral-700"
               >
-                Cancelar
+                {t.comun.cancelar}
               </button>
               <button
                 onClick={confirmarSubirClausula}
                 disabled={enviandoClausula || !importeClausula}
                 className="flex-1 rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
               >
-                {enviandoClausula ? "Pagando…" : "Confirmar"}
+                {enviandoClausula ? t.ficha.pagando : t.ficha.confirmar}
               </button>
             </div>
           </div>

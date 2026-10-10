@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useT } from "@/components/IdiomaProvider";
 
 export interface AceptacionLegal {
   condiciones: boolean;
@@ -58,31 +59,30 @@ export default function AceptacionLegalFields({
   onChange: (v: AceptacionLegal) => void;
   disabled?: boolean;
 }) {
+  const t = useT();
   const set = (campo: keyof AceptacionLegal) => (v: boolean) =>
     onChange({ ...valor, [campo]: v });
 
   return (
     <div className="flex flex-col gap-3">
       <Casilla checked={valor.condiciones} onChange={set("condiciones")} disabled={disabled}>
-        He leído y acepto las{" "}
+        {t.legal.condicionesAntes}
         <Link href="/condiciones" target="_blank" rel="noopener noreferrer" className={enlace}>
-          Condiciones de Uso
-        </Link>{" "}
-        y las reglas de Fantasy Beraun Bera.
+          {t.legal.condicionesEnlace}
+        </Link>
+        {t.legal.condicionesDespues}
       </Casilla>
 
       <Casilla checked={valor.privacidad} onChange={set("privacidad")} disabled={disabled}>
-        He leído la{" "}
+        {t.legal.privacidadAntes}
         <Link href="/privacidad" target="_blank" rel="noopener noreferrer" className={enlace}>
-          Política de Privacidad
-        </Link>{" "}
-        y he sido informado sobre el tratamiento de mis datos personales y sobre la forma de
-        ejercer mis derechos.
+          {t.legal.privacidadEnlace}
+        </Link>
+        {t.legal.privacidadDespues}
       </Casilla>
 
       <Casilla checked={valor.mayor14} onChange={set("mayor14")} disabled={disabled}>
-        Declaro tener 14 años o más. Si soy menor de 14 años, mi registro debe solicitarlo mi
-        padre, madre o tutor.
+        {t.legal.mayor14}
       </Casilla>
 
       <div className="border-t border-neutral-200 pt-3 dark:border-neutral-800">
@@ -92,8 +92,7 @@ export default function AceptacionLegalFields({
           disabled={disabled}
         >
           <span className="text-neutral-600 dark:text-neutral-400">
-            (Opcional) Quiero recibir por correo electrónico novedades sobre Fantasy Beraun Bera y
-            las actividades de Beraun Bera Xake Taldea.
+            {t.legal.comunicaciones}
           </span>
         </Casilla>
       </div>

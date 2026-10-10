@@ -10,12 +10,14 @@ import AceptacionLegalFields, {
   type AceptacionLegal,
 } from "@/components/legal/AceptacionLegalFields";
 import InfoBasicaRGPD from "@/components/legal/InfoBasicaRGPD";
-import { FORMATO_NOMBRE_USUARIO, MENSAJE_FORMATO_NOMBRE_USUARIO, MIN_PASSWORD } from "@/lib/cuenta";
+import { FORMATO_NOMBRE_USUARIO, MIN_PASSWORD } from "@/lib/cuenta";
+import { useT } from "@/components/IdiomaProvider";
 import { VERSION_CONDICIONES, VERSION_PRIVACIDAD } from "@/lib/legal/config";
 
 
 export default function RegistroPage() {
   const supabase = createClient();
+  const t = useT();
 
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
@@ -30,15 +32,13 @@ export default function RegistroPage() {
     setError(null);
 
     if (!aceptacionCompleta(aceptacion)) {
-      setError(
-        "Para registrarte tienes que aceptar las Condiciones de Uso, leer la Política de Privacidad y confirmar que tienes 14 años o más."
-      );
+      setError(t.auth.errorAceptacion);
       return;
     }
 
     const nombreLimpio = nombre.trim();
     if (!FORMATO_NOMBRE_USUARIO.test(nombreLimpio)) {
-      setError(MENSAJE_FORMATO_NOMBRE_USUARIO);
+      setError(t.auth.formatoNombreUsuario);
       return;
     }
 
@@ -51,13 +51,13 @@ export default function RegistroPage() {
 
     if (errorDisponible) {
       setCargando(false);
-      setError("No se ha podido comprobar el nombre de usuario. Inténtalo de nuevo.");
+      setError(t.auth.errorComprobarNombre);
       return;
     }
 
     if (disponible === false) {
       setCargando(false);
-      setError("Ese nombre de usuario ya está en uso.");
+      setError(t.auth.nombreEnUso);
       return;
     }
 
@@ -101,16 +101,16 @@ export default function RegistroPage() {
   if (registrado) {
     return (
       <div className="rounded-2xl border border-neutral-200 p-6 text-center dark:border-neutral-800">
-        <p className="font-medium">Revisa tu email</p>
+        <p className="font-medium">{t.auth.revisaEmail}</p>
         <p className="mt-2 text-sm text-neutral-500">
-          Te hemos enviado un enlace de confirmación a <b>{email}</b>. Una vez
-          confirmes la cuenta, ya puedes iniciar sesión.
+          {t.auth.confirmacionAntes} <b>{email}</b>
+          {t.auth.confirmacionDespues}
         </p>
         <Link
           href="/login"
           className="mt-4 inline-block text-sm font-medium text-accent"
         >
-          Ir a iniciar sesión
+          {t.auth.irALogin}
         </Link>
       </div>
     );
@@ -123,7 +123,7 @@ export default function RegistroPage() {
     >
       <div>
         <label className="text-xs font-medium text-neutral-500">
-          Nombre de usuario
+          {t.auth.nombreUsuario}
         </label>
         <input
           type="text"
@@ -140,7 +140,7 @@ export default function RegistroPage() {
       </div>
 
       <div>
-        <label className="text-xs font-medium text-neutral-500">Email</label>
+        <label className="text-xs font-medium text-neutral-500">{t.auth.email}</label>
         <input
           type="email"
           required
@@ -152,7 +152,7 @@ export default function RegistroPage() {
 
       <div>
         <label className="text-xs font-medium text-neutral-500">
-          Contraseña
+          {t.auth.contrasena}
         </label>
         <PasswordInput
           required
@@ -174,13 +174,13 @@ export default function RegistroPage() {
         disabled={cargando || !aceptacionCompleta(aceptacion)}
         className="rounded-lg bg-accent py-2.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
       >
-        {cargando ? "Creando cuenta..." : "Crear cuenta"}
+        {cargando ? t.auth.creandoCuenta : t.auth.crearCuenta}
       </button>
 
       <p className="text-center text-sm text-neutral-500">
-        ¿Ya tienes cuenta?{" "}
+        {t.auth.yaTienesCuenta}{" "}
         <Link href="/login" className="font-medium text-accent">
-          Inicia sesión
+          {t.auth.iniciaSesion}
         </Link>
       </p>
     </form>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redondear2 } from "@/lib/saldo";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
+import { useT } from "@/components/IdiomaProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import ProximoRivalLinea from "@/components/ProximoRival";
 import { createClient } from "@/lib/supabase/client";
@@ -49,6 +50,8 @@ interface TorneoOpcion {
 }
 
 export default function ClasificacionPage() {
+  const t = useT();
+  const c = t.clasificacion;
   const {
     clasificacion,
     jugadoresLiga,
@@ -157,7 +160,7 @@ export default function ClasificacionPage() {
         if (!t) {
           t = {
             clave: claveTorneo,
-            etiqueta: h.torneo ?? "Sin torneo",
+            etiqueta: h.torneo ?? c.sinTorneo,
             ultima: "",
             jornadas: [],
           };
@@ -198,10 +201,10 @@ export default function ClasificacionPage() {
   const etiquetaOrden =
     torneoSel === TOTAL
       ? numeroJornadaTotal !== null
-        ? `en la jornada ${numeroJornadaTotal}`
-        : "este año"
+        ? c.enJornada(numeroJornadaTotal)
+        : c.esteAno
       : jornadaActual
-        ? `${torneoActual?.etiqueta} · J${jornadaActual.numero}`
+        ? `${torneoActual?.etiqueta} · ${c.jornadaCorta(jornadaActual.numero)}`
         : (torneoActual?.etiqueta ?? "");
 
   const puntosParaOrden = (entry: (typeof clasificacion)[number]) => {
@@ -229,7 +232,7 @@ export default function ClasificacionPage() {
   }, [torneoSel, jornadaSel, clasificacion]);
 
   if (cargando) {
-    return <p className="text-sm text-neutral-500">Cargando clasificación…</p>;
+    return <p className="text-sm text-neutral-500">{c.cargando}</p>;
   }
 
   // La posición se calcula sobre la lista COMPLETA (no la filtrada) para que
@@ -293,7 +296,7 @@ export default function ClasificacionPage() {
     setEnviando(true);
     const resultado = await hacerOferta(jugadorId, importe);
     setEnviando(false);
-    setMensaje(resultado.ok ? "Oferta enviada." : resultado.mensaje);
+    setMensaje(resultado.ok ? c.ofertaEnviada : resultado.mensaje);
   };
 
   const quitarOferta = async (ofertaId: string) => {
@@ -302,7 +305,7 @@ export default function ClasificacionPage() {
     setEnviando(false);
     setMensaje(
       resultado.ok
-        ? "Oferta cancelada. Tu saldo no se ha visto afectado."
+        ? c.ofertaCancelada
         : resultado.mensaje
     );
   };
@@ -311,23 +314,23 @@ export default function ClasificacionPage() {
     setEnviando(true);
     const resultado = await pagarClausula(jugadorId);
     setEnviando(false);
-    setMensaje(resultado.ok ? "Cláusula pagada — el jugador ya es tuyo." : resultado.mensaje);
+    setMensaje(resultado.ok ? c.clausulaPagada : resultado.mensaje);
   };
 
   return (
     <div>
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold">Clasificación general</h2>
+          <h2 className="text-lg font-semibold">{c.titulo}</h2>
           {esLigaPublica && (
             <p className="text-xs text-neutral-500">
-              {totalManagers} {totalManagers === 1 ? "manager" : "managers"} en la liga pública
+              {c.managersPublica(totalManagers)}
             </p>
           )}
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <select
-            aria-label="Torneo"
+            aria-label={c.torneoAria}
             value={torneoSel}
             onChange={(e) => {
               setTorneoSel(e.target.value);
@@ -335,7 +338,7 @@ export default function ClasificacionPage() {
             }}
             className="min-w-0 rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900 sm:max-w-xs"
           >
-            <option value={TOTAL}>Puntos totales</option>
+            <option value={TOTAL}>{c.puntosTotales}</option>
             {torneosDisponibles.map((t) => (
               <option key={t.clave} value={t.clave}>
                 {t.etiqueta}
@@ -344,30 +347,30 @@ export default function ClasificacionPage() {
           </select>
           {torneoSel === TOTAL && numerosJornada.length > 0 && (
             <select
-              aria-label="Jornada"
+              aria-label={c.jornadaAria}
               value={jornadaSel}
               onChange={(e) => setJornadaSel(e.target.value)}
               className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
             >
-              <option value="">Todas las jornadas</option>
+              <option value="">{c.todasJornadas}</option>
               {numerosJornada.map((n) => (
                 <option key={n} value={String(n)}>
-                  Jornada {n}
+                  {c.jornada(n)}
                 </option>
               ))}
             </select>
           )}
           {torneoActual && (
             <select
-              aria-label="Jornada"
+              aria-label={c.jornadaAria}
               value={jornadaSel}
               onChange={(e) => setJornadaSel(e.target.value)}
               className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
             >
-              <option value="">Todo el torneo</option>
+              <option value="">{c.todoTorneo}</option>
               {torneoActual.jornadas.map((j) => (
                 <option key={j.clave} value={j.clave}>
-                  Jornada {j.numero}
+                  {c.jornada(j.numero)}
                 </option>
               ))}
             </select>
@@ -380,13 +383,14 @@ export default function ClasificacionPage() {
           {miPosicion !== null && (
             <div className="flex items-center justify-between rounded-lg bg-accent/10 px-3 py-2 text-sm">
               <span>
-                Tu posición: <strong>{miPosicion}º</strong> de {totalManagers}
+                {c.tuPosicion} <strong>{c.posicionDe(miPosicion, totalManagers)[0]}</strong>
+                {c.posicionDe(miPosicion, totalManagers)[1]}
               </span>
               <button
                 onClick={irAMiEquipo}
                 className="text-xs font-medium text-accent underline underline-offset-2"
               >
-                Ir a mi equipo
+                {c.irAMiEquipo}
               </button>
             </div>
           )}
@@ -397,7 +401,7 @@ export default function ClasificacionPage() {
               setBusqueda(e.target.value);
               setVisibles(TAMANO_PAGINA);
             }}
-            placeholder="Buscar equipo por nombre…"
+            placeholder={c.buscar}
             className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
           />
         </div>
@@ -406,12 +410,12 @@ export default function ClasificacionPage() {
       <ol className="divide-y divide-neutral-200 dark:divide-neutral-800">
         {clasificacionOrdenada.length === 0 && (
           <li className="py-6 text-center text-sm text-neutral-500">
-            Todavía no hay equipos en la clasificación.
+            {c.vacia}
           </li>
         )}
         {clasificacionOrdenada.length > 0 && coincidencias.length === 0 && (
           <li className="py-6 text-center text-sm text-neutral-500">
-            Ningún equipo coincide con «{busqueda}».
+            {c.sinCoincidencias(busqueda)}
           </li>
         )}
         {listaVisible.map(({ entry, posicion }) => (
@@ -429,7 +433,7 @@ export default function ClasificacionPage() {
                   <Link
                     href={`/managers/${entry.equipoId}`}
                     className="hover:underline"
-                    title="Ver perfil del manager"
+                    title={c.verPerfil}
                   >
                     {entry.nombreEquipo}
                   </Link>
@@ -446,15 +450,15 @@ export default function ClasificacionPage() {
                 <Link
                   href={`/managers/${entry.equipoId}?tab=jornadas`}
                   className="ml-5 mt-1 inline-block rounded-full border border-accent px-2.5 py-0.5 text-[11px] font-medium text-accent"
-                  title="Ver plantilla y puntos de cada jornada"
+                  title={c.verJornadasTitle}
                 >
-                  Jornadas
+                  {c.jornadas}
                 </Link>
               )}
             </span>
             <div className="flex shrink-0 items-center gap-3 pl-2">
               <span className="whitespace-nowrap font-medium">
-                {puntosParaOrden(entry)} pts{" "}
+                {c.pts(puntosParaOrden(entry))}{" "}
                 <span className="text-neutral-500">
                   {etiquetaOrden}
                 </span>
@@ -464,7 +468,7 @@ export default function ClasificacionPage() {
                   onClick={() => setEquipoAbierto(entry.nombreEquipo)}
                   className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium dark:border-neutral-700"
                 >
-                  Plantilla
+                  {c.plantilla}
                 </button>
               )}
               {!entry.esMiEquipo && esLigaPublica && entry.equipoId && (
@@ -472,7 +476,7 @@ export default function ClasificacionPage() {
                   onClick={() => abrirPlantillaPublica(entry.equipoId as string, entry.nombreEquipo)}
                   className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium dark:border-neutral-700"
                 >
-                  Plantilla
+                  {c.plantilla}
                 </button>
               )}
             </div>
@@ -485,7 +489,7 @@ export default function ClasificacionPage() {
           onClick={() => setVisibles((v) => v + TAMANO_PAGINA)}
           className="mt-3 w-full rounded-lg border border-neutral-300 py-2.5 text-sm font-medium dark:border-neutral-700"
         >
-          Mostrar más ({coincidencias.length - listaVisible.length} restantes)
+          {c.mostrarMas(coincidencias.length - listaVisible.length)}
         </button>
       )}
 
@@ -501,22 +505,22 @@ export default function ClasificacionPage() {
                 onClick={cerrarPlantillaPublica}
                 className="text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300"
               >
-                Cerrar
+                {c.cerrar}
               </button>
             </div>
 
             <div className="flex max-h-[65vh] flex-col gap-2 overflow-y-auto">
               {cargandoPlantilla && (
-                <p className="py-4 text-center text-sm text-neutral-500">Cargando plantilla…</p>
+                <p className="py-4 text-center text-sm text-neutral-500">{c.cargandoPlantilla}</p>
               )}
               {!cargandoPlantilla && plantillaPublica === null && (
                 <p className="py-4 text-center text-sm text-negative">
-                  No se ha podido cargar la plantilla.
+                  {c.errorPlantilla}
                 </p>
               )}
               {!cargandoPlantilla && plantillaPublica !== null && plantillaPublica.length === 0 && (
                 <p className="py-4 text-center text-sm text-neutral-500">
-                  Este manager todavía no ha fichado a nadie.
+                  {c.sinFichajes}
                 </p>
               )}
               {plantillaPublica?.map((jugador) => (
@@ -536,8 +540,8 @@ export default function ClasificacionPage() {
                         </Link>
                       </p>
                       <p className="text-xs text-neutral-500">
-                        {jugador.club} · {jugador.categoria}ª cat. · Elo {jugador.elo} ·{" "}
-                        {jugador.puntosTotales} pts
+                        {jugador.club} · {c.categoriaCorta(jugador.categoria)} · Elo {jugador.elo} ·{" "}
+                        {c.pts(jugador.puntosTotales)}
                       </p>
                       <ProximoRivalLinea rivales={jugador.proximosRivales} className="mt-0.5" />
                     </div>
@@ -549,7 +553,7 @@ export default function ClasificacionPage() {
                         }
                         className="text-xs font-medium text-accent underline underline-offset-2"
                       >
-                        {puntosAbiertoId === jugador.id ? "Ocultar puntos" : "Ver puntos"}
+                        {puntosAbiertoId === jugador.id ? c.ocultarPuntos : c.verPuntos}
                       </button>
                     </div>
                   </div>
@@ -577,7 +581,7 @@ export default function ClasificacionPage() {
                 onClick={cerrarPanel}
                 className="text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300"
               >
-                Cerrar
+                {c.cerrar}
               </button>
             </div>
 
@@ -616,7 +620,7 @@ export default function ClasificacionPage() {
                           </Link>
                         </p>
                         <p className="text-xs text-neutral-500">
-                          {jugador.club} · {jugador.categoria}ª cat. · Elo {jugador.elo}
+                          {jugador.club} · {c.categoriaCorta(jugador.categoria)} · Elo {jugador.elo}
                         </p>
                         <ProximoRivalLinea rivales={jugador.proximosRivales} className="mt-0.5" />
                       </div>
@@ -627,7 +631,7 @@ export default function ClasificacionPage() {
                       <div className="flex flex-col gap-2 border-t border-neutral-200 p-3 dark:border-neutral-800">
                         <div>
                           <label className="text-xs font-medium text-neutral-500">
-                            Importe de la oferta (M)
+                            {c.importeOferta}
                           </label>
                           <input
                             type="number"
@@ -644,14 +648,14 @@ export default function ClasificacionPage() {
                             onClick={() => enviarOferta(jugador.id)}
                             className="flex-1 rounded-lg border border-neutral-300 py-2 text-sm font-medium disabled:opacity-40 dark:border-neutral-700"
                           >
-                            Hacer oferta
+                            {c.hacerOferta}
                           </button>
                           <button
                             disabled={enviando}
                             onClick={() => ejecutarClausula(jugador.id)}
                             className="flex-1 rounded-lg bg-neutral-900 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
                           >
-                            Pagar cláusula ({jugador.clausula} M)
+                            {c.pagarClausula(jugador.clausula)}
                           </button>
                         </div>
 
@@ -663,7 +667,7 @@ export default function ClasificacionPage() {
                               onClick={() => quitarOferta(ofertaActual.id)}
                               className="rounded-lg border border-neutral-300 py-2 text-sm font-medium text-negative disabled:opacity-40 dark:border-neutral-700"
                             >
-                              Cancelar mi oferta ({ofertaActual.importe} M)
+                              {c.cancelarOferta(ofertaActual.importe)}
                             </button>
                           ) : null;
                         })()}
@@ -679,7 +683,7 @@ export default function ClasificacionPage() {
             </div>
 
             <p className="mt-3 text-xs text-neutral-400">
-              Tu saldo: {redondear2(equipo.saldo)} M
+              {c.tuSaldo(redondear2(equipo.saldo))}
             </p>
           </div>
         </div>

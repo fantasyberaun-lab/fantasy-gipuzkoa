@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { usePwaInstall } from "./PwaProvider";
+import { useT } from "@/components/IdiomaProvider";
 
 /**
  * Botón pequeño para instalar la PWA. Pensado para vivir en sitios
@@ -17,6 +18,7 @@ export default function InstallPwaButton({
   const { canInstall, isStandalone, platform, promptInstall } =
     usePwaInstall();
   const [showHint, setShowHint] = useState(false);
+  const t = useT();
 
   const botonClase = `flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
     onDark
@@ -38,7 +40,7 @@ export default function InstallPwaButton({
         className={botonClase}
       >
         <DownloadIcon />
-        Instalar app
+        {t.pwa.instalarApp}
       </button>
     );
   }
@@ -58,21 +60,17 @@ export default function InstallPwaButton({
           className={botonClase}
         >
           <DownloadIcon />
-          Instalar app
+          {t.pwa.instalarApp}
         </button>
         {showHint && (
           <p className={pistaClase}>
             {platform === "ios" ? (
               <>
-                Pulsa el icono Compartir{" "}
-                <span aria-hidden>&#x2191;</span> de Safari y luego
-                &quot;Añadir a pantalla de inicio&quot;.
+                {t.pwa.iosAntes} <span aria-hidden>&#x2191;</span>
+                {t.pwa.iosDespues}
               </>
             ) : (
-              <>
-                Abre el menú (⋮) de Chrome y toca &quot;Añadir a pantalla de
-                inicio&quot; o &quot;Instalar app&quot;.
-              </>
+              t.pwa.android
             )}
           </p>
         )}

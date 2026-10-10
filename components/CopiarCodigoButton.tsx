@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useT } from "@/components/IdiomaProvider";
 
 // Copia el código de una liga al portapapeles y muestra "¡Copiado!" un momento.
 export default function CopiarCodigoButton({
@@ -11,6 +12,7 @@ export default function CopiarCodigoButton({
   className?: string;
 }) {
   const [copiado, setCopiado] = useState(false);
+  const t = useT();
 
   const copiar = async (e: React.MouseEvent) => {
     // Por si el botón está dentro de otro elemento clicable.
@@ -41,7 +43,7 @@ export default function CopiarCodigoButton({
       onClick={copiar}
       className={`rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-800 ${className}`}
     >
-      {copiado ? "¡Copiado!" : "Copiar código"}
+      {copiado ? t.liga.copiado : t.liga.copiarCodigo}
     </button>
   );
 }

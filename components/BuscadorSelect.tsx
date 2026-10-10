@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useT } from "@/components/IdiomaProvider";
 
 interface Opcion {
   id: string;
@@ -17,13 +18,14 @@ export default function BuscadorSelect({
   opciones,
   valor,
   onSeleccionar,
-  placeholder = "Buscar…",
+  placeholder,
 }: {
   opciones: Opcion[];
   valor: string;
   onSeleccionar: (id: string) => void;
   placeholder?: string;
 }) {
+  const t = useT();
   const [texto, setTexto] = useState("");
   const [abierto, setAbierto] = useState(false);
   const contenedorRef = useRef<HTMLDivElement>(null);
@@ -54,14 +56,14 @@ export default function BuscadorSelect({
           setTexto("");
         }}
         onChange={(e) => setTexto(e.target.value)}
-        placeholder={placeholder}
+        placeholder={placeholder ?? t.mercado.buscar}
         className="w-full rounded-lg border border-neutral-300 px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900"
       />
 
       {abierto && (
         <div className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-neutral-300 bg-white shadow-lg dark:border-neutral-700 dark:bg-neutral-900">
           {filtradas.length === 0 && (
-            <p className="px-3 py-2 text-sm text-neutral-500">Sin resultados</p>
+            <p className="px-3 py-2 text-sm text-neutral-500">{t.mercado.sinResultados}</p>
           )}
           {filtradas.slice(0, MAX_VISIBLE).map((o) => (
             <button
@@ -79,7 +81,7 @@ export default function BuscadorSelect({
           ))}
           {filtradas.length > MAX_VISIBLE && (
             <p className="px-3 py-1.5 text-xs text-neutral-400">
-              Y {filtradas.length - MAX_VISIBLE} más — sigue escribiendo para acotar.
+              {t.mercado.yMas(filtradas.length - MAX_VISIBLE)}
             </p>
           )}
         </div>

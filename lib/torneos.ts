@@ -80,9 +80,9 @@ export function ordenarTorneos<T extends Torneo>(torneos: T[]): T[] {
   });
 }
 
-export function formatearFecha(iso: string | null): string | null {
+export function formatearFecha(iso: string | null, locale = "es-ES"): string | null {
   if (!iso) return null;
-  return new Date(`${iso}T00:00:00`).toLocaleDateString("es-ES", {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString(locale, {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -90,10 +90,11 @@ export function formatearFecha(iso: string | null): string | null {
 }
 
 export function rangoFechas(
-  t: Pick<DatosTorneo, "fechaInicio" | "fechaFin">
+  t: Pick<DatosTorneo, "fechaInicio" | "fechaFin">,
+  locale = "es-ES"
 ): string | null {
-  const inicio = formatearFecha(t.fechaInicio);
-  const fin = formatearFecha(t.fechaFin);
+  const inicio = formatearFecha(t.fechaInicio, locale);
+  const fin = formatearFecha(t.fechaFin, locale);
   if (inicio && fin) return inicio === fin ? inicio : `${inicio} – ${fin}`;
   return inicio ?? fin;
 }

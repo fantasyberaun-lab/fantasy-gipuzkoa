@@ -4,6 +4,7 @@ import Link from "next/link";
 import ProximoRivalLinea from "@/components/ProximoRival";
 import { useMemo, useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
+import { useT } from "@/components/IdiomaProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import { gameConfig } from "@/lib/gameConfig";
 import { redondear2 } from "@/lib/saldo";
@@ -20,6 +21,7 @@ const POR_PAGINA = 50;
 
 export default function MercadoPublico() {
   const { jugadoresLiga, squad, saldoFuturo, ficharJugador, venderJugador } = useGameState();
+  const t = useT();
 
   const [busqueda, setBusqueda] = useState("");
   const [categoria, setCategoria] = useState<"todas" | "1" | "2" | "3">("todas");
@@ -107,7 +109,7 @@ export default function MercadoPublico() {
     mostrarMensaje(
       jugadorId,
       resultado.ok
-        ? { tipo: "ok", texto: `Fichado por ${valor} M.` }
+        ? { tipo: "ok", texto: t.mercado.fichadoPor(valor) }
         : { tipo: "error", texto: resultado.mensaje }
     );
   };
@@ -120,7 +122,7 @@ export default function MercadoPublico() {
     mostrarMensaje(
       jugadorId,
       resultado.ok
-        ? { tipo: "ok", texto: `Vendido por ${valor} M.` }
+        ? { tipo: "ok", texto: t.mercado.vendidoPor(valor) }
         : { tipo: "error", texto: resultado.mensaje }
     );
   };
@@ -128,15 +130,14 @@ export default function MercadoPublico() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Mercado</h2>
+        <h2 className="text-lg font-semibold">{t.mercado.titulo}</h2>
         <span className="text-sm text-neutral-500">
-          Saldo: {redondear2(saldoFuturo)} M · Plantilla: {squad.length}/{maxPlantilla}
+          {t.mercado.saldoYPlantilla(redondear2(saldoFuturo), squad.length, maxPlantilla)}
         </span>
       </div>
 
       <p className="text-xs text-neutral-500">
-        Liga pública: todos los jugadores están siempre disponibles y cualquiera puede tener al
-        mismo jugador. Comprar y vender es inmediato, al valor de mercado.
+        {t.mercado.explicacionPublica}
       </p>
 
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -158,7 +159,7 @@ export default function MercadoPublico() {
             type="text"
             value={busqueda}
             onChange={(e) => cambiarFiltro(() => setBusqueda(e.target.value))}
-            placeholder="Buscar jugador o club..."
+            placeholder={t.mercado.buscarJugadorClub}
             className="w-full rounded-lg border border-neutral-300 py-2 pl-9 pr-3 text-sm dark:border-neutral-700 dark:bg-neutral-900"
           />
         </div>
@@ -168,13 +169,13 @@ export default function MercadoPublico() {
           onChange={(e) => cambiarFiltro(() => setOrden(e.target.value as Orden))}
           className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
         >
-          <option value="valor-desc">Valor: de mayor a menor</option>
-          <option value="valor-asc">Valor: de menor a mayor</option>
-          <option value="elo-desc">Elo: de mayor a menor</option>
-          <option value="elo-asc">Elo: de menor a mayor</option>
-          <option value="puntos">Ordenar por puntos</option>
-          <option value="nombre">Ordenar por nombre</option>
-          <option value="categoria">Ordenar por categoría</option>
+          <option value="valor-desc">{t.mercado.valorDesc}</option>
+          <option value="valor-asc">{t.mercado.valorAsc}</option>
+          <option value="elo-desc">{t.mercado.eloDesc}</option>
+          <option value="elo-asc">{t.mercado.eloAsc}</option>
+          <option value="puntos">{t.mercado.ordenarPuntos}</option>
+          <option value="nombre">{t.mercado.ordenarNombre}</option>
+          <option value="categoria">{t.mercado.ordenarCategoria}</option>
         </select>
       </div>
 
@@ -186,10 +187,10 @@ export default function MercadoPublico() {
           }
           className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
         >
-          <option value="todas">Todas las categorías</option>
-          <option value="1">1ª categoría</option>
-          <option value="2">2ª categoría</option>
-          <option value="3">3ª categoría</option>
+          <option value="todas">{t.mercado.todasCategorias}</option>
+          <option value="1">{t.mercado.categoriaN(1)}</option>
+          <option value="2">{t.mercado.categoriaN(2)}</option>
+          <option value="3">{t.mercado.categoriaN(3)}</option>
         </select>
 
         <select
@@ -197,8 +198,8 @@ export default function MercadoPublico() {
           onChange={(e) => cambiarFiltro(() => setVista(e.target.value as Vista))}
           className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
         >
-          <option value="todos">Todos los jugadores</option>
-          <option value="mios">Solo mi plantilla</option>
+          <option value="todos">{t.mercado.todosJugadores}</option>
+          <option value="mios">{t.mercado.soloMiPlantilla}</option>
         </select>
 
         <label className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-400">
@@ -207,15 +208,15 @@ export default function MercadoPublico() {
             checked={soloAsequibles}
             onChange={(e) => cambiarFiltro(() => setSoloAsequibles(e.target.checked))}
           />
-          Solo los que puedo pagar
+          {t.mercado.soloAsequibles}
         </label>
       </div>
 
       {jugadoresFiltrados.length === 0 && (
         <p className="py-6 text-center text-sm text-neutral-500">
           {jugadoresLiga.length === 0
-            ? "Todavía no hay jugadores cargados en la liga."
-            : "No hay jugadores que coincidan con los filtros."}
+            ? t.mercado.sinJugadoresLiga
+            : t.mercado.sinCoincidenciasFiltros}
         </p>
       )}
 
@@ -228,9 +229,9 @@ export default function MercadoPublico() {
           const motivoBloqueo = enMiPlantilla
             ? null
             : plantillaCompleta
-              ? `Tu plantilla ya tiene los ${maxPlantilla} jugadores permitidos: vende a alguno primero.`
+              ? t.mercado.plantillaLlena(maxPlantilla)
               : sinSaldo
-                ? `Te faltan ${redondear2(jugador.valorMercado - saldoFuturo)} M para poder ficharlo.`
+                ? t.mercado.teFaltan(redondear2(jugador.valorMercado - saldoFuturo))
                 : null;
 
           return (
@@ -272,18 +273,18 @@ export default function MercadoPublico() {
                     </Link>
                   </p>
                   <p className="text-xs text-neutral-500">
-                    {jugador.club} · {jugador.categoria}ª cat. · Elo {jugador.elo}
+                    {jugador.club} · {t.ficha.categoria(jugador.categoria)} · Elo {jugador.elo}
                   </p>
                   <ProximoRivalLinea rivales={jugador.proximosRivales} className="mt-0.5" />
                   <p className="mt-0.5 text-xs text-neutral-500">
-                    {jugador.puntosTotales} pts esta temporada
+                    {t.mercado.ptsTemporada(jugador.puntosTotales)}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-semibold">{jugador.valorMercado} M</p>
                   {enMiPlantilla && (
                     <span className="mt-0.5 inline-block rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-800 dark:bg-green-900/40 dark:text-green-300">
-                      En tu plantilla
+                      {t.mercado.enTuPlantilla}
                     </span>
                   )}
                 </div>
@@ -299,14 +300,14 @@ export default function MercadoPublico() {
                           disabled={enviando}
                           className="flex-1 rounded-lg border border-neutral-300 py-2 text-sm font-medium disabled:opacity-40 dark:border-neutral-700"
                         >
-                          Cancelar
+                          {t.comun.cancelar}
                         </button>
                         <button
                           onClick={() => onVender(jugador.id, jugador.valorMercado)}
                           disabled={enviando}
                           className="flex-1 rounded-lg bg-neutral-900 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
                         >
-                          {enviando ? "Vendiendo…" : `Sí, vender por ${jugador.valorMercado} M`}
+                          {enviando ? t.mercado.vendiendo : t.mercado.siVenderPor(jugador.valorMercado)}
                         </button>
                       </div>
                     ) : (
@@ -315,7 +316,7 @@ export default function MercadoPublico() {
                         disabled={enviando}
                         className="rounded-lg border border-neutral-300 py-2 text-sm font-medium disabled:opacity-40 dark:border-neutral-700"
                       >
-                        Vender por {jugador.valorMercado} M
+                        {t.mercado.venderPor(jugador.valorMercado)}
                       </button>
                     )
                   ) : (
@@ -324,7 +325,7 @@ export default function MercadoPublico() {
                       disabled={enviando || motivoBloqueo !== null}
                       className="rounded-lg bg-neutral-900 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
                     >
-                      {enviando ? "Fichando…" : `Fichar por ${jugador.valorMercado} M`}
+                      {enviando ? t.mercado.fichando : t.mercado.ficharPor(jugador.valorMercado)}
                     </button>
                   )}
 
@@ -338,7 +339,7 @@ export default function MercadoPublico() {
                     }
                     className="rounded-lg border border-neutral-300 py-2 text-sm font-medium dark:border-neutral-700"
                   >
-                    {puntosAbiertoId === jugador.id ? "Ocultar puntos" : "Ver puntos"}
+                    {puntosAbiertoId === jugador.id ? t.mercado.ocultarPuntos : t.mercado.verPuntos}
                   </button>
 
                   {puntosAbiertoId === jugador.id && (
@@ -366,7 +367,7 @@ export default function MercadoPublico() {
           onClick={() => setVisibles((v) => v + POR_PAGINA)}
           className="rounded-lg border border-neutral-300 py-2.5 text-sm font-medium dark:border-neutral-700"
         >
-          Mostrar más ({jugadoresFiltrados.length - visibles} restantes)
+          {t.mercado.mostrarMas(jugadoresFiltrados.length - visibles)}
         </button>
       )}
     </div>

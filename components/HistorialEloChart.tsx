@@ -1,12 +1,15 @@
+"use client";
+
 import type { PuntoElo } from "@/lib/supabase/jugadoresQueries";
+import { useIdioma, useT } from "@/components/IdiomaProvider";
 
 const ANCHO = 600;
 const ALTO = 160;
 const MARGEN = { arriba: 12, derecha: 8, abajo: 20, izquierda: 8 };
 
-function etiquetaMes(periodo: string) {
+function etiquetaMes(periodo: string, locale: string) {
   // periodo = YYYY-MM-DD; se fuerza mediodía para evitar saltos por huso horario.
-  return new Date(`${periodo}T12:00:00`).toLocaleDateString("es-ES", {
+  return new Date(`${periodo}T12:00:00`).toLocaleDateString(locale, {
     month: "short",
     year: "2-digit",
   });
@@ -15,17 +18,21 @@ function etiquetaMes(periodo: string) {
 // Línea con el Elo mes a mes (un punto por lista FIDE).
 export default function HistorialEloChart({
   historial,
-  titulo = "Evolución del Elo",
+  titulo: tituloProp,
 }: {
   historial: PuntoElo[];
   titulo?: string;
 }) {
+  const tg = useT().graficas;
+  const { locale } = useIdioma();
+  const titulo = tituloProp ?? tg.evolucionElo;
+
   if (historial.length < 2) {
     return (
       <div>
         <p className="mb-2 text-xs font-medium text-neutral-500">{titulo}</p>
         <p className="text-xs text-neutral-500">
-          Todavía no hay cambios de Elo. Aparecerán con la próxima lista mensual de la FIDE.
+          {tg.eloVacio}
         </p>
       </div>
     );
@@ -56,8 +63,7 @@ export default function HistorialEloChart({
             total > 0 ? "text-accent" : total < 0 ? "text-red-500" : "text-neutral-500"
           }`}
         >
-          {total > 0 ? "+" : ""}
-          {total} desde {etiquetaMes(historial[0].periodo)}
+          {tg.eloDesde(`${total > 0 ? "+" : ""}${total}`, etiquetaMes(historial[0].periodo, locale))}
         </p>
       </div>
 
@@ -65,7 +71,7 @@ export default function HistorialEloChart({
         viewBox={`0 0 ${ANCHO} ${ALTO}`}
         className="w-full"
         role="img"
-        aria-label={`${titulo}: de ${primero} a ${ultimo}`}
+        aria-label={tg.ariaElo(titulo, primero, ultimo)}
       >
         <polyline
           points={linea}
@@ -81,12 +87,12 @@ export default function HistorialEloChart({
           const detalle = d === null || d === 0 ? "" : ` (${d > 0 ? "+" : ""}${d})`;
           return (
             <circle key={h.periodo} cx={x(i)} cy={y(h.elo)} r={3.5} className="fill-accent">
-              <title>{`${etiquetaMes(h.periodo)} · ${h.elo}${detalle}`}</title>
+              <title>{`${etiquetaMes(h.periodo, locale)} · ${h.elo}${detalle}`}</title>
             </circle>
           );
         })}
         <text x={MARGEN.izquierda} y={ALTO - 4} className="fill-neutral-400" fontSize={11}>
-          {etiquetaMes(historial[0].periodo)}
+          {etiquetaMes(historial[0].periodo, locale)}
         </text>
         <text
           x={ANCHO - MARGEN.derecha}
@@ -95,12 +101,12 @@ export default function HistorialEloChart({
           className="fill-neutral-400"
           fontSize={11}
         >
-          {etiquetaMes(historial[historial.length - 1].periodo)}
+          {etiquetaMes(historial[historial.length - 1].periodo, locale)}
         </text>
       </svg>
 
       <p className="mt-1 text-[11px] text-neutral-400">
-        Mín. {eMin} · Máx. {eMax}
+        {tg.minMaxElo(eMin, eMax)}
       </p>
     </div>
   );

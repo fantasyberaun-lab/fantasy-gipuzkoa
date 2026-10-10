@@ -1,4 +1,7 @@
+"use client";
+
 import type { PuntosJornada } from "@/lib/types";
+import { useT } from "@/components/IdiomaProvider";
 import { gameConfig } from "@/lib/gameConfig";
 
 interface Casilla {
@@ -42,6 +45,7 @@ export default function HistorialPuntosChart({
   historial: PuntosJornada[];
   rondas?: number;
 }) {
+  const tg = useT().graficas;
   const grupos = agruparPorTorneo(historial, rondas);
   const max = Math.max(...historial.map((h) => Math.abs(h.puntos)), 1);
   const hayDescansos = historial.some((h) => h.descanso);
@@ -49,7 +53,7 @@ export default function HistorialPuntosChart({
   return (
     <div>
       <p className="mb-2 text-xs font-medium text-neutral-500">
-        Puntos por jornada
+        {tg.puntosPorJornada}
       </p>
 
       <div className="flex flex-col gap-4">
@@ -57,7 +61,7 @@ export default function HistorialPuntosChart({
           <div key={torneo}>
             {grupos.length > 1 && (
               <p className="mb-1 truncate text-[11px] text-neutral-400">
-                {torneo || "Sin torneo"}
+                {torneo || tg.sinTorneo}
               </p>
             )}
             <div className="flex items-end gap-2" style={{ height: 140 }}>
@@ -75,10 +79,10 @@ export default function HistorialPuntosChart({
                       ? "bg-red-400 text-white"
                       : "bg-accent text-white";
                 const titulo = sinJugar
-                  ? `Jornada ${jornada}: sin jugar`
+                  ? tg.jornadaSinJugar(jornada)
                   : entrada.descanso
-                    ? `Jornada ${jornada}: sin emparejar, ${entrada.puntos} pt`
-                    : `Jornada ${jornada}: ${entrada.puntos} pts`;
+                    ? tg.jornadaSinEmparejar(jornada, entrada.puntos)
+                    : tg.jornadaPuntos(jornada, entrada.puntos);
 
                 return (
                   <div
@@ -95,7 +99,7 @@ export default function HistorialPuntosChart({
                       </span>
                     </div>
                     <span className="text-xs font-medium text-neutral-500">
-                      J{jornada}
+                      {tg.jornadaCorta(jornada)}
                     </span>
                   </div>
                 );
@@ -108,7 +112,7 @@ export default function HistorialPuntosChart({
       {hayDescansos && (
         <p className="mt-2 flex items-center gap-1.5 text-[11px] text-neutral-400">
           <span className="inline-block h-2 w-2 rounded-sm bg-amber-400" />
-          Sin emparejar: suma 1 punto
+          {tg.leyendaSinEmparejar}
         </p>
       )}
     </div>

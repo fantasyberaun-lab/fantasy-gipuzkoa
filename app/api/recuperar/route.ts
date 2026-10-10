@@ -9,6 +9,7 @@ import {
 } from "@/lib/recuperacion";
 import { construirCorreo, enviarCorreo } from "@/lib/emailRecuperacion";
 import { RESPONSABLE } from "@/lib/legal/config";
+import { getT } from "@/lib/i18n/server";
 
 export const runtime = "nodejs";
 
@@ -20,10 +21,6 @@ export const runtime = "nodejs";
 // La respuesta es la misma exista o no el email, y siempre tarda lo mismo como
 // mínimo, para que no se pueda averiguar qué emails están registrados.
 
-const MENSAJE_OK =
-  "Si ese email está registrado, te hemos enviado un correo con tu nombre de usuario y una contraseña temporal. Si no lo ves en unos minutos, mira en spam.";
-const MENSAJE_NO_DISPONIBLE =
-  "La recuperación de cuenta no está disponible ahora mismo. Inténtalo más tarde.";
 const EMAIL_VALIDO = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const RESPUESTA_MINIMA_MS = 1200;
 const HORA_MS = 60 * 60 * 1000;
@@ -37,17 +34,20 @@ async function responder(inicio: number, cuerpo: Record<string, unknown>, status
 
 export async function POST(request: Request) {
   const inicio = Date.now();
+  const t = getT();
+  const MENSAJE_OK = t.auth.recuperarOk;
+  const MENSAJE_NO_DISPONIBLE = t.auth.recuperarNoDisponible;
 
   let body: { email?: unknown };
   try {
     body = await request.json();
   } catch {
-    return responder(inicio, { ok: false, mensaje: "Petición no válida." }, 400);
+    return responder(inicio, { ok: false, mensaje: t.auth.peticionNoValida }, 400);
   }
 
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   if (!EMAIL_VALIDO.test(email) || email.length > 254) {
-    return responder(inicio, { ok: false, mensaje: "Escribe un email válido." }, 400);
+    return responder(inicio, { ok: false, mensaje: t.auth.emailInvalido }, 400);
   }
 
   const admin = adminClient();
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
         inicio,
         {
           ok: false,
-          mensaje: `Hay demasiadas solicitudes hoy. Inténtalo más tarde o escribe a ${RESPONSABLE.email}.`,
+          mensaje: t.auth.demasiadasSolicitudes(RESPONSABLE.email),
         },
         429
       );
@@ -126,7 +126,7 @@ export async function POST(request: Request) {
       await admin.from("recuperaciones_cuenta").delete().eq("id", fila.id);
       return responder(
         inicio,
-        { ok: false, mensaje: "No hemos podido enviar el correo. Inténtalo de nuevo en unos minutos." },
+        { ok: false, mensaje: t.auth.errorEnvioCorreo },
         502
       );
     }

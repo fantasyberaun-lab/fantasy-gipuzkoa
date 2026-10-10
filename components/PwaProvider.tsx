@@ -82,9 +82,19 @@ export default function PwaProvider({
     window.addEventListener("appinstalled", handleAppInstalled);
 
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {
-        // Silencioso: si falla el registro no debe romper la app.
-      });
+      if (process.env.NODE_ENV === "production") {
+        navigator.serviceWorker.register("/sw.js").catch(() => {
+          // Silencioso: si falla el registro no debe romper la app.
+        });
+      } else {
+        // En desarrollo (npm run dev) nada de service worker: cachea
+        // /_next/static y sirve chunks viejos ("originalFactory is undefined").
+        // Si quedó uno registrado de antes, se quita.
+        navigator.serviceWorker
+          .getRegistrations()
+          .then((registros) => registros.forEach((r) => r.unregister()))
+          .catch(() => {});
+      }
     }
 
     return () => {

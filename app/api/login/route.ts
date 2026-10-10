@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient as createServerSupabase } from "@/lib/supabase/server";
 import { canjearClaveTemporal } from "@/lib/recuperacion";
+import { getT } from "@/lib/i18n/server";
 
 // Inicio de sesión con email O nombre de usuario en el mismo campo.
 //
@@ -10,8 +11,6 @@ import { canjearClaveTemporal } from "@/lib/recuperacion";
 // accesible con la service role key) y se inicia sesión con él. Todo ocurre
 // aquí, en el servidor: el email nunca llega al navegador, y el mensaje de
 // error es el mismo si falla el usuario o si falla la contraseña.
-
-const ERROR_CREDENCIALES = "Usuario/email o contraseña incorrectos.";
 
 // Email que no existe, para que "usuario inexistente" tarde lo mismo que
 // "contraseña incorrecta" y no se pueda averiguar qué usuarios existen.
@@ -22,11 +21,12 @@ function respuestaError(mensaje: string, status: number) {
 }
 
 export async function POST(request: Request) {
+  const t = getT();
   let body: { identificador?: unknown; password?: unknown };
   try {
     body = await request.json();
   } catch {
-    return respuestaError("Petición no válida.", 400);
+    return respuestaError(t.auth.peticionNoValida, 400);
   }
 
   const identificador =
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
   const password = typeof body.password === "string" ? body.password : "";
 
   if (!identificador || !password) {
-    return respuestaError("Rellena todos los campos.", 400);
+    return respuestaError(t.auth.rellenaCampos, 400);
   }
 
   let email = identificador;
@@ -47,10 +47,7 @@ export async function POST(request: Request) {
       console.error(
         "Falta SUPABASE_SERVICE_ROLE_KEY: no se puede iniciar sesión con nombre de usuario."
       );
-      return respuestaError(
-        "Ahora mismo solo se puede iniciar sesión con el email.",
-        500
-      );
+      return respuestaError(t.auth.soloEmail, 500);
     }
 
     const admin = createAdminClient(url, serviceKey, {
@@ -63,7 +60,7 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error("Error buscando el email del usuario:", error.message);
-      return respuestaError("No se ha podido iniciar sesión. Inténtalo de nuevo.", 500);
+      return respuestaError(t.auth.errorLoginReintentar, 500);
     }
 
     email = typeof data === "string" && data ? data : EMAIL_FICTICIO;
@@ -74,13 +71,10 @@ export async function POST(request: Request) {
 
   if (error) {
     if (error.code === "email_not_confirmed") {
-      return respuestaError(
-        "Tienes que confirmar tu email antes de iniciar sesión.",
-        401
-      );
+      return respuestaError(t.auth.confirmaEmail, 401);
     }
     if (error.status === 429) {
-      return respuestaError("Demasiados intentos. Espera un momento.", 429);
+      return respuestaError(t.auth.demasiadosIntentos, 429);
     }
 
     // ¿Es la contraseña temporal de "He olvidado la contraseña"? Si lo es, se
@@ -94,7 +88,7 @@ export async function POST(request: Request) {
       if (!errorTemporal) return NextResponse.json({ ok: true });
     }
 
-    return respuestaError(ERROR_CREDENCIALES, 401);
+    return respuestaError(t.auth.errorCredenciales, 401);
   }
 
   return NextResponse.json({ ok: true });

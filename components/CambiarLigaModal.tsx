@@ -6,8 +6,10 @@ import { useGameState } from "@/components/GameStateProvider";
 import LigaForm from "@/components/LigaForm";
 import type { LigaResumen } from "@/lib/types";
 import CopiarCodigoButton from "@/components/CopiarCodigoButton";
+import { useT } from "@/components/IdiomaProvider";
 
 export default function CambiarLigaModal({ onCerrar }: { onCerrar: () => void }) {
+  const t = useT();
   const { misLigas, equipo, cambiarLigaActiva, salirLiga } = useGameState();
   const [mostrarForm, setMostrarForm] = useState(false);
   const [ligaASalir, setLigaASalir] = useState<LigaResumen | null>(null);
@@ -50,21 +52,21 @@ export default function CambiarLigaModal({ onCerrar }: { onCerrar: () => void })
 
         {ligaASalir ? (
           <>
-            <p className="text-base font-semibold">Salir de {ligaASalir.nombre}</p>
+            <p className="text-base font-semibold">{t.liga.salirDe(ligaASalir.nombre)}</p>
             <p className="mt-1 text-sm text-neutral-500">
-              Se borrarán tu equipo <span className="font-medium">{ligaASalir.nombreEquipo}</span>,
-              su saldo, su plantilla y sus puntos en esta liga. Tus jugadores
-              volverán al mercado. No se puede deshacer.
+              {t.liga.salirAvisoAntes}
+              <span className="font-medium">{ligaASalir.nombreEquipo}</span>
+              {t.liga.salirAvisoDespues}
             </p>
             {ligaASalir.tipo === "publica" ? (
               <p className="mt-2 text-xs text-neutral-500">
-                Podrás volver a entrar a la liga pública, pero empezarás de cero.
+                {t.liga.publicaVolver}
               </p>
             ) : (
               <p className="mt-2 text-xs text-neutral-500">
                 {ligaASalir.miembros <= 1
-                  ? "Eres el único miembro: la liga se eliminará también."
-                  : "Para volver a entrar necesitarás el código de la liga y que haya hueco."}
+                  ? t.liga.unicoMiembro
+                  : t.liga.necesitarasCodigo}
               </p>
             )}
 
@@ -76,25 +78,25 @@ export default function CambiarLigaModal({ onCerrar }: { onCerrar: () => void })
                 disabled={saliendo}
                 className="flex-1 rounded-lg border border-neutral-300 py-2.5 text-sm font-medium disabled:opacity-40 dark:border-neutral-700"
               >
-                Cancelar
+                {t.comun.cancelar}
               </button>
               <button
                 onClick={confirmarSalir}
                 disabled={saliendo}
                 className="flex-1 rounded-lg bg-negative py-2.5 text-sm font-medium text-white disabled:opacity-40"
               >
-                {saliendo ? "Saliendo…" : "Salir de la liga"}
+                {saliendo ? t.liga.saliendo : t.liga.salirLiga}
               </button>
             </div>
           </>
         ) : mostrarForm ? (
           <>
-            <p className="mb-3 text-base font-semibold">Unirme a otra liga</p>
+            <p className="mb-3 text-base font-semibold">{t.liga.unirmeOtra}</p>
             <LigaForm onExito={onCerrar} onCancelar={() => setMostrarForm(false)} />
           </>
         ) : (
           <>
-            <p className="mb-3 text-base font-semibold">Tus ligas</p>
+            <p className="mb-3 text-base font-semibold">{t.liga.tusLigas}</p>
             <div className="flex flex-col gap-2">
               {misLigas.map((liga) => (
                 <div
@@ -113,13 +115,19 @@ export default function CambiarLigaModal({ onCerrar }: { onCerrar: () => void })
                     <p className="font-medium">
                       {liga.nombre}
                       {liga.ligaId === equipo.leagueId && (
-                        <span className="ml-2 text-xs font-medium text-accent">Activa</span>
+                        <span className="ml-2 text-xs font-medium text-accent">{t.liga.activa}</span>
                       )}
                     </p>
                     <p className="text-xs text-neutral-500">
                       {liga.tipo === "publica"
-                        ? `${liga.nombreEquipo} · Todos contra todos · ${liga.miembros} managers · ${redondear2(liga.saldo)} M`
-                        : `${liga.nombreEquipo} · ${liga.miembros}/${liga.maxMiembros} · código ${liga.codigo} · ${redondear2(liga.saldo)} M`}
+                        ? t.liga.resumenPublica(liga.nombreEquipo, liga.miembros, redondear2(liga.saldo))
+                        : t.liga.resumenPrivada(
+                            liga.nombreEquipo,
+                            liga.miembros,
+                            liga.maxMiembros,
+                            liga.codigo,
+                            redondear2(liga.saldo)
+                          )}
                     </p>
                   </button>
                   {liga.tipo !== "publica" && <CopiarCodigoButton codigo={liga.codigo} />}
@@ -141,7 +149,7 @@ export default function CambiarLigaModal({ onCerrar }: { onCerrar: () => void })
                         d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75"
                       />
                     </svg>
-                    Salir de la liga
+                    {t.liga.salirLiga}
                   </button>
                 </div>
               ))}
@@ -151,13 +159,13 @@ export default function CambiarLigaModal({ onCerrar }: { onCerrar: () => void })
               onClick={() => setMostrarForm(true)}
               className="mt-4 w-full rounded-lg border border-neutral-300 py-2.5 text-sm font-medium dark:border-neutral-700"
             >
-              Crear o unirme a otra liga
+              {t.liga.crearOUnirme}
             </button>
             <button
               onClick={onCerrar}
               className="mt-2 w-full text-center text-xs text-neutral-500 underline underline-offset-2"
             >
-              Cerrar
+              {t.comun.cerrar}
             </button>
           </>
         )}

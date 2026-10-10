@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
 import CopiarCodigoButton from "@/components/CopiarCodigoButton";
+import { useT } from "@/components/IdiomaProvider";
 
 type Modo = "elegir" | "crear" | "unirse" | "publica";
 
@@ -13,6 +14,7 @@ export default function LigaForm({
   onExito?: () => void;
   onCancelar?: () => void;
 }) {
+  const t = useT();
   const { crearLiga, unirseLiga, unirseLigaPublica, misLigas } = useGameState();
   const yaEnLigaPublica = misLigas.some((l) => l.tipo === "publica");
 
@@ -66,9 +68,9 @@ export default function LigaForm({
   if (codigoCreado) {
     return (
       <div className="text-center">
-        <p className="text-lg font-semibold">¡Liga creada!</p>
+        <p className="text-lg font-semibold">{t.liga.ligaCreada}</p>
         <p className="mt-2 text-sm text-neutral-500">
-          Comparte este código con tus amigos para que se unan (máximo 9 por liga):
+          {t.liga.compartirCodigo}
         </p>
         <p className="mt-4 rounded-xl border border-neutral-200 py-4 text-3xl font-bold tracking-widest dark:border-neutral-800">
           {codigoCreado}
@@ -78,7 +80,7 @@ export default function LigaForm({
           onClick={() => onExito?.()}
           className="mt-6 w-full rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white dark:bg-white dark:text-neutral-900"
         >
-          Entrar a mi liga
+          {t.liga.entrarMiLiga}
         </button>
       </div>
     );
@@ -92,20 +94,20 @@ export default function LigaForm({
             onClick={() => setModo("crear")}
             className="rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white dark:bg-white dark:text-neutral-900"
           >
-            Crear una liga nueva
+            {t.liga.crearNueva}
           </button>
           <button
             onClick={() => setModo("unirse")}
             className="rounded-lg border border-neutral-300 py-2.5 text-sm font-medium dark:border-neutral-700"
           >
-            Unirme a una liga con un código
+            {t.liga.unirmeCodigo}
           </button>
           {!yaEnLigaPublica && (
             <button
               onClick={() => setModo("publica")}
               className="rounded-lg border border-accent py-2.5 text-sm font-medium text-accent"
             >
-              Unirme a la liga pública (todos contra todos)
+              {t.liga.unirmePublica}
             </button>
           )}
           {onCancelar && (
@@ -113,7 +115,7 @@ export default function LigaForm({
               onClick={onCancelar}
               className="text-xs text-neutral-500 underline underline-offset-2"
             >
-              Cancelar
+              {t.comun.cancelar}
             </button>
           )}
         </div>
@@ -122,17 +124,17 @@ export default function LigaForm({
       {modo === "crear" && (
         <div className="flex flex-col gap-3">
           <div>
-            <label className="text-xs font-medium text-neutral-500">Nombre de la liga</label>
+            <label className="text-xs font-medium text-neutral-500">{t.liga.nombreLiga}</label>
             <input
               type="text"
               value={nombreLiga}
               onChange={(e) => setNombreLiga(e.target.value)}
-              placeholder="Fantasy con los amigos"
+              placeholder={t.liga.placeholderLiga}
               className="mt-1 w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-neutral-500">Nombre de tu equipo</label>
+            <label className="text-xs font-medium text-neutral-500">{t.liga.nombreEquipo}</label>
             <input
               type="text"
               value={nombreEquipo}
@@ -149,7 +151,7 @@ export default function LigaForm({
             disabled={!nombreLiga || !nombreEquipo || enviando}
             className="rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
           >
-            Crear liga
+            {t.liga.crearLiga}
           </button>
           <button
             onClick={() => {
@@ -158,7 +160,7 @@ export default function LigaForm({
             }}
             className="text-xs text-neutral-500 underline underline-offset-2"
           >
-            Volver
+            {t.comun.volver}
           </button>
         </div>
       )}
@@ -166,13 +168,10 @@ export default function LigaForm({
       {modo === "publica" && (
         <div className="flex flex-col gap-3">
           <p className="text-sm text-neutral-500">
-            Liga abierta en la que compiten todos los managers. Todos empiezan con el mismo
-            presupuesto y sin plantilla: construye el mejor equipo posible fichando en el
-            Mercado, donde todos los jugadores están siempre disponibles y comprar y vender
-            es inmediato.
+            {t.liga.publicaDescripcion}
           </p>
           <div>
-            <label className="text-xs font-medium text-neutral-500">Nombre de tu equipo</label>
+            <label className="text-xs font-medium text-neutral-500">{t.liga.nombreEquipo}</label>
             <input
               type="text"
               value={nombreEquipo}
@@ -189,7 +188,7 @@ export default function LigaForm({
             disabled={!nombreEquipo || enviando}
             className="rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
           >
-            {enviando ? "Entrando…" : "Entrar en la liga pública"}
+            {enviando ? t.liga.entrando : t.liga.entrarPublica}
           </button>
           <button
             onClick={() => {
@@ -198,7 +197,7 @@ export default function LigaForm({
             }}
             className="text-xs text-neutral-500 underline underline-offset-2"
           >
-            Volver
+            {t.comun.volver}
           </button>
         </div>
       )}
@@ -206,7 +205,7 @@ export default function LigaForm({
       {modo === "unirse" && (
         <div className="flex flex-col gap-3">
           <div>
-            <label className="text-xs font-medium text-neutral-500">Código de la liga</label>
+            <label className="text-xs font-medium text-neutral-500">{t.liga.codigoLiga}</label>
             <input
               type="text"
               value={codigo}
@@ -217,7 +216,7 @@ export default function LigaForm({
             />
           </div>
           <div>
-            <label className="text-xs font-medium text-neutral-500">Nombre de tu equipo</label>
+            <label className="text-xs font-medium text-neutral-500">{t.liga.nombreEquipo}</label>
             <input
               type="text"
               value={nombreEquipo}
@@ -234,7 +233,7 @@ export default function LigaForm({
             disabled={!codigo || !nombreEquipo || enviando}
             className="rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
           >
-            Unirme
+            {t.liga.unirme}
           </button>
           <button
             onClick={() => {
@@ -243,7 +242,7 @@ export default function LigaForm({
             }}
             className="text-xs text-neutral-500 underline underline-offset-2"
           >
-            Volver
+            {t.comun.volver}
           </button>
         </div>
       )}

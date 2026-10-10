@@ -1,10 +1,14 @@
+"use client";
+
 import { redondear2 } from "@/lib/saldo";
+import { useT } from "@/components/IdiomaProvider";
 
 export default function SaldoCard({ saldo }: { saldo: number }) {
+  const t = useT();
   return (
     <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
       <p className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
-        Saldo
+        {t.saldo.titulo}
       </p>
       <p className="mt-1 text-2xl font-semibold text-neutral-900 dark:text-neutral-100">
         {redondear2(saldo)} M

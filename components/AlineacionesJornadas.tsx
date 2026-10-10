@@ -3,35 +3,35 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useIdioma, useT } from "@/components/IdiomaProvider";
+import type { Textos } from "@/lib/i18n/textos";
 import {
   fetchAlineacionesSemanas,
   type AlineacionSemana,
   type JugadorSemana,
 } from "@/lib/supabase/alineacionesQueries";
 
-function fechaCorta(fecha: string) {
-  return new Date(`${fecha}T12:00:00`).toLocaleDateString("es-ES", {
+function fechaCorta(fecha: string, locale: string) {
+  return new Date(`${fecha}T12:00:00`).toLocaleDateString(locale, {
     day: "numeric",
     month: "long",
   });
 }
 
-function etiquetaSemana(a: AlineacionSemana): string {
-  return `Fin de semana del ${fechaCorta(a.fecha)}`;
-}
-
-function textoResultado(j: JugadorSemana): string {
-  if (j.descanso) return "Descansó";
-  if (j.resultado === "victoria") return "Victoria";
-  if (j.resultado === "tablas") return "Tablas";
-  if (j.resultado === "derrota") return "Derrota";
-  return "Sin resultado";
+function textoResultado(j: JugadorSemana, tm: Textos["managers"]): string {
+  if (j.descanso) return tm.descanso;
+  if (j.resultado === "victoria") return tm.victoria;
+  if (j.resultado === "tablas") return tm.tablas;
+  if (j.resultado === "derrota") return tm.derrota;
+  return tm.sinResultado;
 }
 
 // Pestaña "Jornadas" del perfil de un manager: qué titulares puso cada fin de
 // semana (la foto que se toma el sábado a las 16:00) y los puntos que hizo
 // cada uno en la ronda que jugó, con todos los torneos del fin de semana juntos.
 export default function AlineacionesJornadas({ equipoId }: { equipoId: string }) {
+  const tm = useT().managers;
+  const { locale } = useIdioma();
   const [semanas, setSemanas] = useState<AlineacionSemana[]>([]);
   const [cargando, setCargando] = useState(true);
   const [seleccion, setSeleccion] = useState<number | null>(null);
@@ -48,14 +48,13 @@ export default function AlineacionesJornadas({ equipoId }: { equipoId: string })
   }, [equipoId]);
 
   if (cargando) {
-    return <p className="text-sm text-neutral-500">Cargando jornadas…</p>;
+    return <p className="text-sm text-neutral-500">{tm.cargandoJornadas}</p>;
   }
 
   if (semanas.length === 0) {
     return (
       <p className="text-sm text-neutral-500">
-        Todavía no hay ninguna plantilla registrada. Las plantillas se guardan
-        automáticamente los sábados a las 16:00.
+        {tm.sinJornadas}
       </p>
     );
   }
@@ -75,7 +74,7 @@ export default function AlineacionesJornadas({ equipoId }: { equipoId: string })
                 : "border-neutral-300 dark:border-neutral-700"
             }`}
           >
-            {fechaCorta(a.fecha)}
+            {fechaCorta(a.fecha, locale)}
           </button>
         ))}
       </div>
@@ -84,15 +83,15 @@ export default function AlineacionesJornadas({ equipoId }: { equipoId: string })
         <div className="rounded-xl border border-neutral-200 dark:border-neutral-800">
           <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3 dark:border-neutral-800">
             <div>
-              <p className="text-sm font-semibold">{etiquetaSemana(actual)}</p>
+              <p className="text-sm font-semibold">{tm.finDeSemana(fechaCorta(actual.fecha, locale))}</p>
               <p className="text-xs text-neutral-500">
                 {actual.pendiente
-                  ? "Plantilla del sábado a las 16:00 · todavía sin resultados"
-                  : "Plantilla del sábado a las 16:00 · todos los torneos juntos"}
+                  ? tm.pendiente
+                  : tm.cerrada}
               </p>
             </div>
             {!actual.pendiente && (
-              <p className="text-lg font-semibold">{actual.puntos} pts</p>
+              <p className="text-lg font-semibold">{tm.pts(actual.puntos)}</p>
             )}
           </div>
 
@@ -106,24 +105,24 @@ export default function AlineacionesJornadas({ equipoId }: { equipoId: string })
                     </Link>
                     {j.capitan && (
                       <span className="ml-2 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                        C
+                        {tm.capitanCorto}
                       </span>
                     )}
                   </p>
                   <p className="text-xs text-neutral-500">
-                    {j.categoria}ª cat.
-                    {!actual.pendiente && ` · ${textoResultado(j)}`}
+                    {tm.categoriaCorta(j.categoria)}
+                    {!actual.pendiente && ` · ${textoResultado(j, tm)}`}
                   </p>
                   {!actual.pendiente && j.torneo && (
                     <p className="text-[11px] text-neutral-400">
                       {j.torneo}
-                      {j.jornada !== null && ` · ronda ${j.jornada}`}
+                      {j.jornada !== null && tm.ronda(j.jornada)}
                     </p>
                   )}
                 </div>
                 {!actual.pendiente && (
                   <div className="text-right">
-                    <p className="text-sm font-semibold">{j.puntos} pts</p>
+                    <p className="text-sm font-semibold">{tm.pts(j.puntos)}</p>
                     {j.capitan && j.torneo && (
                       <p className="text-[11px] text-neutral-400">{j.base} × 2</p>
                     )}
