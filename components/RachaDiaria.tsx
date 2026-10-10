@@ -93,10 +93,9 @@ export default function RachaDiaria() {
   const [cobro, setCobro] = useState<Cobro | null>(null);
   const [mostrarCofre, setMostrarCofre] = useState(false);
   const botonRef = useRef<HTMLButtonElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
   // Posición del desplegable. Va en un portal (fuera de la cabecera, que tiene
-  // overflow: hidden) y se coloca a mano bajo el chip.
-  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
+  // overflow: hidden) y se coloca a mano bajo el chip, sin salirse de la pantalla.
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
   async function cargar() {
     setEstado(await fetchEstadoRacha(supabase));
@@ -119,27 +118,30 @@ export default function RachaDiaria() {
       return;
     }
     const r = botonRef.current?.getBoundingClientRect();
-    if (r) setPos({ top: r.bottom + 8, right: Math.max(window.innerWidth - r.right, 8) });
+    if (r) {
+      const MARGEN = 12;
+      // clientWidth es el ancho visible (sin barra de scroll); innerWidth puede ser
+      // mayor en el móvil y dejaba el desplegable cortado por la derecha.
+      const ancho = document.documentElement.clientWidth;
+      const width = Math.min(256, ancho - MARGEN * 2);
+      const left = Math.min(Math.max(r.right - width, MARGEN), ancho - width - MARGEN);
+      setPos({ top: r.bottom + 8, left, width });
+    }
     setAbierto(true);
   }
 
-  // Cierra el desplegable al tocar fuera, pulsar Escape, hacer scroll o girar la pantalla.
+  // Cierra el desplegable al pulsar Escape, hacer scroll o girar la pantalla.
+  // (Tocar fuera lo cierra la capa transparente que hay detrás del desplegable.)
   useEffect(() => {
     if (!abierto) return;
     const cerrar = () => setAbierto(false);
-    const fuera = (e: PointerEvent) => {
-      const t = e.target as Node;
-      if (!panelRef.current?.contains(t) && !botonRef.current?.contains(t)) cerrar();
-    };
     const escape = (e: KeyboardEvent) => {
       if (e.key === "Escape") cerrar();
     };
-    document.addEventListener("pointerdown", fuera);
     document.addEventListener("keydown", escape);
     window.addEventListener("scroll", cerrar, { passive: true });
     window.addEventListener("resize", cerrar);
     return () => {
-      document.removeEventListener("pointerdown", fuera);
       document.removeEventListener("keydown", escape);
       window.removeEventListener("scroll", cerrar);
       window.removeEventListener("resize", cerrar);
@@ -187,10 +189,13 @@ export default function RachaDiaria() {
       </button>
 
       {abierto && pos && createPortal(
+        <>
+        {/* Capa transparente a pantalla completa: tocar en cualquier sitio fuera cierra. */}
+        <div className="fixed inset-0 z-40" aria-hidden="true" onClick={() => setAbierto(false)} />
         <div
-          ref={panelRef}
-          style={{ top: pos.top, right: pos.right }}
-          className="fixed z-40 w-64 rounded-xl bg-white p-4 text-neutral-900 shadow-xl ring-1 ring-black/5 dark:bg-neutral-900 dark:text-neutral-100 dark:ring-white/10">
+          role="dialog"
+          style={{ top: pos.top, left: pos.left, width: pos.width }}
+          className="fixed z-50 rounded-xl bg-white p-4 text-neutral-900 shadow-xl ring-1 ring-black/5 dark:bg-neutral-900 dark:text-neutral-100 dark:ring-white/10">
           <p className="text-sm font-semibold">
             🔥{" "}
             {estado.racha === 0 ? t.racha.empiezaRacha : t.racha.diasDeRacha(estado.racha)}
@@ -233,7 +238,8 @@ export default function RachaDiaria() {
           )}
 
           {error && <p className="mt-2 text-xs text-negative dark:text-red-400">{error}</p>}
-        </div>,
+        </div>
+        </>,
         document.body
       )}
 
