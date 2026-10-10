@@ -20,6 +20,8 @@ export default definirTextos(
     reclamada: "Reclamada",
     reclamar: (importe: number) => `Reclamar ${importe} M`,
     ingresadoEquipos: (equipos: number) => `Ingresado en tus ${equipos} equipos.`,
+    chipAria: (n: number, pendiente: boolean) =>
+      `Racha de ${n} día${n === 1 ? "" : "s"}${pendiente ? ". Hoy falta reclamar" : ""}`,
   },
   {
     eu: {
@@ -40,6 +42,8 @@ export default definirTextos(
       reclamada: "Jasota",
       reclamar: (importe: number) => `Jaso ${importe} M`,
       ingresadoEquipos: (equipos: number) => `Zure ${equipos} taldeetan sartu da.`,
+      chipAria: (n: number, pendiente: boolean) =>
+        `${n} eguneko bolada${pendiente ? ". Gaurkoa jasotzeke" : ""}`,
     },
     en: {
       cofreAria: "Streak chest",
@@ -59,6 +63,8 @@ export default definirTextos(
       reclamada: "Claimed",
       reclamar: (importe: number) => `Claim ${importe} M`,
       ingresadoEquipos: (equipos: number) => `Paid into your ${equipos} teams.`,
+      chipAria: (n: number, pendiente: boolean) =>
+        `${n}-day streak${pendiente ? ". Today's reward is unclaimed" : ""}`,
     },
   }
 );

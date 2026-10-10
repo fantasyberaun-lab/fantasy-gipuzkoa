@@ -4,7 +4,6 @@ import EquipoHeader, { EquipoAcciones } from "@/components/EquipoHeader";
 import LigaGate from "@/components/LigaGate";
 import LegalGate from "@/components/legal/LegalGate";
 import ActividadTracker from "@/components/ActividadTracker";
-import RachaDiaria from "@/components/RachaDiaria";
 import EnlacesLegales from "@/components/legal/EnlacesLegales";
 
 export default function DashboardLayout({
@@ -25,8 +24,6 @@ export default function DashboardLayout({
 
         <div className="mx-auto max-w-5xl px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pt-4 sm:pb-16">
           <EquipoAcciones />
-
-          <RachaDiaria />
 
           <TabNav />
 

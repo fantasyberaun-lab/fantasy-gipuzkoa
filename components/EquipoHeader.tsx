@@ -10,6 +10,7 @@ import MenuAjustes from "@/components/MenuAjustes";
 import InstallPwaButton from "@/components/InstallPwaButton";
 import InfoReglasButton from "@/components/InfoReglasButton";
 import AvatarPerfil from "@/components/AvatarPerfil";
+import RachaDiaria from "@/components/RachaDiaria";
 import { useT } from "@/components/IdiomaProvider";
 
 // Contenido de la cabecera morada: escudo, nombre del equipo, liga y saldo.
@@ -67,32 +68,35 @@ export default function EquipoHeader() {
           </div>
         </div>
 
-        <div className="shrink-0 rounded-xl bg-white/10 px-4 py-2 ring-1 ring-white/15">
-          <p className="text-xs font-medium text-white/70">{t.ajustes.saldo}</p>
-          <p className="font-display text-2xl font-semibold leading-tight text-gold [&_span]:text-red-300">
-            {cargando ? (
-              "…"
-            ) : (
-              <SaldoConPujas saldo={equipo.saldo} comprometido={comprometidoEnPujas} />
-            )}
-          </p>
-          {!cargando && equipo.saldo < 0 && (
-            <p
-              role="status"
-              title={t.ajustes.saldoNegativoTitle}
-              className="mt-1 flex max-w-[11.5rem] items-start gap-1 text-[10.5px] leading-snug text-red-200/90"
-            >
-              <svg
-                className="mt-[1px] h-3 w-3 shrink-0"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path d="M10 2 1 18h18L10 2Zm-1 6h2v5H9V8Zm0 6h2v2H9v-2Z" />
-              </svg>
-              <span>{t.ajustes.saldoNegativo}</span>
+        <div className="flex shrink-0 items-center gap-2">
+          <RachaDiaria />
+          <div className="shrink-0 rounded-xl bg-white/10 px-4 py-2 ring-1 ring-white/15">
+            <p className="text-xs font-medium text-white/70">{t.ajustes.saldo}</p>
+            <p className="font-display text-2xl font-semibold leading-tight text-gold [&_span]:text-red-300">
+              {cargando ? (
+                "…"
+              ) : (
+                <SaldoConPujas saldo={equipo.saldo} comprometido={comprometidoEnPujas} />
+              )}
             </p>
-          )}
+            {!cargando && equipo.saldo < 0 && (
+              <p
+                role="status"
+                title={t.ajustes.saldoNegativoTitle}
+                className="mt-1 flex max-w-[11.5rem] items-start gap-1 text-[10.5px] leading-snug text-red-200/90"
+              >
+                <svg
+                  className="mt-[1px] h-3 w-3 shrink-0"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path d="M10 2 1 18h18L10 2Zm-1 6h2v5H9V8Zm0 6h2v2H9v-2Z" />
+                </svg>
+                <span>{t.ajustes.saldoNegativo}</span>
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>

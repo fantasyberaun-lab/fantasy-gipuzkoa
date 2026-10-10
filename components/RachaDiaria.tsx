@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import { useGameState } from "@/components/GameStateProvider";
 import { useT } from "@/components/IdiomaProvider";
@@ -21,7 +22,7 @@ function PuntosCiclo({ hechos, total }: { hechos: number; total: number }) {
       {Array.from({ length: total }).map((_, i) => (
         <div
           key={i}
-          className={`h-2 flex-1 rounded-full ${
+          className={`h-1.5 flex-1 rounded-full ${
             i < hechos ? "bg-gold" : "bg-neutral-200 dark:bg-neutral-800"
           } ${i === total - 1 ? "ring-1 ring-gold-dark/60" : ""}`}
         />
@@ -41,7 +42,7 @@ function ModalCofre({ cobro, onCerrar }: { cobro: Cobro; onCerrar: () => void })
       aria-label={t.racha.cofreAria}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
     >
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl dark:bg-neutral-900">
+      <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center text-neutral-900 shadow-xl dark:bg-neutral-900 dark:text-neutral-100">
         <p className="text-sm font-medium text-neutral-500">{t.racha.diasDeRachaExclamacion(cobro.racha)}</p>
         <button
           onClick={() => setAbierto(true)}
@@ -78,16 +79,24 @@ function ModalCofre({ cobro, onCerrar }: { cobro: Cobro; onCerrar: () => void })
   );
 }
 
-// Tarjeta de la racha diaria (encima de las pestañas). Ver 0075_racha_diaria.sql.
+// Racha diaria: un chip "🔥 N" en la cabecera, junto al saldo. El punto amarillo
+// avisa de que hoy falta reclamar; al tocarlo se abre la racha con el botón.
+// Ver 0075_racha_diaria.sql.
 export default function RachaDiaria() {
   const supabase = createClient();
   const t = useT();
   const { recargar, cargando } = useGameState();
   const [estado, setEstado] = useState<EstadoRacha | null>(null);
+  const [abierto, setAbierto] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cobro, setCobro] = useState<Cobro | null>(null);
   const [mostrarCofre, setMostrarCofre] = useState(false);
+  const botonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  // Posición del desplegable. Va en un portal (fuera de la cabecera, que tiene
+  // overflow: hidden) y se coloca a mano bajo el chip.
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
 
   async function cargar() {
     setEstado(await fetchEstadoRacha(supabase));
@@ -104,13 +113,49 @@ export default function RachaDiaria() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function alternar() {
+    if (abierto) {
+      setAbierto(false);
+      return;
+    }
+    const r = botonRef.current?.getBoundingClientRect();
+    if (r) setPos({ top: r.bottom + 8, right: Math.max(window.innerWidth - r.right, 8) });
+    setAbierto(true);
+  }
+
+  // Cierra el desplegable al tocar fuera, pulsar Escape, hacer scroll o girar la pantalla.
+  useEffect(() => {
+    if (!abierto) return;
+    const cerrar = () => setAbierto(false);
+    const fuera = (e: PointerEvent) => {
+      const t = e.target as Node;
+      if (!panelRef.current?.contains(t) && !botonRef.current?.contains(t)) cerrar();
+    };
+    const escape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") cerrar();
+    };
+    document.addEventListener("pointerdown", fuera);
+    document.addEventListener("keydown", escape);
+    window.addEventListener("scroll", cerrar, { passive: true });
+    window.addEventListener("resize", cerrar);
+    return () => {
+      document.removeEventListener("pointerdown", fuera);
+      document.removeEventListener("keydown", escape);
+      window.removeEventListener("scroll", cerrar);
+      window.removeEventListener("resize", cerrar);
+    };
+  }, [abierto]);
+
   async function reclamar() {
     setEnviando(true);
     setError(null);
     const r = await reclamarRecompensaDB(supabase);
     if (r.ok) {
       setCobro(r);
-      if (r.importeCofre > 0) setMostrarCofre(true);
+      if (r.importeCofre > 0) {
+        setAbierto(false);
+        setMostrarCofre(true);
+      }
       await Promise.all([cargar(), recargar()]);
     } else {
       setError(r.mensaje);
@@ -121,20 +166,45 @@ export default function RachaDiaria() {
 
   if (cargando || !estado) return null;
 
+  const pendiente = !estado.reclamadaHoy;
   const hechosCiclo = estado.racha === 0 ? 0 : estado.diasCofre - estado.diasParaCofre;
-  // Si hoy toca cofre (y aún no se ha reclamado), el ciclo se ve lleno al cobrar.
-  const tocaCofreHoy = !estado.reclamadaHoy && estado.diasParaCofre === 1;
+  const tocaCofreHoy = pendiente && estado.diasParaCofre === 1;
 
   return (
-    <section className="mb-5 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="flex items-center gap-1.5 text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-            <span aria-hidden="true">🔥</span>
+    <>
+      <button
+        ref={botonRef}
+        onClick={alternar}
+        aria-expanded={abierto}
+        aria-label={t.racha.chipAria(estado.racha, pendiente)}
+        className="relative flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-sm font-semibold text-white ring-1 ring-white/15 transition-colors hover:bg-white/20"
+      >
+        <span aria-hidden="true">🔥</span>
+        {estado.racha}
+        {pendiente && (
+          <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-gold ring-2 ring-brand-950" />
+        )}
+      </button>
+
+      {abierto && pos && createPortal(
+        <div
+          ref={panelRef}
+          style={{ top: pos.top, right: pos.right }}
+          className="fixed z-40 w-64 rounded-xl bg-white p-4 text-neutral-900 shadow-xl ring-1 ring-black/5 dark:bg-neutral-900 dark:text-neutral-100 dark:ring-white/10">
+          <p className="text-sm font-semibold">
+            🔥{" "}
             {estado.racha === 0 ? t.racha.empiezaRacha : t.racha.diasDeRacha(estado.racha)}
           </p>
-          <p className="mt-0.5 text-xs text-neutral-500">
-            {estado.reclamadaHoy
+
+          <div className="mt-2.5">
+            <PuntosCiclo
+              hechos={!pendiente && estado.diasParaCofre === estado.diasCofre ? estado.diasCofre : hechosCiclo}
+              total={estado.diasCofre}
+            />
+          </div>
+
+          <p className="mt-2 text-xs text-neutral-500">
+            {!pendiente
               ? t.racha.vuelveManana(
                   estado.diasParaCofre === estado.diasCofre
                     ? t.racha.proximoCofreEn(estado.diasCofre)
@@ -144,40 +214,33 @@ export default function RachaDiaria() {
                 ? t.racha.hoyCofre
                 : t.racha.cofreEnDias(estado.diasParaCofre)}
           </p>
-        </div>
 
-        {estado.reclamadaHoy ? (
-          <span className="shrink-0 rounded-full bg-neutral-100 px-3 py-1.5 text-xs font-medium text-neutral-500 dark:bg-neutral-800">
-            {cobro ? `+${redondear2(cobro.importeDiario + cobro.importeCofre)} M` : t.racha.reclamada}
-          </span>
-        ) : (
-          <button
-            onClick={reclamar}
-            disabled={enviando}
-            className="shrink-0 rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
-          >
-            {enviando ? "…" : t.racha.reclamar(redondear2(estado.recompensaDiaria))}
-          </button>
-        )}
-      </div>
+          {pendiente ? (
+            <button
+              onClick={reclamar}
+              disabled={enviando}
+              className="mt-3 w-full rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+            >
+              {enviando ? "…" : t.racha.reclamar(redondear2(estado.recompensaDiaria))}
+            </button>
+          ) : (
+            cobro && (
+              <p className="mt-3 text-xs font-medium text-positive">
+                +{redondear2(cobro.importeDiario + cobro.importeCofre)} M
+                {cobro.equipos > 1 ? ` · ${t.racha.ingresadoEquipos(cobro.equipos)}` : ""}
+              </p>
+            )
+          )}
 
-      <div className="mt-3">
-        <PuntosCiclo
-          hechos={estado.reclamadaHoy && estado.diasParaCofre === estado.diasCofre ? estado.diasCofre : hechosCiclo}
-          total={estado.diasCofre}
-        />
-      </div>
-
-      {error && <p className="mt-2 text-xs text-negative dark:text-red-400">{error}</p>}
-      {cobro && cobro.equipos > 1 && !mostrarCofre && (
-        <p className="mt-2 text-xs text-neutral-500">
-          {t.racha.ingresadoEquipos(cobro.equipos)}
-        </p>
+          {error && <p className="mt-2 text-xs text-negative dark:text-red-400">{error}</p>}
+        </div>,
+        document.body
       )}
 
-      {mostrarCofre && cobro && (
-        <ModalCofre cobro={cobro} onCerrar={() => setMostrarCofre(false)} />
+      {mostrarCofre && cobro && createPortal(
+        <ModalCofre cobro={cobro} onCerrar={() => setMostrarCofre(false)} />,
+        document.body
       )}
-    </section>
+    </>
   );
 }
