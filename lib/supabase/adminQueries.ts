@@ -261,29 +261,8 @@ export async function fetchPagoPorPunto(supabase: Supabase): Promise<number> {
   return Number.isFinite(n) && n >= 0 ? n : 1;
 }
 
-// La JORNADA es el fin de semana completo (todos sus torneos); la RONDA es
-// una fila de matchdays. Esto dice a qué jornada pertenece cada ronda.
-export interface JornadaFinde {
-  semana: string; // el sábado, "YYYY-MM-DD"
-  numero: number; // jornada 1, 2, 3...
-  cerradaEn: string | null;
-}
-
-export async function fetchJornadasSemanales(
-  supabase: Supabase
-): Promise<Record<string, JornadaFinde>> {
-  const { data, error } = await supabase.rpc("jornadas_semanales");
-  const porRonda: Record<string, JornadaFinde> = {};
-  if (error || !data) return porRonda;
-  for (const r of data as any[]) {
-    porRonda[r.matchday_id] = {
-      semana: r.semana,
-      numero: Number(r.numero),
-      cerradaEn: r.terminada_en ?? null,
-    };
-  }
-  return porRonda;
-}
+// Vive en queries.ts porque también la usa la clasificación.
+export { fetchJornadasSemanales, type JornadaFinde } from "@/lib/supabase/queries";
 
 // Cuántos resultados hay guardados en cada ronda.
 export async function fetchConteoResultados(

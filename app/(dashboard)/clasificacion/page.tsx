@@ -4,12 +4,14 @@ import Link from "next/link";
 import { redondear2 } from "@/lib/saldo";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
-import { useT } from "@/components/IdiomaProvider";
+import { useIdioma } from "@/components/IdiomaProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import ProximoRivalLinea from "@/components/ProximoRival";
 import { createClient } from "@/lib/supabase/client";
 import {
+  fetchJornadasSemanales,
   fetchPlantillaEquipoPublicaDB,
+  type JornadaFinde,
   type JugadorPlantillaAjena,
 } from "@/lib/supabase/queries";
 
@@ -18,7 +20,6 @@ import {
 const CLAVE_ESTADO = "clasificacion:estado-al-volver";
 
 interface EstadoGuardado {
-  torneo: string;
   jornada: string;
   busqueda: string;
   visibles: number;
@@ -29,28 +30,25 @@ interface EstadoGuardado {
   scrollY: number;
 }
 
-// Clave de los puntos totales y de las jornadas antiguas sin torneo.
-const TOTAL = "total";
-const SIN_TORNEO = "__sin_torneo__";
-
 // Cuántos equipos se pintan de golpe (con cientos de managers, la lista entera es inmanejable).
 const TAMANO_PAGINA = 50;
 
+// Una jornada del desplegable: el fin de semana entero (todas las rondas de
+// todos los torneos que se juegan ese sábado/domingo).
 interface JornadaOpcion {
-  clave: string; // id de la jornada (el número solo no la identifica: cada torneo empieza en 1)
+  semana: string; // el sábado, "YYYY-MM-DD"
   numero: number;
-  creada: string;
 }
 
-interface TorneoOpcion {
-  clave: string; // nombre del torneo (o SIN_TORNEO)
-  etiqueta: string;
-  ultima: string; // fecha de creación de su jornada más reciente
-  jornadas: JornadaOpcion[];
+// "YYYY-MM-DD" como fecha local (con new Date("YYYY-MM-DD") sería UTC y
+// podría pintarse el día anterior).
+function fechaLocal(semana: string): Date {
+  const [anio, mes, dia] = semana.split("-").map(Number);
+  return new Date(anio, mes - 1, dia);
 }
 
 export default function ClasificacionPage() {
-  const t = useT();
+  const { t, locale } = useIdioma();
   const c = t.clasificacion;
   const {
     clasificacion,
@@ -69,11 +67,10 @@ export default function ClasificacionPage() {
   const totalManagers =
     misLigas.find((l) => l.ligaId === equipo.leagueId)?.miembros ?? clasificacion.length;
 
-  // Primer desplegable: "total" o un torneo. Segundo: "" = todo, o una jornada.
-  // Con un torneo elegido, la jornada es el id de una jornada de ese torneo.
-  // Con "total", es el NÚMERO de jornada: suma esa jornada de todos los torneos.
-  const [torneoSel, setTorneoSel] = useState<string>(TOTAL);
+  // Desplegable: "" = puntos totales, o el sábado de una jornada (fin de semana).
   const [jornadaSel, setJornadaSel] = useState<string>("");
+  // A qué jornada (fin de semana) pertenece cada ronda, por id de ronda.
+  const [finde, setFinde] = useState<Record<string, JornadaFinde>>({});
   const [busqueda, setBusqueda] = useState("");
   const [visibles, setVisibles] = useState(TAMANO_PAGINA);
   // Liga pública: plantilla del equipo abierto (se pide a la base de datos al abrirlo).
@@ -92,7 +89,6 @@ export default function ClasificacionPage() {
 
   const estadoRef = useRef<EstadoGuardado | null>(null);
   estadoRef.current = {
-    torneo: torneoSel,
     jornada: jornadaSel,
     busqueda,
     visibles,
@@ -129,7 +125,6 @@ export default function ClasificacionPage() {
       return;
     }
     if (!guardado) return;
-    setTorneoSel(guardado.torneo ?? TOTAL);
     setJornadaSel(guardado.jornada ?? "");
     setBusqueda(guardado.busqueda);
     setVisibles(guardado.visibles);
@@ -149,87 +144,53 @@ export default function ClasificacionPage() {
     setTimeout(() => window.scrollTo(0, y), 100);
   }, []);
 
-  // Torneos con jornadas en el historial de algún equipo; cada uno con sus
-  // jornadas (sin repetir). El más reciente primero.
-  const torneosDisponibles = useMemo(() => {
-    const porTorneo = new Map<string, TorneoOpcion>();
-    for (const entry of clasificacion) {
-      for (const h of entry.historialPuntos) {
-        const claveTorneo = h.torneo ?? SIN_TORNEO;
-        let t = porTorneo.get(claveTorneo);
-        if (!t) {
-          t = {
-            clave: claveTorneo,
-            etiqueta: h.torneo ?? c.sinTorneo,
-            ultima: "",
-            jornadas: [],
-          };
-          porTorneo.set(claveTorneo, t);
-        }
-        const claveJornada = h.id ?? `${claveTorneo}:${h.jornada}`;
-        if (t.jornadas.some((j) => j.clave === claveJornada)) continue;
-        t.jornadas.push({ clave: claveJornada, numero: h.jornada, creada: h.creada ?? "" });
-        if ((h.creada ?? "") > t.ultima) t.ultima = h.creada ?? "";
-      }
-    }
-    const lista = [...porTorneo.values()];
-    for (const t of lista) t.jornadas.sort((a, b) => a.numero - b.numero);
-    return lista.sort((a, b) => b.ultima.localeCompare(a.ultima));
+  // Jornada (fin de semana) de cada ronda. Se vuelve a pedir si cambia la
+  // clasificación, por si se ha creado una ronda nueva.
+  useEffect(() => {
+    let vigente = true;
+    fetchJornadasSemanales(createClient()).then((porRonda) => {
+      if (vigente) setFinde(porRonda);
+    });
+    return () => {
+      vigente = false;
+    };
   }, [clasificacion]);
 
-  const torneoActual = torneosDisponibles.find((t) => t.clave === torneoSel) ?? null;
-  const jornadaActual = torneoActual?.jornadas.find((j) => j.clave === jornadaSel) ?? null;
+  // Jornadas con puntos en el historial de algún equipo de la liga, por orden.
+  const jornadasDisponibles = useMemo(() => {
+    const porSemana = new Map<string, JornadaOpcion>();
+    for (const entry of clasificacion) {
+      for (const h of entry.historialPuntos) {
+        const j = h.id ? finde[h.id] : undefined;
+        if (j && !porSemana.has(j.semana)) {
+          porSemana.set(j.semana, { semana: j.semana, numero: j.numero });
+        }
+      }
+    }
+    return [...porSemana.values()].sort((a, b) => a.semana.localeCompare(b.semana));
+  }, [clasificacion, finde]);
 
-  // Números de jornada que existen en algún torneo (1, 2, 3…), para el
-  // desplegable de "Puntos totales".
-  const numerosJornada = useMemo(() => {
-    const numeros = new Set<number>();
-    for (const t of torneosDisponibles) for (const j of t.jornadas) numeros.add(j.numero);
-    return [...numeros].sort((a, b) => a - b);
-  }, [torneosDisponibles]);
+  // Si la jornada guardada ya no existe (o aún no han llegado las jornadas), puntos totales.
+  const jornadaActual = jornadasDisponibles.find((j) => j.semana === jornadaSel) ?? null;
 
-  // Jornada elegida en "Puntos totales" (número), o null si son todas.
-  const numeroJornadaTotal =
-    torneoSel === TOTAL && jornadaSel !== "" && !Number.isNaN(Number(jornadaSel))
-      ? Number(jornadaSel)
-      : null;
-
-  const claveJornadaDe = (h: (typeof clasificacion)[number]["historialPuntos"][number]) =>
-    h.id ?? `${h.torneo ?? SIN_TORNEO}:${h.jornada}`;
+  const formatoFecha = new Intl.DateTimeFormat(locale, { day: "numeric", month: "long" });
+  const fechaJornada = (j: JornadaOpcion) => formatoFecha.format(fechaLocal(j.semana));
 
   // Texto que acompaña a los puntos de cada fila.
-  const etiquetaOrden =
-    torneoSel === TOTAL
-      ? numeroJornadaTotal !== null
-        ? c.enJornada(numeroJornadaTotal)
-        : c.esteAno
-      : jornadaActual
-        ? `${torneoActual?.etiqueta} · ${c.jornadaCorta(jornadaActual.numero)}`
-        : (torneoActual?.etiqueta ?? "");
+  const etiquetaOrden = jornadaActual ? c.enJornada(jornadaActual.numero) : c.esteAno;
 
   const puntosParaOrden = (entry: (typeof clasificacion)[number]) => {
-    if (numeroJornadaTotal !== null) {
-      // Suma de esa jornada en todos los torneos.
-      return entry.historialPuntos
-        .filter((h) => h.jornada === numeroJornadaTotal)
-        .reduce((total, h) => total + h.puntos, 0);
-    }
-    if (jornadaActual) {
-      return (
-        entry.historialPuntos.find((h) => claveJornadaDe(h) === jornadaActual.clave)?.puntos ?? 0
-      );
-    }
-    if (torneoSel === TOTAL) return entry.puntos;
-    // Todo el torneo: suma de sus jornadas.
+    if (!jornadaActual) return entry.puntos;
+    // Suma de todas las rondas de ese fin de semana (de todos los torneos).
     return entry.historialPuntos
-      .filter((h) => (h.torneo ?? SIN_TORNEO) === torneoSel)
+      .filter((h) => h.id && finde[h.id]?.semana === jornadaActual.semana)
       .reduce((total, h) => total + h.puntos, 0);
   };
 
   const clasificacionOrdenada = useMemo(() => {
     return [...clasificacion].sort((a, b) => puntosParaOrden(b) - puntosParaOrden(a));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [torneoSel, jornadaSel, clasificacion]);
+  }, [jornadaActual, clasificacion]);
 
   if (cargando) {
     return <p className="text-sm text-neutral-500">{c.cargando}</p>;
@@ -328,54 +289,21 @@ export default function ClasificacionPage() {
             </p>
           )}
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
+        {jornadasDisponibles.length > 0 && (
           <select
-            aria-label={c.torneoAria}
-            value={torneoSel}
-            onChange={(e) => {
-              setTorneoSel(e.target.value);
-              setJornadaSel("");
-            }}
+            aria-label={c.jornadaAria}
+            value={jornadaActual?.semana ?? ""}
+            onChange={(e) => setJornadaSel(e.target.value)}
             className="min-w-0 rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900 sm:max-w-xs"
           >
-            <option value={TOTAL}>{c.puntosTotales}</option>
-            {torneosDisponibles.map((t) => (
-              <option key={t.clave} value={t.clave}>
-                {t.etiqueta}
+            <option value="">{c.puntosTotales}</option>
+            {jornadasDisponibles.map((j) => (
+              <option key={j.semana} value={j.semana}>
+                {c.jornadaFecha(j.numero, fechaJornada(j))}
               </option>
             ))}
           </select>
-          {torneoSel === TOTAL && numerosJornada.length > 0 && (
-            <select
-              aria-label={c.jornadaAria}
-              value={jornadaSel}
-              onChange={(e) => setJornadaSel(e.target.value)}
-              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
-            >
-              <option value="">{c.todasJornadas}</option>
-              {numerosJornada.map((n) => (
-                <option key={n} value={String(n)}>
-                  {c.jornada(n)}
-                </option>
-              ))}
-            </select>
-          )}
-          {torneoActual && (
-            <select
-              aria-label={c.jornadaAria}
-              value={jornadaSel}
-              onChange={(e) => setJornadaSel(e.target.value)}
-              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
-            >
-              <option value="">{c.todoTorneo}</option>
-              {torneoActual.jornadas.map((j) => (
-                <option key={j.clave} value={j.clave}>
-                  {c.jornada(j.numero)}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
+        )}
       </div>
 
       {esLigaPublica && clasificacion.length > 0 && (
