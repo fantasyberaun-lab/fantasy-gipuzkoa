@@ -9,6 +9,7 @@ import {
   fetchTodosLosJugadores,
   fetchJornadas,
   crearJornadaDB,
+  cambiarFechaRondaDB,
   borrarJornadaDB,
   fetchPagoPorPunto,
   fetchJornadasSemanales,
@@ -65,6 +66,19 @@ function filaDesdeGuardado(r: ResultadoGuardado): FilaEdicion {
 // existir los torneos.
 const SIN_TORNEO = "__sin_torneo__";
 
+// Fecha por defecto para una ronda nueva: el próximo sábado (si hoy es
+// sábado, el de la semana que viene), porque la ronda siguiente se suele crear
+// al acabar la anterior. "YYYY-MM-DD" en hora local.
+function proximoSabado(): string {
+  const hoy = new Date();
+  const dia = hoy.getDay(); // 0 domingo ... 6 sábado
+  const sabado = new Date(hoy);
+  sabado.setDate(hoy.getDate() + (6 - dia || 7));
+  const mm = String(sabado.getMonth() + 1).padStart(2, "0");
+  const dd = String(sabado.getDate()).padStart(2, "0");
+  return `${sabado.getFullYear()}-${mm}-${dd}`;
+}
+
 function etiquetaJornada(j: JornadaAdmin): string {
   return j.torneoNombre
     ? `${j.torneoNombre} · Ronda ${j.numero}`
@@ -94,6 +108,9 @@ export default function AdminResultadosPage() {
   const [cargando, setCargando] = useState(true);
   const [cargandoJornada, setCargandoJornada] = useState(false);
   const [creandoJornada, setCreandoJornada] = useState(false);
+  // Día en que se juega la ronda que se va a añadir.
+  const [fechaNuevaRonda, setFechaNuevaRonda] = useState(proximoSabado);
+  const [cambiandoFecha, setCambiandoFecha] = useState(false);
   const [borrandoJornada, setBorrandoJornada] = useState(false);
   const [cerrando, setCerrando] = useState(false);
   const [pagoPorPunto, setPagoPorPunto] = useState(1);
@@ -361,7 +378,7 @@ export default function AdminResultadosPage() {
     if (!torneoElegido) return;
     setErrorJornada(null);
     setCreandoJornada(true);
-    const resultado = await crearJornadaDB(supabase, torneoElegido.id);
+    const resultado = await crearJornadaDB(supabase, torneoElegido.id, fechaNuevaRonda);
     setCreandoJornada(false);
 
     if (!resultado.ok) {
@@ -374,6 +391,24 @@ export default function AdminResultadosPage() {
     await recargarSemanas();
     // Refresca el contador de rondas del torneo.
     setTorneos(await fetchTorneos(supabase));
+  }
+
+  async function onCambiarFechaRonda(fecha: string) {
+    if (!jornadaActual || !fecha) return;
+    setErrorJornada(null);
+    setCambiandoFecha(true);
+    const resultado = await cambiarFechaRondaDB(supabase, jornadaActual.id, fecha);
+    setCambiandoFecha(false);
+
+    if (!resultado.ok) {
+      setErrorJornada(resultado.mensaje);
+      return;
+    }
+
+    setJornadas((prev) =>
+      prev.map((j) => (j.id === jornadaActual.id ? { ...j, fechaInicio: fecha } : j))
+    );
+    await recargarSemanas();
   }
 
   async function onCerrarJornada() {
@@ -588,9 +623,20 @@ export default function AdminResultadosPage() {
             )}
 
             {torneoElegido && (
+              <input
+                type="date"
+                aria-label="Día en que se juega la ronda nueva"
+                title="Día en que se juega la ronda nueva"
+                value={fechaNuevaRonda}
+                onChange={(e) => setFechaNuevaRonda(e.target.value)}
+                className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+              />
+            )}
+
+            {torneoElegido && (
               <button
                 onClick={onCrearJornada}
-                disabled={creandoJornada}
+                disabled={creandoJornada || !fechaNuevaRonda}
                 className="rounded-lg border border-neutral-300 px-3 py-2 text-sm disabled:opacity-40 dark:border-neutral-700"
               >
                 {creandoJornada
@@ -599,6 +645,22 @@ export default function AdminResultadosPage() {
               </button>
             )}
           </>
+        )}
+
+        {jornadaActual && (
+          <label className="flex items-center gap-2 text-sm text-neutral-500">
+            Se juega el
+            <input
+              type="date"
+              value={jornadaActual.fechaInicio ?? ""}
+              disabled={cambiandoFecha}
+              onChange={(e) => onCambiarFechaRonda(e.target.value)}
+              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 disabled:opacity-40 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+            />
+            {!jornadaActual.fechaInicio && (
+              <span className="text-negative">sin fecha</span>
+            )}
+          </label>
         )}
 
         {jornadaActual && (

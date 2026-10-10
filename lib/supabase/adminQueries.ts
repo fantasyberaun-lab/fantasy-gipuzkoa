@@ -207,10 +207,12 @@ export async function fetchJornadas(supabase: Supabase): Promise<JornadaAdmin[]>
 }
 
 // Crea la siguiente jornada de un torneo (la última + 1; la primera es la
-// 1). Cada torneo lleva su propia numeración.
+// 1). Cada torneo lleva su propia numeración. La fecha ("YYYY-MM-DD") es el
+// día en que se juega: decide a qué fin de semana pertenece (ver 0078).
 export async function crearJornadaDB(
   supabase: Supabase,
-  torneoId: string
+  torneoId: string,
+  fecha: string
 ): Promise<{ ok: true; jornada: JornadaAdmin } | { ok: false; mensaje: string }> {
   const { data: ultima, error: errorUltima } = await supabase
     .from("matchdays")
@@ -226,7 +228,7 @@ export async function crearJornadaDB(
 
   const { data, error } = await supabase
     .from("matchdays")
-    .insert({ numero, tournament_id: torneoId })
+    .insert({ numero, tournament_id: torneoId, fecha_inicio: fecha })
     .select(COLUMNAS_JORNADA)
     .single();
 
@@ -235,6 +237,23 @@ export async function crearJornadaDB(
   }
 
   return { ok: true, jornada: mapearJornada(data) };
+}
+
+// Cambia el día en que se juega una ronda. La base de datos la pasa a su
+// nuevo fin de semana y le rehace la foto de titulares; si ya tiene
+// resultados, lo rechaza (ver 0078).
+export async function cambiarFechaRondaDB(
+  supabase: Supabase,
+  id: string,
+  fecha: string
+): Promise<ResultadoAccion> {
+  const { error } = await supabase
+    .from("matchdays")
+    .update({ fecha_inicio: fecha })
+    .eq("id", id);
+
+  if (error) return { ok: false, mensaje: error.message };
+  return { ok: true };
 }
 
 // Borra la jornada Y todo lo que cuelga de ella (resultados y la foto de
