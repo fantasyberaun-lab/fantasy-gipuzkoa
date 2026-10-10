@@ -11,6 +11,11 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { redondear2 } from "@/lib/saldo";
 import { fetchComunicados } from "@/lib/supabase/comunicadosQueries";
+import {
+  fetchMisSugerencias,
+  marcarAvisosSugerenciasVistosDB,
+  type Sugerencia,
+} from "@/lib/supabase/sugerenciasQueries";
 import { motivoBloqueoTitular } from "@/lib/titulares";
 import { clausulazosCerrados, proximaTandaMercado } from "@/lib/mercadoCountdown";
 import { useT } from "@/components/IdiomaProvider";
@@ -117,7 +122,14 @@ interface GameState {
   comunicadosVistosEn: number;
   comunicadosNoLeidos: number;
   marcarComunicadosVistos: () => void;
-  // Lo que enseña el globo de la pestaña Avisos: notificaciones + comunicados.
+  // Sugerencias que ha enviado el usuario (todas las ligas). Las leídas por los
+  // admins que aún no ha visto en Avisos cuentan como no leídas.
+  sugerencias: Sugerencia[];
+  sugerenciasNoVistas: number;
+  marcarAvisosSugerenciasVistos: () => Promise<void>;
+  recargarSugerencias: () => Promise<void>;
+  // Lo que enseña el globo de la pestaña Avisos: notificaciones + comunicados
+  // + sugerencias leídas.
   avisosNoLeidos: number;
   marcarNotificacionesVistas: () => Promise<void>;
   toggleTitular: (id: string) => Promise<ResultadoAccion>;
@@ -186,6 +198,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const [notificacionesVistasEn, setNotificacionesVistasEn] = useState(() => Date.now());
   const [comunicados, setComunicados] = useState<Comunicado[]>([]);
   const [comunicadosVistosEn, setComunicadosVistosEn] = useState(0);
+  const [sugerencias, setSugerencias] = useState<Sugerencia[]>([]);
 
   // Cuándo se cargaron los datos del juego por última vez y si hay una recarga en
   // marcha. Sirven para refrescar el mercado solos cuando se resuelve una tanda.
@@ -424,6 +437,45 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [equipo.id]);
 
+  // Sugerencias propias: no dependen de la liga. Cuando un admin marca una como
+  // leída llega por Realtime (la RLS solo deja ver las tuyas); red de
+  // seguridad: se recargan al volver a la pestaña del navegador.
+  async function recargarSugerencias() {
+    setSugerencias(await fetchMisSugerencias(supabase));
+  }
+
+  useEffect(() => {
+    if (!equipo.id) return;
+
+    recargarSugerencias();
+
+    const canal = supabase
+      .channel("sugerencias")
+      .on("postgres_changes", { event: "*", schema: "public", table: "sugerencias" }, () => {
+        recargarSugerencias();
+      })
+      .subscribe();
+
+    const alVolver = () => {
+      if (document.visibilityState === "visible") recargarSugerencias();
+    };
+    document.addEventListener("visibilitychange", alVolver);
+
+    return () => {
+      supabase.removeChannel(canal);
+      document.removeEventListener("visibilitychange", alVolver);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [equipo.id]);
+
+  const sugerenciasNoVistas = sugerencias.filter((s) => s.leidaEn && !s.avisoVisto).length;
+
+  async function marcarAvisosSugerenciasVistos() {
+    if (sugerenciasNoVistas === 0) return;
+    await marcarAvisosSugerenciasVistosDB(supabase);
+    setSugerencias((prev) => prev.map((s) => (s.leidaEn ? { ...s, avisoVisto: true } : s)));
+  }
+
   function marcarComunicadosVistos() {
     const ahora = Date.now();
     try {
@@ -448,7 +500,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     (n) => n.actorId !== equipo.id && Date.parse(n.creada) > notificacionesVistasEn
   ).length;
 
-  const avisosNoLeidos = notificacionesNoLeidas + comunicadosNoLeidos;
+  const avisosNoLeidos = notificacionesNoLeidas + comunicadosNoLeidos + sugerenciasNoVistas;
 
   async function toggleTitular(id: string): Promise<ResultadoAccion> {
     const nuevoValor = !titulares[id];
@@ -683,6 +735,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         comunicadosVistosEn,
         comunicadosNoLeidos,
         marcarComunicadosVistos,
+        sugerencias,
+        sugerenciasNoVistas,
+        marcarAvisosSugerenciasVistos,
+        recargarSugerencias,
         avisosNoLeidos,
         marcarNotificacionesVistas,
         toggleTitular,

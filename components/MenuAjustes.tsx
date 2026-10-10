@@ -8,6 +8,7 @@ import { useGameState } from "@/components/GameStateProvider";
 import AjustesCuenta from "@/components/AjustesCuenta";
 import { EliminarCuentaConfirmacion } from "@/components/EliminarCuentaButton";
 import SelectorIdioma from "@/components/SelectorIdioma";
+import BuzonSugerencias from "@/components/BuzonSugerencias";
 import Segmentado from "@/components/Segmentado";
 import { useT } from "@/components/IdiomaProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -21,7 +22,7 @@ import {
   type PreferenciaTema,
 } from "@/lib/tema";
 
-type Vista = "inicio" | "cuenta" | "configuracion" | "legal" | "eliminar";
+type Vista = "inicio" | "cuenta" | "configuracion" | "legal" | "sugerencias" | "eliminar";
 
 // Iconos de trazo 24x24, como los de la barra de pestañas.
 const icono = (d: string, clase = "h-5 w-5") => (
@@ -53,6 +54,8 @@ const D_DOCUMENTO =
   "M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z";
 const D_SOBRE =
   "M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75";
+const D_BOMBILLA =
+  "M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18";
 const D_FLECHA = "M8.25 4.5l7.5 7.5-7.5 7.5";
 
 const FILA =
@@ -198,7 +201,7 @@ function VistaLegal({ onNavegar }: { onNavegar: () => void }) {
 }
 
 // Botón de engranaje de la cabecera + menú de ajustes: cuenta, idioma, tema,
-// textos legales, cerrar sesión y eliminar cuenta. También aplica el tema
+// textos legales, sugerencias, cerrar sesión y eliminar cuenta. También aplica el tema
 // guardado al cargar (antes lo hacía el botón de claro/oscuro de la cabecera).
 export default function MenuAjustes() {
   const { equipo, esRoot } = useGameState();
@@ -312,6 +315,12 @@ export default function MenuAjustes() {
                 detalle={t.ajustes.legalDetalle}
                 onClick={() => setVista("legal")}
               />
+              <Fila
+                d={D_BOMBILLA}
+                titulo={t.ajustes.titulos.sugerencias}
+                detalle={t.sugerencias.detalleMenu}
+                onClick={() => setVista("sugerencias")}
+              />
               {esRoot && (
                 <Fila
                   d={D_LLAVE}
@@ -337,6 +346,8 @@ export default function MenuAjustes() {
           {vista === "configuracion" && <VistaConfiguracion tema={tema} onTema={cambiarTema} />}
 
           {vista === "legal" && <VistaLegal onNavegar={cerrar} />}
+
+          {vista === "sugerencias" && <BuzonSugerencias />}
 
           {vista === "eliminar" && (
             <EliminarCuentaConfirmacion onCancelar={() => setVista("inicio")} />

@@ -37,6 +37,8 @@ const ETIQUETA: Record<Notificacion["tipo"], { clases: string }> = {
 
 // Una actualización de Elo se mantiene fijada arriba durante este tiempo.
 const DIAS_FIJADA = 7;
+// Las sugerencias leídas siguen saliendo en Avisos durante este tiempo.
+const DIAS_SUGERENCIAS = 14;
 
 // Rellena los huecos {actor}, {jugador}… de una frase con enlaces o negritas.
 function rellenar(texto: string, valores: Record<string, ReactNode>): ReactNode {
@@ -126,6 +128,8 @@ export default function NotificacionesPage() {
     comunicados,
     comunicadosVistosEn,
     marcarComunicadosVistos,
+    sugerencias,
+    marcarAvisosSugerenciasVistos,
     esLigaPublica,
     equipo,
     cargando,
@@ -135,6 +139,8 @@ export default function NotificacionesPage() {
   // para resaltar lo nuevo mientras estás en el panel.
   const [corte, setCorte] = useState<number | null>(null);
   const [corteComunicados, setCorteComunicados] = useState<number | null>(null);
+  // Sugerencias leídas que aún no habías visto al entrar (se resaltan).
+  const [sugerenciasNuevas, setSugerenciasNuevas] = useState<Set<string> | null>(null);
 
   useEffect(() => {
     if (cargando) return;
@@ -145,6 +151,16 @@ export default function NotificacionesPage() {
     // Se vuelve a marcar si llega un aviso nuevo mientras el panel está abierto.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cargando, notificaciones.length, comunicados.length]);
+
+  // Igual con las sugerencias: se apuntan las nuevas antes de marcarlas vistas.
+  useEffect(() => {
+    if (cargando) return;
+    const noVistas = sugerencias.filter((s) => s.leidaEn && !s.avisoVisto).map((s) => s.id);
+    if (noVistas.length === 0) return;
+    setSugerenciasNuevas((previo) => new Set([...Array.from(previo ?? []), ...noVistas]));
+    marcarAvisosSugerenciasVistos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cargando, sugerencias]);
 
   if (cargando) {
     return <p className="text-sm text-neutral-500">{a.cargando}</p>;
@@ -210,6 +226,61 @@ export default function NotificacionesPage() {
 
   const comunicadosOrdenados = ordenarComunicados(comunicados);
 
+  // Sugerencias leídas por el club: las de los últimos días y las que aún
+  // no habías visto. Las nuevas suben arriba del todo.
+  const sugerenciasLeidas = sugerencias.filter(
+    (s) =>
+      s.leidaEn &&
+      (sugerenciasNuevas?.has(s.id) ||
+        ahora - Date.parse(s.leidaEn) < DIAS_SUGERENCIAS * 86400 * 1000)
+  );
+  const haySugerenciasNuevas = sugerenciasLeidas.some((s) => sugerenciasNuevas?.has(s.id));
+
+  const bloqueSugerencias = sugerenciasLeidas.length > 0 && (
+    <section>
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+        {t.sugerencias.avisosTitulo}
+      </h3>
+      <ul className="flex flex-col gap-2">
+        {sugerenciasLeidas.map((s) => {
+          const nueva = sugerenciasNuevas?.has(s.id) ?? false;
+          return (
+            <li
+              key={s.id}
+              className={`flex items-start gap-3 rounded-xl border p-3 ${
+                nueva ? "border-accent/60 bg-accent/5" : "border-neutral-200 dark:border-neutral-800"
+              }`}
+            >
+              <span className="mt-0.5 shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                {t.sugerencias.avisoEtiqueta}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm">
+                  {t.sugerencias.avisoTexto(
+                    new Date(s.creada).toLocaleDateString(locale, { day: "numeric", month: "long" })
+                  )}
+                </p>
+                <p className="mt-1 line-clamp-2 text-xs italic text-neutral-500">«{s.texto}»</p>
+                {s.respuesta && (
+                  <p className="mt-2 rounded-lg bg-accent/10 px-2.5 py-2 text-sm">
+                    <span className="font-semibold">{t.sugerencias.avisoRespuesta}</span>{" "}
+                    <span className="whitespace-pre-line">{s.respuesta}</span>
+                  </p>
+                )}
+                <p className="mt-0.5 text-xs text-neutral-500">
+                  {hace(s.leidaEn as string, locale, a.ahoraMismo)}
+                </p>
+              </div>
+              {nueva && (
+                <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-accent" aria-label={a.nueva} />
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+
   const bloqueComunicados = (
     <section>
       {!esLigaPublica && (
@@ -274,10 +345,12 @@ export default function NotificacionesPage() {
   if (esLigaPublica) {
     return (
       <div className="flex flex-col gap-6">
+        {haySugerenciasNuevas && bloqueSugerencias}
         <div>
           <h2 className="mb-3 text-lg font-semibold">{a.comunicados}</h2>
           {bloqueComunicados}
         </div>
+        {!haySugerenciasNuevas && bloqueSugerencias}
         {ordenadas.length > 0 && (
           <section>
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
@@ -294,8 +367,17 @@ export default function NotificacionesPage() {
     <div className="flex flex-col gap-6">
       <div>
         <h2 className="mb-3 text-lg font-semibold">{a.avisos}</h2>
-        {bloqueComunicados}
+        {haySugerenciasNuevas ? (
+          <div className="flex flex-col gap-6">
+            {bloqueSugerencias}
+            {bloqueComunicados}
+          </div>
+        ) : (
+          bloqueComunicados
+        )}
       </div>
+
+      {!haySugerenciasNuevas && bloqueSugerencias}
 
       <section>
       <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
