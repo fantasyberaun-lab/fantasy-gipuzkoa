@@ -79,6 +79,14 @@ function proximoSabado(): string {
   return `${sabado.getFullYear()}-${mm}-${dd}`;
 }
 
+// Fecha completa ("YYYY-MM-DD") con un año razonable. Mientras se escribe el
+// año, el navegador da valores a medias como "0002-10-17".
+const FECHA_MIN = "2020-01-01";
+const FECHA_MAX = "2100-12-31";
+function fechaValida(fecha: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(fecha) && fecha >= FECHA_MIN && fecha <= FECHA_MAX;
+}
+
 function etiquetaJornada(j: JornadaAdmin): string {
   return j.torneoNombre
     ? `${j.torneoNombre} · Ronda ${j.numero}`
@@ -110,6 +118,8 @@ export default function AdminResultadosPage() {
   const [creandoJornada, setCreandoJornada] = useState(false);
   // Día en que se juega la ronda que se va a añadir.
   const [fechaNuevaRonda, setFechaNuevaRonda] = useState(proximoSabado);
+  // Fecha de la ronda elegida mientras se edita (se guarda con el botón).
+  const [fechaRonda, setFechaRonda] = useState("");
   const [cambiandoFecha, setCambiandoFecha] = useState(false);
   const [borrandoJornada, setBorrandoJornada] = useState(false);
   const [cerrando, setCerrando] = useState(false);
@@ -193,6 +203,11 @@ export default function AdminResultadosPage() {
   }, [jornadaId]);
 
   const jornadaActual = jornadas.find((j) => j.id === jornadaId) ?? null;
+
+  // Al cambiar de ronda (o tras guardar), el campo enseña su fecha guardada.
+  useEffect(() => {
+    setFechaRonda(jornadaActual?.fechaInicio ?? "");
+  }, [jornadaActual?.id, jornadaActual?.fechaInicio]);
 
   // Jornadas del torneo elegido, de la primera a la última.
   const jornadasDelTorneo = useMemo(
@@ -394,7 +409,7 @@ export default function AdminResultadosPage() {
   }
 
   async function onCambiarFechaRonda(fecha: string) {
-    if (!jornadaActual || !fecha) return;
+    if (!jornadaActual || !fechaValida(fecha)) return;
     setErrorJornada(null);
     setCambiandoFecha(true);
     const resultado = await cambiarFechaRondaDB(supabase, jornadaActual.id, fecha);
@@ -628,6 +643,8 @@ export default function AdminResultadosPage() {
                 aria-label="Día en que se juega la ronda nueva"
                 title="Día en que se juega la ronda nueva"
                 value={fechaNuevaRonda}
+                min={FECHA_MIN}
+                max={FECHA_MAX}
                 onChange={(e) => setFechaNuevaRonda(e.target.value)}
                 className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
               />
@@ -636,7 +653,7 @@ export default function AdminResultadosPage() {
             {torneoElegido && (
               <button
                 onClick={onCrearJornada}
-                disabled={creandoJornada || !fechaNuevaRonda}
+                disabled={creandoJornada || !fechaValida(fechaNuevaRonda)}
                 className="rounded-lg border border-neutral-300 px-3 py-2 text-sm disabled:opacity-40 dark:border-neutral-700"
               >
                 {creandoJornada
@@ -652,13 +669,22 @@ export default function AdminResultadosPage() {
             Se juega el
             <input
               type="date"
-              value={jornadaActual.fechaInicio ?? ""}
-              disabled={cambiandoFecha}
-              onChange={(e) => onCambiarFechaRonda(e.target.value)}
-              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 disabled:opacity-40 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+              value={fechaRonda}
+              min={FECHA_MIN}
+              max={FECHA_MAX}
+              onChange={(e) => setFechaRonda(e.target.value)}
+              className="rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
             />
-            {!jornadaActual.fechaInicio && (
-              <span className="text-negative">sin fecha</span>
+            {fechaRonda !== (jornadaActual.fechaInicio ?? "") ? (
+              <button
+                onClick={() => onCambiarFechaRonda(fechaRonda)}
+                disabled={cambiandoFecha || !fechaValida(fechaRonda)}
+                className="rounded-lg border border-neutral-300 px-3 py-2 text-sm text-neutral-900 disabled:opacity-40 dark:border-neutral-700 dark:text-neutral-100"
+              >
+                {cambiandoFecha ? "Guardando…" : "Guardar"}
+              </button>
+            ) : (
+              !jornadaActual.fechaInicio && <span className="text-negative">sin fecha</span>
             )}
           </label>
         )}
