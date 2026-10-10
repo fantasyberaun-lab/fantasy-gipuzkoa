@@ -7,6 +7,7 @@ import { useGameState } from "@/components/GameStateProvider";
 import { useT } from "@/components/IdiomaProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import MercadoPublico from "@/components/MercadoPublico";
+import SelectorTorneo, { juegaTorneo } from "@/components/SelectorTorneo";
 import SaldoConPujas from "@/components/SaldoConPujas";
 import {
   proximaTandaMercado,
@@ -45,6 +46,7 @@ function MercadoConPujas() {
 
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [busqueda, setBusqueda] = useState("");
+  const [torneo, setTorneo] = useState(""); // "" = todos los torneos
   const [orden, setOrden] = useState<Orden>("valor");
   const [montoPuja, setMontoPuja] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -82,9 +84,9 @@ function MercadoConPujas() {
 
   const jugadoresFiltrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase();
-    const filtrados = texto
-      ? mercado.filter((j) => j.nombre.toLowerCase().includes(texto))
-      : mercado;
+    const filtrados = mercado.filter(
+      (j) => juegaTorneo(j, torneo) && (!texto || j.nombre.toLowerCase().includes(texto))
+    );
 
     const copia = [...filtrados];
 
@@ -103,7 +105,7 @@ function MercadoConPujas() {
     }
 
     return copia;
-  }, [busqueda, orden, mercado]);
+  }, [busqueda, torneo, orden, mercado]);
 
   if (cargando) {
     return <p className="text-sm text-neutral-500">{t.mercado.cargando}</p>;
@@ -203,6 +205,8 @@ function MercadoConPujas() {
           />
         </div>
 
+        <SelectorTorneo jugadores={mercado} value={torneo} onChange={setTorneo} />
+
         <select
           value={orden}
           onChange={(e) => setOrden(e.target.value as Orden)}
@@ -221,7 +225,9 @@ function MercadoConPujas() {
         <p className="py-6 text-center text-sm text-neutral-500">
           {mercado.length === 0
             ? t.mercado.sinJugadores
-            : t.mercado.sinCoincidencias(busqueda)}
+            : busqueda.trim()
+              ? t.mercado.sinCoincidencias(busqueda)
+              : t.mercado.sinCoincidenciasFiltros}
         </p>
       )}
 

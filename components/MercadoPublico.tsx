@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
 import { useT } from "@/components/IdiomaProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
+import SelectorTorneo, { juegaTorneo } from "@/components/SelectorTorneo";
 import { gameConfig } from "@/lib/gameConfig";
 import { redondear2 } from "@/lib/saldo";
 
@@ -25,6 +26,7 @@ export default function MercadoPublico() {
 
   const [busqueda, setBusqueda] = useState("");
   const [categoria, setCategoria] = useState<"todas" | "1" | "2" | "3">("todas");
+  const [torneo, setTorneo] = useState(""); // "" = todos los torneos
   const [vista, setVista] = useState<Vista>("todos");
   const [orden, setOrden] = useState<Orden>("valor-desc");
   const [soloAsequibles, setSoloAsequibles] = useState(false);
@@ -52,6 +54,7 @@ export default function MercadoPublico() {
       if (j.inscrito === false && !idsMiPlantilla.has(j.id)) return false;
       if (vista === "mios" && !idsMiPlantilla.has(j.id)) return false;
       if (categoria !== "todas" && String(j.categoria) !== categoria) return false;
+      if (!juegaTorneo(j, torneo)) return false;
       if (soloAsequibles && !idsMiPlantilla.has(j.id) && j.valorMercado > saldoFuturo) {
         return false;
       }
@@ -83,7 +86,7 @@ export default function MercadoPublico() {
     }
 
     return filtrados;
-  }, [jugadoresLiga, busqueda, categoria, vista, orden, soloAsequibles, idsMiPlantilla, saldoFuturo]);
+  }, [jugadoresLiga, busqueda, categoria, torneo, vista, orden, soloAsequibles, idsMiPlantilla, saldoFuturo]);
 
   const jugadoresMostrados = jugadoresFiltrados.slice(0, visibles);
 
@@ -180,6 +183,12 @@ export default function MercadoPublico() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
+        <SelectorTorneo
+          jugadores={jugadoresLiga}
+          value={torneo}
+          onChange={(id) => cambiarFiltro(() => setTorneo(id))}
+        />
+
         <select
           value={categoria}
           onChange={(e) =>

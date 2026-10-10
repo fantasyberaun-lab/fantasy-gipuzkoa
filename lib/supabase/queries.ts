@@ -331,6 +331,19 @@ export async function fetchMiPlantilla(
     });
 }
 
+// Filas de tournament_players con su torneo -> torneos de cada jugador.
+function agruparTorneosPorJugador(
+  inscripciones: unknown[] | null
+): Map<string, { id: string; nombre: string }[]> {
+  const porJugador = new Map<string, { id: string; nombre: string }[]>();
+  for (const i of (inscripciones ?? []) as any[]) {
+    const lista = porJugador.get(i.player_id) ?? [];
+    if (i.tournaments) lista.push({ id: i.tournaments.id, nombre: i.tournaments.nombre });
+    porJugador.set(i.player_id, lista);
+  }
+  return porJugador;
+}
+
 export async function fetchJugadoresLiga(
   supabase: Supabase,
   leagueId: string,
@@ -342,13 +355,12 @@ export async function fetchJugadoresLiga(
 
   if (error || !data) return [];
 
-  // Jugadores inscritos en algún torneo (el mercado solo muestra a estos).
+  // Jugadores inscritos en algún torneo (el mercado solo muestra a estos) y
+  // en cuáles (para filtrar el mercado por torneo).
   const { data: inscripciones } = await supabase
     .from("tournament_players")
-    .select("player_id");
-  const inscritos = new Set<string>(
-    ((inscripciones ?? []) as any[]).map((i) => i.player_id as string)
-  );
+    .select("player_id, tournaments (id, nombre)");
+  const torneosPorJugador = agruparTorneosPorJugador(inscripciones);
 
   return data.map((p: any) => ({
     id: p.id,
@@ -358,7 +370,8 @@ export async function fetchJugadoresLiga(
     elo: p.elo,
     valorMercado: Number(p.valor_mercado),
     activo: p.activo,
-    inscrito: inscritos.has(p.id),
+    inscrito: torneosPorJugador.has(p.id),
+    torneos: torneosPorJugador.get(p.id) ?? [],
     puntosTotales: p.puntos_totales,
     propietario: p.propietario_nombre,
     esMiEquipo: miEquipoId ? p.propietario_team_id === miEquipoId : false,
@@ -388,13 +401,18 @@ export async function fetchMercado(
     .filter((id: unknown): id is string => Boolean(id));
   const listingIds = listings.map((l: any) => l.id);
 
-  const [{ data: estadosLiga }, { data: conteos }] = await Promise.all([
+  const [{ data: estadosLiga }, { data: conteos }, { data: inscripciones }] = await Promise.all([
     supabase.rpc("player_status", { p_league_id: leagueId }),
     supabase
       .from("market_bid_counts")
       .select("market_listing_id, numero_pujas")
       .in("market_listing_id", listingIds),
+    supabase
+      .from("tournament_players")
+      .select("player_id, tournaments (id, nombre)")
+      .in("player_id", playerIds),
   ]);
+  const torneosPorJugador = agruparTorneosPorJugador(inscripciones);
 
   const estadoPorJugador = new Map<string, any>(
     ((estadosLiga ?? []) as any[])
@@ -426,6 +444,7 @@ export async function fetchMercado(
         puntosTotales: estado?.puntos_totales ?? 0,
         historialPuntos: (estado?.historial_puntos ?? []) as PuntosJornada[],
         numeroPujas: pujasPorListing.get(l.id) ?? 0,
+        torneos: torneosPorJugador.get(l.players.id) ?? [],
       };
     });
 }

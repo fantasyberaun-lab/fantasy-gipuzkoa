@@ -104,6 +104,8 @@ export interface JugadorLiga extends Jugador {
   // Inscrito en algún torneo. Solo los inscritos salen en el mercado de la
   // liga pública (false = no se puede fichar; undefined se trata como true).
   inscrito?: boolean;
+  // Torneos en los que está inscrito (para filtrar el mercado por torneo).
+  torneos?: { id: string; nombre: string }[];
   proximosRivales?: ProximoRival[];
   historialPuntos: PuntosJornada[];
 }
@@ -113,6 +115,8 @@ export interface MercadoDelDia extends Jugador {
   puntosTotales: number;
   historialPuntos: PuntosJornada[];
   numeroPujas: number;
+  // Torneos en los que está inscrito (para filtrar el mercado por torneo).
+  torneos?: { id: string; nombre: string }[];
   proximosRivales?: ProximoRival[];
 }
 
