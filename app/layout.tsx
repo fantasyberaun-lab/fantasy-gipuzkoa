@@ -7,7 +7,7 @@ import { IdiomaProvider } from "@/components/IdiomaProvider";
 import { getIdioma } from "@/lib/i18n/server";
 
 const fontSans = Barlow({
-  subsets: ["latin", "latin-ext"],
+  subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
   display: "swap",
@@ -15,7 +15,7 @@ const fontSans = Barlow({
 
 // Para títulos y cifras grandes (nombre del equipo, saldo).
 const fontDisplay = Barlow_Condensed({
-  subsets: ["latin", "latin-ext"],
+  subsets: ["latin"],
   weight: ["500", "600", "700"],
   variable: "--font-display",
   display: "swap",

@@ -24,6 +24,7 @@ import {
   blindarJugadorDB,
   crearLigaDB,
   fetchClasificacion,
+  fetchEstadoJugadores,
   fetchJugadoresLiga,
   fetchMercado,
   fetchMiPlantilla,
@@ -213,20 +214,34 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
   async function cargarTodo(forzarLigaId?: string) {
     ultimaCargaRef.current = Date.now();
+    // getSession lee la sesión del navegador sin ir a la red (y la refresca si
+    // ha caducado). La validación de verdad ya la hace el middleware en cada
+    // petición, así que aquí no hace falta pagar otra llamada a Supabase Auth.
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
+      data: { session },
+    } = await supabase.auth.getSession();
+    const user = session?.user;
 
     if (!user) {
       setCargando(false);
       return;
     }
 
-    const rol = await fetchMiRol(supabase, user.id);
-    setEsRoot(rol === "root");
-    setAvatar(rol === "root" ? await fetchMiAvatar(supabase, user.id) : null);
+    // Lo que no depende de la liga arranca ya, en paralelo: próximos rivales
+    // (lo más lento) y comunicados se esperan más abajo, junto al resto.
+    // Si fallan, simplemente no se muestran.
+    const rivalesP = fetchProximosRivales(supabase).catch(
+      () => ({} as Record<string, ProximoRival[]>)
+    );
+    const comunicadosP = fetchComunicados(supabase).catch(() => [] as Comunicado[]);
 
-    const ligas = await fetchMisLigas(supabase);
+    const [rol, avatarGuardado, ligas] = await Promise.all([
+      fetchMiRol(supabase, user.id),
+      fetchMiAvatar(supabase, user.id),
+      fetchMisLigas(supabase),
+    ]);
+    setEsRoot(rol === "root");
+    setAvatar(rol === "root" ? avatarGuardado : null);
     setMisLigas(ligas);
 
     if (ligas.length === 0) {
@@ -250,10 +265,12 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     };
     setEquipo(miEquipo);
 
+    // player_status (lo más pesado) se pide una sola vez para jugadores y mercado.
+    const estadosJugadores = fetchEstadoJugadores(supabase, miEquipo.leagueId);
     const [plantilla, ligaJugadores, misOfertas, ofertasParaMi, jugadoresMercado, pujas, tabla, avisos, rivales, listaComunicados] =
       await Promise.all([
         fetchMiPlantilla(supabase, miEquipo.id),
-        fetchJugadoresLiga(supabase, miEquipo.leagueId, miEquipo.id),
+        fetchJugadoresLiga(supabase, miEquipo.leagueId, miEquipo.id, estadosJugadores),
         // En la liga pública no hay ofertas, mercado por tandas ni avisos.
         esPublica
           ? Promise.resolve([] as OfertaPendiente[])
@@ -263,7 +280,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
           : fetchOfertasRecibidas(supabase, miEquipo.id),
         esPublica
           ? Promise.resolve([] as MercadoDelDia[])
-          : fetchMercado(supabase, miEquipo.leagueId),
+          : fetchMercado(supabase, miEquipo.leagueId, estadosJugadores),
         esPublica
           ? Promise.resolve([] as PujaMercado[])
           : fetchPujasMercado(supabase, miEquipo.leagueId),
@@ -275,10 +292,9 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
           miEquipo.id,
           esPublica ? TIPOS_LIGA_PUBLICA : undefined
         ),
-        // Si falla, simplemente no se muestran rivales.
-        fetchProximosRivales(supabase).catch(() => ({} as Record<string, ProximoRival[]>)),
+        rivalesP,
         // Los comunicados los ven todas las ligas, también la pública.
-        fetchComunicados(supabase).catch(() => [] as Comunicado[]),
+        comunicadosP,
       ]);
 
     setComunicados(listaComunicados);
