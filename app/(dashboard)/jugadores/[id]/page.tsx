@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useMemo } from "react";
+import { useDatosCacheados } from "@/lib/useDatosCacheados";
 import { createClient } from "@/lib/supabase/client";
 import { useGameState } from "@/components/GameStateProvider";
 import { useIdioma, useT } from "@/components/IdiomaProvider";
@@ -181,26 +182,16 @@ function PerfilJugadorContenido() {
   const t = useT();
   const tj = t.jugadores;
 
-  const [perfil, setPerfil] = useState<PerfilJugador | null>(null);
-  const [historialValor, setHistorialValor] = useState<PuntoValor[]>([]);
-  const [historialElo, setHistorialElo] = useState<PuntoElo[]>([]);
-  const [cargando, setCargando] = useState(true);
-
-  useEffect(() => {
-    (async () => {
-      setCargando(true);
-      const [p, hv, he] = await Promise.all([
-        fetchPerfilJugador(supabase, id),
-        fetchHistorialValor(supabase, id),
-        fetchHistorialElo(supabase, id),
-      ]);
-      setPerfil(p);
-      setHistorialValor(hv);
-      setHistorialElo(he);
-      setCargando(false);
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  const { datos, cargando } = useDatosCacheados(`jugador:${id}`, () =>
+    Promise.all([
+      fetchPerfilJugador(supabase, id),
+      fetchHistorialValor(supabase, id),
+      fetchHistorialElo(supabase, id),
+    ])
+  );
+  const perfil: PerfilJugador | null = datos?.[0] ?? null;
+  const historialValor: PuntoValor[] = datos?.[1] ?? [];
+  const historialElo: PuntoElo[] = datos?.[2] ?? [];
 
   // Si se llega desde un torneo, ese va primero; el resto, del más
   // reciente al más antiguo.

@@ -30,6 +30,7 @@ export default definirTextos(
     },
     sinJugadoresLiga: "Todavía no hay jugadores cargados en la liga.",
     sinCoincidencias: (busqueda: string) => `No hay jugadores que coincidan con "${busqueda}".`,
+    verMas: (n: number, quedan: number) => `Ver ${n} más (quedan ${quedan})`,
     valor: (v: number) => `Valor ${v} M`,
     disponible: "Disponible",
     ofertaEnviadaLinea: (importe: number) => ` · Oferta enviada: ${importe} M`,
@@ -107,6 +108,7 @@ export default definirTextos(
       sinJugadoresLiga: "Oraindik ez dago jokalaririk kargatuta ligan.",
       sinCoincidencias: (busqueda: string) =>
         `Ez dago "${busqueda}" bilaketarekin bat datorren jokalaririk.`,
+      verMas: (n: number, quedan: number) => `Ikusi beste ${n} (${quedan} falta dira)`,
       valor: (v: number) => `Balioa ${v} M`,
       disponible: "Eskuragarri",
       ofertaEnviadaLinea: (importe: number) => ` · Bidalitako eskaintza: ${importe} M`,
@@ -181,6 +183,7 @@ export default definirTextos(
       },
       sinJugadoresLiga: "No players loaded in the league yet.",
       sinCoincidencias: (busqueda: string) => `No players match "${busqueda}".`,
+      verMas: (n: number, quedan: number) => `Show ${n} more (${quedan} left)`,
       valor: (v: number) => `Value ${v} M`,
       disponible: "Available",
       ofertaEnviadaLinea: (importe: number) => ` · Offer sent: ${importe} M`,

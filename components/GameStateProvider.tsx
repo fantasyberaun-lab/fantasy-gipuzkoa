@@ -159,8 +159,10 @@ interface GameState {
   unirseLigaPublica: (nombreEquipo: string) => Promise<ResultadoAccion>;
   cambiarLigaActiva: (ligaId: string) => Promise<void>;
   salirLiga: (ligaId: string) => Promise<ResultadoAccion>;
-  // Vuelve a cargar los datos del juego (p. ej. el saldo tras cobrar la racha diaria).
+  // Vuelve a cargar todos los datos del juego.
   recargar: () => Promise<void>;
+  // Vuelve a leer solo el saldo (p. ej. tras cobrar la racha diaria).
+  recargarSaldo: () => Promise<void>;
 }
 
 const GameStateContext = createContext<GameState | null>(null);
@@ -206,99 +208,36 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const [comunicados, setComunicados] = useState<Comunicado[]>([]);
   const [comunicadosVistosEn, setComunicadosVistosEn] = useState(0);
   const [sugerencias, setSugerencias] = useState<Sugerencia[]>([]);
+  // Id del usuario conectado (para filtrar sus sugerencias en tiempo real).
+  const [userId, setUserId] = useState("");
 
   // Cuándo se cargaron los datos del juego por última vez y si hay una recarga en
   // marcha. Sirven para refrescar el mercado solos cuando se resuelve una tanda.
   const ultimaCargaRef = useRef(Date.now());
   const recargandoRef = useRef(false);
+  // Próximos rivales y estado de jugadores (player_status) de la última carga:
+  // las recargas parciales tras una acción los reutilizan en vez de pedirlos otra vez.
+  const rivalesRef = useRef<Record<string, ProximoRival[]>>({});
+  const estadosRef = useRef<any[] | null>(null);
+  // Liga cuyos datos se están mostrando. Si una recarga parcial termina después
+  // de cambiar de liga, sus datos se descartan.
+  const ligaCargadaRef = useRef("");
 
-  async function cargarTodo(forzarLigaId?: string) {
-    ultimaCargaRef.current = Date.now();
-    // getSession lee la sesión del navegador sin ir a la red (y la refresca si
-    // ha caducado). La validación de verdad ya la hace el middleware en cada
-    // petición, así que aquí no hace falta pagar otra llamada a Supabase Auth.
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const user = session?.user;
+  function pedirEstados(leagueId: string) {
+    return fetchEstadoJugadores(supabase, leagueId).then((estados) => {
+      if (estados) estadosRef.current = estados;
+      return estados;
+    });
+  }
 
-    if (!user) {
-      setCargando(false);
-      return;
-    }
-
-    // Lo que no depende de la liga arranca ya, en paralelo: próximos rivales
-    // (lo más lento) y comunicados se esperan más abajo, junto al resto.
-    // Si fallan, simplemente no se muestran.
-    const rivalesP = fetchProximosRivales(supabase).catch(
-      () => ({} as Record<string, ProximoRival[]>)
-    );
-    const comunicadosP = fetchComunicados(supabase).catch(() => [] as Comunicado[]);
-
-    const [rol, avatarGuardado, ligas] = await Promise.all([
-      fetchMiRol(supabase, user.id),
-      fetchMiAvatar(supabase, user.id),
-      fetchMisLigas(supabase),
-    ]);
-    setEsRoot(rol === "root");
-    setAvatar(rol === "root" ? avatarGuardado : null);
-    setMisLigas(ligas);
-
-    if (ligas.length === 0) {
-      setTieneEquipo(false);
-      setCargando(false);
-      return;
-    }
-
-    const idGuardado = forzarLigaId ?? leerLigaActivaGuardada();
-    const ligaSeleccionada = ligas.find((l) => l.ligaId === idGuardado) ?? ligas[0];
-    guardarLigaActiva(ligaSeleccionada.ligaId);
-
-    const esPublica = ligaSeleccionada.tipo === "publica";
-    setEsLigaPublica(esPublica);
-    setTieneEquipo(true);
-    const miEquipo: EquipoManager = {
-      id: ligaSeleccionada.equipoId,
-      leagueId: ligaSeleccionada.ligaId,
-      nombreEquipo: ligaSeleccionada.nombreEquipo,
-      saldo: redondear2(ligaSeleccionada.saldo),
-    };
-    setEquipo(miEquipo);
-
-    // player_status (lo más pesado) se pide una sola vez para jugadores y mercado.
-    const estadosJugadores = fetchEstadoJugadores(supabase, miEquipo.leagueId);
-    const [plantilla, ligaJugadores, misOfertas, ofertasParaMi, jugadoresMercado, pujas, tabla, avisos, rivales, listaComunicados] =
-      await Promise.all([
-        fetchMiPlantilla(supabase, miEquipo.id),
-        fetchJugadoresLiga(supabase, miEquipo.leagueId, miEquipo.id, estadosJugadores),
-        // En la liga pública no hay ofertas, mercado por tandas ni avisos.
-        esPublica
-          ? Promise.resolve([] as OfertaPendiente[])
-          : fetchMisOfertas(supabase, miEquipo.id),
-        esPublica
-          ? Promise.resolve([] as OfertaRecibida[])
-          : fetchOfertasRecibidas(supabase, miEquipo.id),
-        esPublica
-          ? Promise.resolve([] as MercadoDelDia[])
-          : fetchMercado(supabase, miEquipo.leagueId, estadosJugadores),
-        esPublica
-          ? Promise.resolve([] as PujaMercado[])
-          : fetchPujasMercado(supabase, miEquipo.leagueId),
-        fetchClasificacion(supabase, miEquipo.leagueId, miEquipo.id),
-        // En la pública solo se cargan los ingresos por ronda (no las operaciones de otros).
-        fetchNotificaciones(
-          supabase,
-          miEquipo.leagueId,
-          miEquipo.id,
-          esPublica ? TIPOS_LIGA_PUBLICA : undefined
-        ),
-        rivalesP,
-        // Los comunicados los ven todas las ligas, también la pública.
-        comunicadosP,
-      ]);
-
-    setComunicados(listaComunicados);
-    setComunicadosVistosEn(leerComunicadosVistos());
+  // Plantilla, titulares, capitán y lista de jugadores, con los próximos rivales
+  // que ya se tengan (llegan aparte, ver aplicarRivales).
+  function aplicarPlantillaYJugadores(
+    plantilla: Awaited<ReturnType<typeof fetchMiPlantilla>>,
+    ligaJugadores: JugadorLiga[],
+    esPublica: boolean
+  ) {
+    const rivales = rivalesRef.current;
     setSquad(
       plantilla.map(({ titular: _titular, capitan: _capitan, ...resto }) => ({
         ...resto,
@@ -324,14 +263,206 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
           }))
         : ligaJugadores.map((j) => ({ ...j, proximosRivales: rivales[j.id] ?? [] }))
     );
+  }
+
+  function aplicarMercado(jugadoresMercado: MercadoDelDia[]) {
+    const rivales = rivalesRef.current;
+    setMercado(jugadoresMercado.map((j) => ({ ...j, proximosRivales: rivales[j.id] ?? [] })));
+  }
+
+  // Los próximos rivales son la consulta más lenta: la pantalla se pinta sin
+  // ellos y se añaden aquí cuando llegan.
+  function aplicarRivales(rivales: Record<string, ProximoRival[]>) {
+    rivalesRef.current = rivales;
+    setSquad((prev) =>
+      prev.map((s) => ({ ...s, proximosRivales: rivales[s.jugador.id] ?? [] }))
+    );
+    setJugadoresLiga((prev) =>
+      prev.map((j) => ({ ...j, proximosRivales: rivales[j.id] ?? [] }))
+    );
+    setMercado((prev) => prev.map((j) => ({ ...j, proximosRivales: rivales[j.id] ?? [] })));
+  }
+
+  // Lista de ligas y saldo del equipo activo (mis_ligas trae los dos).
+  function aplicarSaldo(ligas: LigaResumen[], leagueId: string) {
+    if (ligas.length === 0) return; // error de red: mejor dejar lo que había
+    setMisLigas(ligas);
+    const mia = ligas.find((l) => l.ligaId === leagueId);
+    if (!mia) return;
+    setEquipo((prev) =>
+      prev.leagueId === leagueId ? { ...prev, saldo: redondear2(mia.saldo) } : prev
+    );
+  }
+
+  async function cargarTodo(forzarLigaId?: string) {
+    ultimaCargaRef.current = Date.now();
+    // getSession lee la sesión del navegador sin ir a la red (y la refresca si
+    // ha caducado). La validación de verdad ya la hace el middleware en cada
+    // petición, así que aquí no hace falta pagar otra llamada a Supabase Auth.
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const user = session?.user;
+
+    if (!user) {
+      setCargando(false);
+      return;
+    }
+    setUserId(user.id);
+
+    // Lo que no depende de la liga arranca ya, en paralelo. Los próximos
+    // rivales (lo más lento) no se esperan: se añaden cuando llegan. Si fallan
+    // los rivales o los comunicados, simplemente no se muestran.
+    const rivalesP = fetchProximosRivales(supabase).catch(
+      () => ({} as Record<string, ProximoRival[]>)
+    );
+    const comunicadosP = fetchComunicados(supabase).catch(() => [] as Comunicado[]);
+
+    const [rol, avatarGuardado, ligas] = await Promise.all([
+      fetchMiRol(supabase, user.id),
+      fetchMiAvatar(supabase, user.id),
+      fetchMisLigas(supabase),
+    ]);
+    setEsRoot(rol === "root");
+    setAvatar(rol === "root" ? avatarGuardado : null);
+    setMisLigas(ligas);
+
+    if (ligas.length === 0) {
+      ligaCargadaRef.current = "";
+      setTieneEquipo(false);
+      setCargando(false);
+      return;
+    }
+
+    const idGuardado = forzarLigaId ?? leerLigaActivaGuardada();
+    const ligaSeleccionada = ligas.find((l) => l.ligaId === idGuardado) ?? ligas[0];
+    guardarLigaActiva(ligaSeleccionada.ligaId);
+    ligaCargadaRef.current = ligaSeleccionada.ligaId;
+
+    const esPublica = ligaSeleccionada.tipo === "publica";
+    setEsLigaPublica(esPublica);
+    setTieneEquipo(true);
+    const miEquipo: EquipoManager = {
+      id: ligaSeleccionada.equipoId,
+      leagueId: ligaSeleccionada.ligaId,
+      nombreEquipo: ligaSeleccionada.nombreEquipo,
+      saldo: redondear2(ligaSeleccionada.saldo),
+    };
+    setEquipo(miEquipo);
+
+    // player_status (lo más pesado) se pide una sola vez para jugadores y mercado.
+    const estadosJugadores = pedirEstados(miEquipo.leagueId);
+    const [plantilla, ligaJugadores, misOfertas, ofertasParaMi, jugadoresMercado, pujas, tabla, avisos, listaComunicados] =
+      await Promise.all([
+        fetchMiPlantilla(supabase, miEquipo.id),
+        fetchJugadoresLiga(supabase, miEquipo.leagueId, miEquipo.id, estadosJugadores),
+        // En la liga pública no hay ofertas, mercado por tandas ni avisos.
+        esPublica
+          ? Promise.resolve([] as OfertaPendiente[])
+          : fetchMisOfertas(supabase, miEquipo.id),
+        esPublica
+          ? Promise.resolve([] as OfertaRecibida[])
+          : fetchOfertasRecibidas(supabase, miEquipo.id),
+        esPublica
+          ? Promise.resolve([] as MercadoDelDia[])
+          : fetchMercado(supabase, miEquipo.leagueId, estadosJugadores),
+        esPublica
+          ? Promise.resolve([] as PujaMercado[])
+          : fetchPujasMercado(supabase, miEquipo.leagueId),
+        fetchClasificacion(supabase, miEquipo.leagueId, miEquipo.id),
+        // En la pública solo se cargan los ingresos por ronda (no las operaciones de otros).
+        fetchNotificaciones(
+          supabase,
+          miEquipo.leagueId,
+          miEquipo.id,
+          esPublica ? TIPOS_LIGA_PUBLICA : undefined
+        ),
+        // Los comunicados los ven todas las ligas, también la pública.
+        comunicadosP,
+      ]);
+
+    setComunicados(listaComunicados);
+    setComunicadosVistosEn(leerComunicadosVistos());
+    aplicarPlantillaYJugadores(plantilla, ligaJugadores, esPublica);
     setOfertas(misOfertas);
     setOfertasRecibidas(ofertasParaMi);
-    setMercado(jugadoresMercado.map((j) => ({ ...j, proximosRivales: rivales[j.id] ?? [] })));
+    aplicarMercado(jugadoresMercado);
     setPujasMercado(pujas);
     setClasificacion(tabla);
     setNotificaciones(avisos.notificaciones);
     setNotificacionesVistasEn(avisos.vistasEn);
     setCargando(false);
+
+    // Si los rivales ya habían llegado, esto se aplica justo después.
+    rivalesP.then(aplicarRivales);
+  }
+
+  // --- Recargas parciales tras una acción: solo lo que esa acción puede cambiar.
+  // La recarga completa sigue haciéndose al cambiar de liga, al volver a la
+  // pestaña tras un rato y después de cada tanda del mercado.
+
+  // Fichar, vender, clausulazo, blindar, subir cláusula, aceptar oferta: cambian
+  // la plantilla, los jugadores, el mercado, el saldo y las ofertas.
+  async function recargarJuego() {
+    const { id, leagueId } = equipo;
+    if (!id || !leagueId) return;
+    const esPublica = esLigaPublica;
+    const estados = pedirEstados(leagueId);
+    const [plantilla, ligaJugadores, jugadoresMercado, pujas, misOfertas, ofertasParaMi, ligas] =
+      await Promise.all([
+        fetchMiPlantilla(supabase, id),
+        fetchJugadoresLiga(supabase, leagueId, id, estados),
+        esPublica ? Promise.resolve(null) : fetchMercado(supabase, leagueId, estados),
+        esPublica ? Promise.resolve(null) : fetchPujasMercado(supabase, leagueId),
+        esPublica ? Promise.resolve(null) : fetchMisOfertas(supabase, id),
+        esPublica ? Promise.resolve(null) : fetchOfertasRecibidas(supabase, id),
+        fetchMisLigas(supabase),
+      ]);
+    if (ligaCargadaRef.current !== leagueId) return;
+    aplicarPlantillaYJugadores(plantilla, ligaJugadores, esPublica);
+    if (jugadoresMercado) aplicarMercado(jugadoresMercado);
+    if (pujas) setPujasMercado(pujas);
+    if (misOfertas) setOfertas(misOfertas);
+    if (ofertasParaMi) setOfertasRecibidas(ofertasParaMi);
+    aplicarSaldo(ligas, leagueId);
+  }
+
+  // Pujar / cancelar puja: cambian las pujas y su número en el mercado.
+  async function recargarPujasYMercado() {
+    const { leagueId } = equipo;
+    if (!leagueId) return;
+    const estados = estadosRef.current
+      ? Promise.resolve(estadosRef.current)
+      : pedirEstados(leagueId);
+    const [pujas, jugadoresMercado] = await Promise.all([
+      fetchPujasMercado(supabase, leagueId),
+      fetchMercado(supabase, leagueId, estados),
+    ]);
+    if (ligaCargadaRef.current !== leagueId) return;
+    setPujasMercado(pujas);
+    aplicarMercado(jugadoresMercado);
+  }
+
+  async function recargarMisOfertas() {
+    const { id, leagueId } = equipo;
+    if (!id) return;
+    const lista = await fetchMisOfertas(supabase, id);
+    if (ligaCargadaRef.current === leagueId) setOfertas(lista);
+  }
+
+  async function recargarOfertasRecibidas() {
+    const { id, leagueId } = equipo;
+    if (!id) return;
+    const lista = await fetchOfertasRecibidas(supabase, id);
+    if (ligaCargadaRef.current === leagueId) setOfertasRecibidas(lista);
+  }
+
+  // Solo el saldo (p. ej. tras cobrar la racha diaria).
+  async function recargarSaldo() {
+    const { leagueId } = equipo;
+    if (!leagueId) return;
+    const ligas = await fetchMisLigas(supabase);
+    if (ligaCargadaRef.current === leagueId) aplicarSaldo(ligas, leagueId);
   }
 
   useEffect(() => {
@@ -396,91 +527,63 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     setNotificacionesVistasEn(avisos.vistasEn);
   }
 
-  // Los avisos nuevos llegan por Supabase Realtime (la RLS de la tabla
-  // hace que cada manager solo reciba los suyos). Como red de seguridad,
-  // también se recargan al volver a la pestaña del navegador.
-  useEffect(() => {
-    if (!equipo.id || !equipo.leagueId) return;
+  async function recargarComunicados() {
+    setComunicados(await fetchComunicados(supabase));
+  }
 
-    // En la pública no hay tiempo real (recibiría los fichajes de todos): los
-    // ingresos se recargan al volver a la pestaña.
-    const canal = esLigaPublica
-      ? null
-      : supabase
-          .channel(`notificaciones-${equipo.leagueId}`)
-          .on(
-            "postgres_changes",
-            {
-              event: "INSERT",
-              schema: "public",
-              table: "notificaciones",
-              filter: `league_id=eq.${equipo.leagueId}`,
-            },
-            () => {
-              recargarNotificaciones();
-            }
-          )
-          .subscribe();
-
-    const alVolver = () => {
-      if (document.visibilityState === "visible") recargarNotificaciones();
-    };
-    document.addEventListener("visibilitychange", alVolver);
-
-    return () => {
-      if (canal) supabase.removeChannel(canal);
-      document.removeEventListener("visibilitychange", alVolver);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [equipo.id, equipo.leagueId, esLigaPublica]);
-
-  // Los comunicados nuevos (o editados/borrados) llegan por Realtime; red de
-  // seguridad: se recargan al volver a la pestaña del navegador.
-  useEffect(() => {
-    if (!equipo.id) return;
-
-    const recargar = async () => setComunicados(await fetchComunicados(supabase));
-
-    const canal = supabase
-      .channel("comunicados")
-      .on("postgres_changes", { event: "*", schema: "public", table: "comunicados" }, () => {
-        recargar();
-      })
-      .subscribe();
-
-    const alVolver = () => {
-      if (document.visibilityState === "visible") recargar();
-    };
-    document.addEventListener("visibilitychange", alVolver);
-
-    return () => {
-      supabase.removeChannel(canal);
-      document.removeEventListener("visibilitychange", alVolver);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [equipo.id]);
-
-  // Sugerencias propias: no dependen de la liga. Cuando un admin marca una como
-  // leída llega por Realtime (la RLS solo deja ver las tuyas); red de
-  // seguridad: se recargan al volver a la pestaña del navegador.
+  // Sugerencias propias: no dependen de la liga.
   async function recargarSugerencias() {
     setSugerencias(await fetchMisSugerencias(supabase));
   }
 
+  // Lo nuevo llega por Supabase Realtime, en un solo canal por usuario:
+  //   - avisos de la liga (la RLS hace que cada manager solo reciba los suyos;
+  //     en la pública no hay tiempo real porque recibiría los fichajes de todos),
+  //   - comunicados del administrador (nuevos, editados o borrados),
+  //   - sus sugerencias, filtradas por usuario desde el principio, para que
+  //     Supabase no tenga que mirar las de todos (cuando un admin marca una
+  //     como leída llega aquí; los borrados no admiten filtro y no llegan).
+  // Red de seguridad: todo se recarga al volver a la pestaña del navegador.
   useEffect(() => {
-    if (!equipo.id) return;
+    if (!equipo.id || !equipo.leagueId || !userId) return;
 
     recargarSugerencias();
 
-    const canal = supabase
-      .channel("sugerencias")
-      .on("postgres_changes", { event: "*", schema: "public", table: "sugerencias" }, () => {
-        recargarSugerencias();
+    // Nombre único: removeChannel es asíncrono y, con el mismo nombre, Supabase
+    // devolvería el canal anterior (ya suscrito) al cambiar de liga.
+    const canal = supabase.channel(`avisos-${userId}-${Math.random().toString(36).slice(2)}`);
+    if (!esLigaPublica) {
+      canal.on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notificaciones",
+          filter: `league_id=eq.${equipo.leagueId}`,
+        },
+        () => {
+          recargarNotificaciones();
+        }
+      );
+    }
+    canal
+      .on("postgres_changes", { event: "*", schema: "public", table: "comunicados" }, () => {
+        recargarComunicados();
       })
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "sugerencias", filter: `user_id=eq.${userId}` },
+        () => {
+          recargarSugerencias();
+        }
+      )
       .subscribe();
 
     const alVolver = () => {
-      if (document.visibilityState === "visible") recargarSugerencias();
+      if (document.visibilityState !== "visible") return;
+      recargarNotificaciones();
+      recargarComunicados();
+      recargarSugerencias();
     };
     document.addEventListener("visibilitychange", alVolver);
 
@@ -489,7 +592,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       document.removeEventListener("visibilitychange", alVolver);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [equipo.id]);
+  }, [equipo.id, equipo.leagueId, esLigaPublica, userId]);
 
   const sugerenciasNoVistas = sugerencias.filter((s) => s.leidaEn && !s.avisoVisto).length;
 
@@ -560,7 +663,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   async function blindarJugador(jugadorId: string): Promise<ResultadoAccion> {
     if (!equipo.leagueId) return { ok: false, mensaje: t.juego.sinEquipo };
     const resultado = await blindarJugadorDB(supabase, jugadorId, equipo.leagueId);
-    if (resultado.ok) await cargarTodo();
+    if (resultado.ok) await recargarJuego();
     return resultado;
   }
 
@@ -572,7 +675,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     const resultado = esLigaPublica
       ? await venderJugadorPublicoDB(supabase, id, equipo.leagueId)
       : await venderJugadorDB(supabase, equipo.id, id, valorMercado);
-    if (resultado.ok) await cargarTodo();
+    if (resultado.ok) await recargarJuego();
     return resultado;
   }
 
@@ -588,7 +691,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       return { ok: false, mensaje: t.mercado.clausulazosCerrados };
     }
     const resultado = await pagarClausulaDB(supabase, jugadorId, equipo.leagueId);
-    if (resultado.ok) await cargarTodo();
+    if (resultado.ok) await recargarJuego();
     return resultado;
   }
 
@@ -607,7 +710,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       };
     }
     const resultado = await subirClausulaDB(supabase, jugadorId, equipo.leagueId, importe);
-    if (resultado.ok) await cargarTodo();
+    if (resultado.ok) await recargarJuego();
     return resultado;
   }
 
@@ -626,26 +729,26 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       };
     }
     const resultado = await hacerOfertaDB(supabase, equipo.id, jugadorId, importe);
-    if (resultado.ok) await cargarTodo();
+    if (resultado.ok) await recargarMisOfertas();
     return resultado;
   }
 
   async function aceptarOferta(ofertaId: string): Promise<ResultadoAccion> {
     const resultado = await aceptarOfertaDB(supabase, ofertaId);
-    if (resultado.ok) await cargarTodo();
+    if (resultado.ok) await recargarJuego();
     return resultado;
   }
 
   async function rechazarOferta(ofertaId: string): Promise<ResultadoAccion> {
     const resultado = await rechazarOfertaDB(supabase, ofertaId);
-    if (resultado.ok) await cargarTodo();
+    if (resultado.ok) await recargarOfertasRecibidas();
     return resultado;
   }
 
   async function ficharJugador(jugadorId: string): Promise<ResultadoAccion> {
     if (!equipo.leagueId) return { ok: false, mensaje: t.juego.sinEquipo };
     const resultado = await ficharJugadorDB(supabase, jugadorId, equipo.leagueId);
-    if (resultado.ok) await cargarTodo();
+    if (resultado.ok) await recargarJuego();
     return resultado;
   }
 
@@ -659,20 +762,20 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     }
     // El límite (saldo + deuda máxima - otras pujas) lo valida el servidor.
     const resultado = await pujarMercadoDB(supabase, listingId, importe, equipo.leagueId);
-    if (resultado.ok) await cargarTodo();
+    if (resultado.ok) await recargarPujasYMercado();
     return resultado;
   }
 
   async function cancelarPuja(listingId: string): Promise<ResultadoAccion> {
     if (!equipo.leagueId) return { ok: false, mensaje: t.juego.sinEquipo };
     const resultado = await cancelarPujaMercadoDB(supabase, listingId, equipo.leagueId);
-    if (resultado.ok) await cargarTodo();
+    if (resultado.ok) await recargarPujasYMercado();
     return resultado;
   }
 
   async function cancelarOferta(ofertaId: string): Promise<ResultadoAccion> {
     const resultado = await cancelarOfertaDB(supabase, ofertaId);
-    if (resultado.ok) await cargarTodo();
+    if (resultado.ok) await recargarMisOfertas();
     return resultado;
   }
 
@@ -785,6 +888,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         cambiarLigaActiva,
         salirLiga,
         recargar: () => cargarTodo(),
+        recargarSaldo,
       }}
     >
       {children}

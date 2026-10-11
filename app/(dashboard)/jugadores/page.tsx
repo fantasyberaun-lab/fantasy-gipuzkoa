@@ -6,6 +6,11 @@ import { useGameState } from "@/components/GameStateProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import { useT } from "@/components/IdiomaProvider";
 
+const TRAMO_LISTA = 50;
+// Cuántos se veían al salir: al volver de la ficha de un jugador se mantienen,
+// para no perder el sitio en la lista.
+let visiblesAlSalir = TRAMO_LISTA;
+
 type Orden =
   | "puntos"
   | "nombre"
@@ -33,6 +38,14 @@ export default function JugadoresPage() {
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [montoOferta, setMontoOferta] = useState("");
   const [busqueda, setBusqueda] = useState("");
+  // Se pintan por tramos: con más de 500 jugadores, pintarlos todos de golpe
+  // hace lenta la pestaña en móviles. La búsqueda y el orden van sobre todos.
+  const [visibles, setVisiblesEstado] = useState(() => visiblesAlSalir);
+  const setVisibles = (valor: number | ((v: number) => number)) =>
+    setVisiblesEstado((v) => {
+      visiblesAlSalir = typeof valor === "function" ? valor(v) : valor;
+      return visiblesAlSalir;
+    });
   const [orden, setOrden] = useState<Orden>("puntos");
   const [enviando, setEnviando] = useState(false);
   const [puntosAbiertoId, setPuntosAbiertoId] = useState<string | null>(null);
@@ -152,7 +165,10 @@ export default function JugadoresPage() {
           <input
             type="text"
             value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
+            onChange={(e) => {
+              setBusqueda(e.target.value);
+              setVisibles(TRAMO_LISTA);
+            }}
             placeholder={tj.buscar}
             className="w-full rounded-lg border border-neutral-300 py-2 pl-9 pr-3 text-sm dark:border-neutral-700 dark:bg-neutral-900"
           />
@@ -160,7 +176,10 @@ export default function JugadoresPage() {
 
         <select
           value={orden}
-          onChange={(e) => setOrden(e.target.value as Orden)}
+          onChange={(e) => {
+            setOrden(e.target.value as Orden);
+            setVisibles(TRAMO_LISTA);
+          }}
           className="rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
         >
           <option value="puntos">{tj.orden.puntos}</option>
@@ -184,7 +203,7 @@ export default function JugadoresPage() {
       )}
 
       <div className="flex flex-col gap-2">
-        {jugadoresFiltrados.map((jugador) => {
+        {jugadoresFiltrados.slice(0, visibles).map((jugador) => {
           const estaSeleccionado = seleccionadoId === jugador.id;
           // En la liga pública no hay dueño único: ni ofertas ni cláusulas.
           const esFichable = !esLigaPublica && jugador.propietario !== null && !jugador.esMiEquipo;
@@ -417,6 +436,18 @@ export default function JugadoresPage() {
           );
         })}
       </div>
+
+      {jugadoresFiltrados.length > visibles && (
+        <button
+          onClick={() => setVisibles((v) => v + TRAMO_LISTA)}
+          className="w-full rounded-lg border border-neutral-300 py-2 text-sm font-medium hover:bg-neutral-50 dark:border-neutral-700 dark:hover:bg-neutral-900"
+        >
+          {tj.verMas(
+            Math.min(TRAMO_LISTA, jugadoresFiltrados.length - visibles),
+            jugadoresFiltrados.length - visibles
+          )}
+        </button>
+      )}
     </div>
   );
 }
