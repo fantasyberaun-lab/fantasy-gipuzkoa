@@ -85,7 +85,7 @@ function ModalCofre({ cobro, onCerrar }: { cobro: Cobro; onCerrar: () => void })
 export default function RachaDiaria() {
   const supabase = createClient();
   const t = useT();
-  const { recargar, cargando } = useGameState();
+  const { recargarSaldo, cargando } = useGameState();
   const [estado, setEstado] = useState<EstadoRacha | null>(null);
   const [abierto, setAbierto] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -158,7 +158,7 @@ export default function RachaDiaria() {
         setAbierto(false);
         setMostrarCofre(true);
       }
-      await Promise.all([cargar(), recargar()]);
+      await Promise.all([cargar(), recargarSaldo()]);
     } else {
       setError(r.mensaje);
       await cargar();
