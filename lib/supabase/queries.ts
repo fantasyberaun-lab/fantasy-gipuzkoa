@@ -61,7 +61,91 @@ async function leerTodo(construir: (desde: number, hasta: number) => PromiseLike
 // partida ya está jugada y no se muestra. Quien queda sin emparejar (fila
 // "descansa" o descanso guardado) sale con descansa=true. Devuelve un mapa
 // id de jugador -> próximos rivales (uno por torneo).
+//
+// El cálculo lo hace la función proximos_rivales (0080) en la base de datos:
+// una sola consulta que devuelve solo las filas útiles.
 export async function fetchProximosRivales(
+  supabase: Supabase
+): Promise<Record<string, ProximoRival[]>> {
+  // Normalmente es una sola página (una fila por jugador con ronda vigente),
+  // pero se pagina por si algún día pasa de las 1000 filas que corta Supabase.
+  const TAM = 1000;
+  const filas: any[] = [];
+  for (let desde = 0; ; desde += TAM) {
+    const { data, error } = await supabase
+      .rpc("proximos_rivales")
+      .order("player_id")
+      .order("orden")
+      .range(desde, desde + TAM - 1);
+    // Si la función aún no existe (migración sin aplicar) o falla, se calcula
+    // como antes, en el navegador.
+    if (error || !data) return calcularProximosRivalesEnNavegador(supabase);
+    filas.push(...(data as any[]));
+    if (data.length < TAM) break;
+  }
+
+  const resultado: Record<string, ProximoRival[]> = {};
+  for (const f of filas) {
+    (resultado[f.player_id] ??= []).push({
+      jornada: f.jornada,
+      torneo: f.torneo ?? null,
+      tablero: f.tablero ?? null,
+      descansa: Boolean(f.descansa),
+      rivalId: f.rival_id ?? null,
+      rivalNombre: f.rival_nombre ?? "",
+      rivalElo: f.rival_elo ?? null,
+      color: (f.color ?? null) as ProximoRival["color"],
+    });
+  }
+
+  if (COMPROBAR_RIVALES) compararConCalculoAntiguo(supabase, resultado);
+  return resultado;
+}
+
+// Comprobación temporal: en las previews de Vercel (y en local) se calcula
+// también a la antigua y se avisa en la consola del navegador si no coinciden.
+// Se quitará, junto con el cálculo antiguo, cuando se haya visto que coinciden.
+const COMPROBAR_RIVALES =
+  process.env.NEXT_PUBLIC_VERCEL_ENV === "preview" || process.env.NODE_ENV === "development";
+
+function normalizarRivales(mapa: Record<string, ProximoRival[]>) {
+  return JSON.stringify(
+    Object.keys(mapa)
+      .sort()
+      .map((id) => [
+        id,
+        mapa[id]
+          .map((r) => JSON.stringify(r, Object.keys(r).sort()))
+          .sort(),
+      ])
+  );
+}
+
+async function compararConCalculoAntiguo(
+  supabase: Supabase,
+  nuevo: Record<string, ProximoRival[]>
+) {
+  try {
+    const antiguo = await calcularProximosRivalesEnNavegador(supabase);
+    if (normalizarRivales(antiguo) === normalizarRivales(nuevo)) {
+      console.info(
+        `[Próximos rivales] OK: la base de datos y el cálculo antiguo coinciden (${Object.keys(nuevo).length} jugadores).`
+      );
+      return;
+    }
+    const distintos = [...new Set([...Object.keys(antiguo), ...Object.keys(nuevo)])].filter(
+      (id) => normalizarRivales({ x: antiguo[id] ?? [] }) !== normalizarRivales({ x: nuevo[id] ?? [] })
+    );
+    console.warn(
+      `[Próximos rivales] DIFERENCIAS en ${distintos.length} jugadores.`,
+      distintos.map((id) => ({ jugador: id, antiguo: antiguo[id] ?? [], nuevo: nuevo[id] ?? [] }))
+    );
+  } catch {
+    // Es solo una comprobación: si falla no afecta a la app.
+  }
+}
+
+async function calcularProximosRivalesEnNavegador(
   supabase: Supabase
 ): Promise<Record<string, ProximoRival[]>> {
   const mesas = await leerTodo((d, h) =>
