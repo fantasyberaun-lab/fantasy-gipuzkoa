@@ -7,6 +7,7 @@ export default definirTextos(
     ayuda: "Prueba: de momento solo lo ves tú (root). Más adelante se desbloquearán por nivel.",
     sinAvatar: "Sin icono",
     guardado: "Icono actualizado.",
+    piezas: { peon: "Peón", caballo: "Caballo", alfil: "Alfil", torre: "Torre", dama: "Dama", rey: "Rey" },
   },
   {
     eu: {
@@ -14,12 +15,14 @@ export default definirTextos(
       ayuda: "Proba: oraingoz zuk bakarrik ikusten duzu (root). Aurrerago mailaka desblokeatuko dira.",
       sinAvatar: "Ikonorik gabe",
       guardado: "Ikonoa eguneratuta.",
+      piezas: { peon: "Peoia", caballo: "Zaldia", alfil: "Alfila", torre: "Dorrea", dama: "Dama", rey: "Erregea" },
     },
     en: {
       titulo: "Profile icon",
       ayuda: "Test: for now only you can see it (root). Later they'll unlock by level.",
       sinAvatar: "No icon",
       guardado: "Icon updated.",
+      piezas: { peon: "Pawn", caballo: "Knight", alfil: "Bishop", torre: "Rook", dama: "Queen", rey: "King" },
     },
   }
 );

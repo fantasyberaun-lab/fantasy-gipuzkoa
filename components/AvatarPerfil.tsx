@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { useT } from "@/components/IdiomaProvider";
-import { buscarAvatar, type Avatar } from "@/lib/avatares";
+import { buscarAvatar, nombreAvatar, type Avatar } from "@/lib/avatares";
 
 function iniciales(nombre: string) {
   return nombre
@@ -20,6 +20,7 @@ function iniciales(nombre: string) {
 // cabecera y de la barra inferior del móvil.
 function AvatarAmpliado({ avatar, onCerrar }: { avatar: Avatar; onCerrar: () => void }) {
   const t = useT();
+  const nombre = nombreAvatar(avatar, t);
 
   useEffect(() => {
     const alTeclear = (e: KeyboardEvent) => {
@@ -33,7 +34,7 @@ function AvatarAmpliado({ avatar, onCerrar }: { avatar: Avatar; onCerrar: () => 
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={avatar.nombre}
+      aria-label={nombre}
       onClick={onCerrar}
       className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-black/85 p-4"
     >
@@ -49,14 +50,14 @@ function AvatarAmpliado({ avatar, onCerrar }: { avatar: Avatar; onCerrar: () => 
       </button>
       <Image
         src={avatar.srcGrande}
-        alt={avatar.nombre}
+        alt={nombre}
         width={800}
         height={800}
         unoptimized
         onClick={(e) => e.stopPropagation()}
         className="h-auto w-full max-w-[min(90vw,70vh,800px)] rounded-lg shadow-2xl"
       />
-      <p className="font-display text-lg font-semibold text-white">{avatar.nombre}</p>
+      <p className="font-display text-lg font-semibold text-white">{nombre}</p>
     </div>,
     document.body
   );
@@ -77,15 +78,17 @@ export default function AvatarPerfil({
   className?: string;
   ampliable?: boolean;
 }) {
+  const t = useT();
   const elegido = buscarAvatar(avatar);
   const [ampliado, setAmpliado] = useState(false);
 
   if (elegido) {
+    const nombreElegido = nombreAvatar(elegido, t);
     const imagen = (
       <Image
         src={elegido.src}
-        alt={elegido.nombre}
-        title={elegido.nombre}
+        alt={nombreElegido}
+        title={nombreElegido}
         width={tamano}
         height={tamano}
         className={`shrink-0 rounded-xl ${className}`}
@@ -97,7 +100,7 @@ export default function AvatarPerfil({
         <button
           type="button"
           onClick={() => setAmpliado(true)}
-          aria-label={elegido.nombre}
+          aria-label={nombreElegido}
           className="shrink-0 rounded-xl transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold"
         >
           {imagen}
