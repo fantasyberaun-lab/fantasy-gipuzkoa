@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useDatosCacheados } from "@/lib/useDatosCacheados";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/components/IdiomaProvider";
 import {
@@ -55,27 +56,18 @@ export default function TorneoDetallePage() {
   const supabase = createClient();
   const tt = useT().torneos;
 
-  const [torneo, setTorneo] = useState<Torneo | null>(null);
-  const [detalle, setDetalle] = useState<DetalleTorneo | null>(null);
-  const [cargando, setCargando] = useState(true);
+  const { datos, cargando } = useDatosCacheados(`torneo:${id}`, () =>
+    Promise.all([fetchTorneo(supabase, id), fetchDetalleTorneo(supabase, id)])
+  );
+  const torneo: Torneo | null = datos?.[0] ?? null;
+  const detalle: DetalleTorneo | null = datos?.[1] ?? null;
   const [pestana, setPestana] = useState<Pestana>("jugadores");
-  const [jornadaId, setJornadaId] = useState<string>("");
-
-  useEffect(() => {
-    (async () => {
-      setCargando(true);
-      const [t, d] = await Promise.all([
-        fetchTorneo(supabase, id),
-        fetchDetalleTorneo(supabase, id),
-      ]);
-      setTorneo(t);
-      setDetalle(d);
-      // Por defecto, la última jornada del torneo.
-      setJornadaId(d.jornadas[d.jornadas.length - 1]?.id ?? "");
-      setCargando(false);
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  const [jornadaElegida, setJornadaId] = useState<string>("");
+  // Por defecto (o si la elegida ya no existe), la última jornada del torneo.
+  const jornadaId =
+    detalle && detalle.jornadas.some((j) => j.id === jornadaElegida)
+      ? jornadaElegida
+      : detalle?.jornadas[detalle.jornadas.length - 1]?.id ?? "";
 
   if (cargando) {
     return <p className="text-sm text-neutral-500">{tt.cargandoTorneo}</p>;

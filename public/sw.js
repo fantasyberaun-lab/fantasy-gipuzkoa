@@ -6,7 +6,9 @@
 // API/Supabase: siempre van a red para no servir datos desactualizados
 // (saldo, mercado, clasificación...).
 
-const CACHE_VERSION = "fantassy-gipuzkoa-v1";
+// Subir la versión borra las cachés anteriores al activarse (v2: se dejan de
+// cachear las respuestas de navegación interna de Next, ver más abajo).
+const CACHE_VERSION = "fantassy-gipuzkoa-v2";
 const APP_SHELL = [
   "/manifest.json",
   "/icons/icon-192.png",
@@ -62,8 +64,22 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Estáticos (iconos, manifest, _next/static, etc.): caché primero,
-  // y se actualiza en segundo plano.
+  // Solo se cachean archivos que no cambian sin cambiar de nombre: los de
+  // _next/static (llevan un hash en el nombre), iconos, avatares y manifest.
+  // Todo lo demás va a red sin tocar; en especial las peticiones de
+  // navegación interna de Next (?_rsc=...): si se sirvieran de caché, tras un
+  // despliegue podrían apuntar a archivos JS que ya no existen.
+  const { pathname } = new URL(request.url);
+  const esEstatico =
+    pathname.startsWith("/_next/static/") ||
+    pathname.startsWith("/icons/") ||
+    pathname.startsWith("/avatares/") ||
+    pathname === "/manifest.json";
+  if (!esEstatico) {
+    return;
+  }
+
+  // Caché primero, y se actualiza en segundo plano.
   event.respondWith(
     caches.match(request).then((cached) => {
       const fetchPromise = fetch(request)

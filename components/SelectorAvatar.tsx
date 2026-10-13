@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useGameState } from "@/components/GameStateProvider";
 import { useT } from "@/components/IdiomaProvider";
 import { cambiarAvatarDB } from "@/lib/supabase/queries";
-import { AVATARES } from "@/lib/avatares";
+import { AVATARES, nombreAvatar } from "@/lib/avatares";
 
 const OPCION =
   "flex flex-col items-center gap-1 rounded-xl border-2 p-1.5 text-[11px] leading-tight transition-colors disabled:opacity-50";
@@ -47,6 +47,18 @@ export default function SelectorAvatar() {
     <div className="flex flex-col gap-2">
       <p className="text-xs font-medium text-neutral-500">{ta.titulo}</p>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+        <button
+          type="button"
+          onClick={() => elegir(null)}
+          disabled={guardando}
+          aria-pressed={avatar === null}
+          className={clase(avatar === null)}
+        >
+          <span className="flex aspect-square w-full items-center justify-center rounded-lg bg-neutral-100 text-neutral-400 dark:bg-neutral-800">
+            —
+          </span>
+          <span className="text-center">{ta.sinAvatar}</span>
+        </button>
         {AVATARES.map((a) => (
           <button
             key={a.id}
@@ -56,22 +68,10 @@ export default function SelectorAvatar() {
             aria-pressed={avatar === a.id}
             className={clase(avatar === a.id)}
           >
-            <Image src={a.srcMarco} alt="" width={96} height={96} className="rounded-lg" />
-            <span className="text-center">{a.nombre}</span>
+            <Image src={a.srcMarco} alt="" width={96} height={96} className="h-auto w-full rounded-lg" />
+            <span className="text-center">{nombreAvatar(a, t)}</span>
           </button>
         ))}
-        <button
-          type="button"
-          onClick={() => elegir(null)}
-          disabled={guardando}
-          aria-pressed={avatar === null}
-          className={clase(avatar === null)}
-        >
-          <span className="flex h-24 w-24 items-center justify-center rounded-lg bg-neutral-100 text-neutral-400 dark:bg-neutral-800">
-            —
-          </span>
-          <span className="text-center">{ta.sinAvatar}</span>
-        </button>
       </div>
       <p className="text-xs text-neutral-500">{ta.ayuda}</p>
       {aviso && (

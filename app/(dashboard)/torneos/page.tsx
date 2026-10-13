@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useDatosCacheados } from "@/lib/useDatosCacheados";
 import { createClient } from "@/lib/supabase/client";
 import { useIdioma } from "@/components/IdiomaProvider";
 import { fetchTorneos } from "@/lib/supabase/torneosQueries";
@@ -14,16 +14,10 @@ export default function TorneosPage() {
   const supabase = createClient();
   const { t: textos, locale } = useIdioma();
   const tt = textos.torneos;
-  const [torneos, setTorneos] = useState<Torneo[]>([]);
-  const [cargando, setCargando] = useState(true);
-
-  useEffect(() => {
-    (async () => {
-      setTorneos(ordenarTorneos(await fetchTorneos(supabase)));
-      setCargando(false);
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const { datos, cargando } = useDatosCacheados("torneos", async () =>
+    ordenarTorneos(await fetchTorneos(supabase))
+  );
+  const torneos: Torneo[] = datos ?? [];
 
   if (cargando) {
     return <p className="text-sm text-neutral-500">{tt.cargando}</p>;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { VERSION_CONDICIONES, VERSION_PRIVACIDAD } from "@/lib/legal/config";
@@ -14,9 +14,21 @@ import { useT } from "@/components/IdiomaProvider";
 
 type Estado = "cargando" | "ok" | "pendiente" | "error";
 
+// true cuando el usuario tiene aceptados los textos vigentes. Lo usa, por
+// ejemplo, ActividadTracker para no registrar nada antes de la aceptación.
+const LegalOkContext = createContext(false);
+
+export function useLegalOk() {
+  return useContext(LegalOkContext);
+}
+
 // Bloquea la app hasta que el usuario haya aceptado las versiones vigentes de
 // las Condiciones de Uso y la Política de Privacidad. Cubre a los usuarios que
 // se registraron antes de que existieran estos textos y los cambios de versión.
+//
+// La app (children) se monta oculta desde el principio para que sus datos se
+// carguen a la vez que esta comprobación, en vez de esperar a que termine. No
+// se enseña nada hasta que la comprobación da "ok".
 export default function LegalGate({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
   const router = useRouter();
@@ -77,18 +89,15 @@ export default function LegalGate({ children }: { children: React.ReactNode }) {
     router.refresh();
   }
 
-  if (estado === "ok") return <>{children}</>;
-
+  let pantalla: React.ReactNode = null;
   if (estado === "cargando") {
-    return (
+    pantalla = (
       <div className="mx-auto max-w-sm px-4 pt-24 text-center text-sm text-neutral-500">
         {t.comun.cargando}
       </div>
     );
-  }
-
-  if (estado === "error") {
-    return (
+  } else if (estado === "error") {
+    pantalla = (
       <div className="mx-auto max-w-sm px-4 pt-24 text-center text-sm">
         <p className="text-negative">{t.legal.errorComprobar}</p>
         <button onClick={comprobar} className="mt-3 font-medium text-accent">
@@ -96,34 +105,41 @@ export default function LegalGate({ children }: { children: React.ReactNode }) {
         </button>
       </div>
     );
+  } else if (estado === "pendiente") {
+    pantalla = (
+      <div className="mx-auto flex max-w-md flex-col gap-4 px-4 py-10">
+        <div>
+          <h1 className="font-display text-2xl font-semibold">{t.legal.antesDeContinuar}</h1>
+          <p className="mt-1 text-sm text-neutral-500">
+            {t.legal.gateIntro}
+          </p>
+        </div>
+
+        <InfoBasicaRGPD conEnlace />
+
+        <AceptacionLegalFields valor={aceptacion} onChange={setAceptacion} disabled={enviando} />
+
+        {error && <p className="text-sm text-negative">{error}</p>}
+
+        <button
+          onClick={aceptar}
+          disabled={!aceptacionCompleta(aceptacion) || enviando}
+          className="rounded-lg bg-accent py-2.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
+        >
+          {enviando ? t.comun.guardando : t.legal.aceptarContinuar}
+        </button>
+
+        <button onClick={cerrarSesion} className="text-xs text-neutral-500 underline underline-offset-2">
+          {t.legal.noAcepto}
+        </button>
+      </div>
+    );
   }
 
   return (
-    <div className="mx-auto flex max-w-md flex-col gap-4 px-4 py-10">
-      <div>
-        <h1 className="font-display text-2xl font-semibold">{t.legal.antesDeContinuar}</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          {t.legal.gateIntro}
-        </p>
-      </div>
-
-      <InfoBasicaRGPD conEnlace />
-
-      <AceptacionLegalFields valor={aceptacion} onChange={setAceptacion} disabled={enviando} />
-
-      {error && <p className="text-sm text-negative">{error}</p>}
-
-      <button
-        onClick={aceptar}
-        disabled={!aceptacionCompleta(aceptacion) || enviando}
-        className="rounded-lg bg-accent py-2.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-50"
-      >
-        {enviando ? t.comun.guardando : t.legal.aceptarContinuar}
-      </button>
-
-      <button onClick={cerrarSesion} className="text-xs text-neutral-500 underline underline-offset-2">
-        {t.legal.noAcepto}
-      </button>
-    </div>
+    <LegalOkContext.Provider value={estado === "ok"}>
+      {pantalla}
+      <div hidden={estado !== "ok"}>{children}</div>
+    </LegalOkContext.Provider>
   );
 }

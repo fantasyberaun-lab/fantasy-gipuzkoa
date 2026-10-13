@@ -61,7 +61,91 @@ async function leerTodo(construir: (desde: number, hasta: number) => PromiseLike
 // partida ya está jugada y no se muestra. Quien queda sin emparejar (fila
 // "descansa" o descanso guardado) sale con descansa=true. Devuelve un mapa
 // id de jugador -> próximos rivales (uno por torneo).
+//
+// El cálculo lo hace la función proximos_rivales (0080) en la base de datos:
+// una sola consulta que devuelve solo las filas útiles.
 export async function fetchProximosRivales(
+  supabase: Supabase
+): Promise<Record<string, ProximoRival[]>> {
+  // Normalmente es una sola página (una fila por jugador con ronda vigente),
+  // pero se pagina por si algún día pasa de las 1000 filas que corta Supabase.
+  const TAM = 1000;
+  const filas: any[] = [];
+  for (let desde = 0; ; desde += TAM) {
+    const { data, error } = await supabase
+      .rpc("proximos_rivales")
+      .order("player_id")
+      .order("orden")
+      .range(desde, desde + TAM - 1);
+    // Si la función aún no existe (migración sin aplicar) o falla, se calcula
+    // como antes, en el navegador.
+    if (error || !data) return calcularProximosRivalesEnNavegador(supabase);
+    filas.push(...(data as any[]));
+    if (data.length < TAM) break;
+  }
+
+  const resultado: Record<string, ProximoRival[]> = {};
+  for (const f of filas) {
+    (resultado[f.player_id] ??= []).push({
+      jornada: f.jornada,
+      torneo: f.torneo ?? null,
+      tablero: f.tablero ?? null,
+      descansa: Boolean(f.descansa),
+      rivalId: f.rival_id ?? null,
+      rivalNombre: f.rival_nombre ?? "",
+      rivalElo: f.rival_elo ?? null,
+      color: (f.color ?? null) as ProximoRival["color"],
+    });
+  }
+
+  if (COMPROBAR_RIVALES) compararConCalculoAntiguo(supabase, resultado);
+  return resultado;
+}
+
+// Comprobación temporal: en las previews de Vercel (y en local) se calcula
+// también a la antigua y se avisa en la consola del navegador si no coinciden.
+// Se quitará, junto con el cálculo antiguo, cuando se haya visto que coinciden.
+const COMPROBAR_RIVALES =
+  process.env.NEXT_PUBLIC_VERCEL_ENV === "preview" || process.env.NODE_ENV === "development";
+
+function normalizarRivales(mapa: Record<string, ProximoRival[]>) {
+  return JSON.stringify(
+    Object.keys(mapa)
+      .sort()
+      .map((id) => [
+        id,
+        mapa[id]
+          .map((r) => JSON.stringify(r, Object.keys(r).sort()))
+          .sort(),
+      ])
+  );
+}
+
+async function compararConCalculoAntiguo(
+  supabase: Supabase,
+  nuevo: Record<string, ProximoRival[]>
+) {
+  try {
+    const antiguo = await calcularProximosRivalesEnNavegador(supabase);
+    if (normalizarRivales(antiguo) === normalizarRivales(nuevo)) {
+      console.info(
+        `[Próximos rivales] OK: la base de datos y el cálculo antiguo coinciden (${Object.keys(nuevo).length} jugadores).`
+      );
+      return;
+    }
+    const distintos = [...new Set([...Object.keys(antiguo), ...Object.keys(nuevo)])].filter(
+      (id) => normalizarRivales({ x: antiguo[id] ?? [] }) !== normalizarRivales({ x: nuevo[id] ?? [] })
+    );
+    console.warn(
+      `[Próximos rivales] DIFERENCIAS en ${distintos.length} jugadores.`,
+      distintos.map((id) => ({ jugador: id, antiguo: antiguo[id] ?? [], nuevo: nuevo[id] ?? [] }))
+    );
+  } catch {
+    // Es solo una comprobación: si falla no afecta a la app.
+  }
+}
+
+async function calcularProximosRivalesEnNavegador(
   supabase: Supabase
 ): Promise<Record<string, ProximoRival[]>> {
   const mesas = await leerTodo((d, h) =>
@@ -245,24 +329,24 @@ export async function fetchMiPlantilla(
     .map((s: any) => s.players?.id)
     .filter((id: unknown): id is string => Boolean(id));
 
-  const { data: resultados } = await supabase
-    .from("results")
-    .select(
-      "player_id, resultado, puntos_fantasy, matchdays (id, numero, created_at, tournaments (nombre))"
-    )
-    .in("player_id", playerIds);
-
-  // Jornadas en las que el jugador quedó sin emparejar: puntúan 1 punto.
-  const { data: descansos } = await supabase
-    .from("matchday_byes")
-    .select("player_id, matchdays (id, numero, created_at, tournaments (nombre))")
-    .in("player_id", playerIds);
-
-  // Torneos en los que juega cada jugador (límite de titulares por torneo).
-  const { data: inscripciones } = await supabase
-    .from("tournament_players")
-    .select("player_id, tournaments (id, nombre)")
-    .in("player_id", playerIds);
+  // Resultados, descansos (puntúan 1 punto) e inscripciones (límite de
+  // titulares por torneo): no dependen entre sí, van en paralelo.
+  const [{ data: resultados }, { data: descansos }, { data: inscripciones }] = await Promise.all([
+    supabase
+      .from("results")
+      .select(
+        "player_id, resultado, puntos_fantasy, matchdays (id, numero, created_at, tournaments (nombre))"
+      )
+      .in("player_id", playerIds),
+    supabase
+      .from("matchday_byes")
+      .select("player_id, matchdays (id, numero, created_at, tournaments (nombre))")
+      .in("player_id", playerIds),
+    supabase
+      .from("tournament_players")
+      .select("player_id, tournaments (id, nombre)")
+      .in("player_id", playerIds),
+  ]);
 
   const resultadosAscendentes = (resultados ?? []).slice().sort((a: any, b: any) => {
     // Por orden de creación de la jornada: el número solo es único dentro
@@ -344,23 +428,44 @@ function agruparTorneosPorJugador(
   return porJugador;
 }
 
+// Estado de todos los jugadores en la liga (RPC player_status). Es la consulta
+// más pesada de la carga: GameStateProvider la pide una vez y se la pasa a
+// fetchJugadoresLiga y a fetchMercado.
+export async function fetchEstadoJugadores(
+  supabase: Supabase,
+  leagueId: string
+): Promise<any[] | null> {
+  const { data, error } = await supabase.rpc("player_status", { p_league_id: leagueId });
+  if (error || !data) return null;
+  return data as any[];
+}
+
 export async function fetchJugadoresLiga(
   supabase: Supabase,
   leagueId: string,
-  miEquipoId: string | null
+  miEquipoId: string | null,
+  estados: Promise<any[] | null> = fetchEstadoJugadores(supabase, leagueId)
 ): Promise<JugadorLiga[]> {
-  const { data, error } = await supabase
-    .rpc("player_status", { p_league_id: leagueId })
-    .order("puntos_totales", { ascending: false });
-
-  if (error || !data) return [];
-
   // Jugadores inscritos en algún torneo (el mercado solo muestra a estos) y
-  // en cuáles (para filtrar el mercado por torneo).
-  const { data: inscripciones } = await supabase
-    .from("tournament_players")
-    .select("player_id, tournaments (id, nombre)");
+  // en cuáles (para filtrar el mercado por torneo). Paginado: Supabase corta
+  // en 1000 filas y hay más inscripciones que eso a lo largo de la temporada.
+  const [estado, inscripciones] = await Promise.all([
+    estados,
+    leerTodo((d, h) =>
+      supabase
+        .from("tournament_players")
+        .select("player_id, tournaments (id, nombre)")
+        .order("tournament_id")
+        .order("player_id")
+        .range(d, h)
+    ),
+  ]);
+
+  if (!estado) return [];
   const torneosPorJugador = agruparTorneosPorJugador(inscripciones);
+  const data = estado
+    .slice()
+    .sort((a: any, b: any) => (b.puntos_totales ?? 0) - (a.puntos_totales ?? 0));
 
   return data.map((p: any) => ({
     id: p.id,
@@ -384,7 +489,8 @@ export async function fetchJugadoresLiga(
 
 export async function fetchMercado(
   supabase: Supabase,
-  leagueId: string
+  leagueId: string,
+  estados: Promise<any[] | null> = fetchEstadoJugadores(supabase, leagueId)
 ): Promise<MercadoDelDia[]> {
   const { data: listings, error } = await supabase
     .from("market_listings")
@@ -401,8 +507,8 @@ export async function fetchMercado(
     .filter((id: unknown): id is string => Boolean(id));
   const listingIds = listings.map((l: any) => l.id);
 
-  const [{ data: estadosLiga }, { data: conteos }, { data: inscripciones }] = await Promise.all([
-    supabase.rpc("player_status", { p_league_id: leagueId }),
+  const [estadosLiga, { data: conteos }, { data: inscripciones }] = await Promise.all([
+    estados,
     supabase
       .from("market_bid_counts")
       .select("market_listing_id, numero_pujas")
@@ -414,9 +520,10 @@ export async function fetchMercado(
   ]);
   const torneosPorJugador = agruparTorneosPorJugador(inscripciones);
 
+  const idsEnMercado = new Set(playerIds);
   const estadoPorJugador = new Map<string, any>(
-    ((estadosLiga ?? []) as any[])
-      .filter((e) => playerIds.includes(e.id))
+    (estadosLiga ?? [])
+      .filter((e) => idsEnMercado.has(e.id))
       .map((e): [string, any] => [e.id, e])
   );
   const pujasPorListing = new Map<string, number>(

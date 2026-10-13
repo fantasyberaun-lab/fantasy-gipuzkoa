@@ -1,7 +1,8 @@
 "use client";
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import { useDatosCacheados } from "@/lib/useDatosCacheados";
 import { createClient } from "@/lib/supabase/client";
 import { useIdioma, useT } from "@/components/IdiomaProvider";
 import AlineacionesJornadas from "@/components/AlineacionesJornadas";
@@ -46,28 +47,17 @@ function PerfilManagerContenido() {
   // Avatares en prueba: solo root, y solo en su propio perfil (ver 0077).
   const { esRoot, avatar } = useGameState();
 
-  const [perfil, setPerfil] = useState<PerfilManager | null>(null);
-  const [evolucion, setEvolucion] = useState<PuntoValorPlantilla[]>([]);
-  const [cargando, setCargando] = useState(true);
+  const { datos, cargando } = useDatosCacheados(`manager:${id}`, () =>
+    Promise.all([fetchPerfilManager(supabase, id), fetchEvolucionValorPlantilla(supabase, id)])
+  );
+  const perfil: PerfilManager | null = datos?.[0] ?? null;
+  const evolucion: PuntoValorPlantilla[] = datos?.[1] ?? [];
   // Si se llega desde el botón "Jornadas" de Clasificación (?tab=jornadas).
   const searchParams = useSearchParams();
   const [pestana, setPestana] = useState<"resumen" | "jornadas">(
     searchParams.get("tab") === "jornadas" ? "jornadas" : "resumen"
   );
 
-  useEffect(() => {
-    (async () => {
-      setCargando(true);
-      const [p, e] = await Promise.all([
-        fetchPerfilManager(supabase, id),
-        fetchEvolucionValorPlantilla(supabase, id),
-      ]);
-      setPerfil(p);
-      setEvolucion(e);
-      setCargando(false);
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
 
   // La gráfica de valor sirve tal cual para la plantilla: un punto por día.
   const puntos: PuntoValor[] = useMemo(

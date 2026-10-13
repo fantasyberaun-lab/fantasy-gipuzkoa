@@ -42,9 +42,13 @@ export async function updateSession(request: NextRequest) {
   // IMPORTANTE: no quitar esta llamada. Es la que de verdad refresca el
   // token de sesión si está a punto de caducar; sin ella la gente se
   // quedaría deslogueada sin avisar en mitad del uso de la app.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims comprueba la firma del token aquí mismo con la clave pública del
+  // proyecto (firma asimétrica ECC), sin preguntar a Supabase Auth en cada
+  // petición como hacía getUser. La clave pública se descarga y se guarda unos
+  // minutos.
+  const { data } = await supabase.auth.getClaims();
+  const userId = (data?.claims?.sub as string | undefined) ?? null;
+  const user = userId ? { id: userId } : null;
 
   const { pathname } = request.nextUrl;
   const esRutaProtegida = RUTAS_PROTEGIDAS.some((r) => pathname.startsWith(r));
