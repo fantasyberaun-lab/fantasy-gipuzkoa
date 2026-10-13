@@ -101,7 +101,6 @@ type Props = PlantillaSlot & {
 export default function PlayerCard({
   jugador,
   puntosJornada,
-  valorMercadoDelta,
   clausula,
   resultadosRecientes,
   historialPuntos,
@@ -135,14 +134,6 @@ export default function PlayerCard({
   const [errorCapitan, setErrorCapitan] = useState<string | null>(null);
 
   const precioBlindaje = Math.ceil(jugador.valorMercado * gameConfig.blindaje.porcentaje);
-
-  const deltaColor =
-    valorMercadoDelta > 0
-      ? "text-positive"
-      : valorMercadoDelta < 0
-        ? "text-negative"
-        : "text-neutral-500";
-  const deltaTexto = valorMercadoDelta > 0 ? `+${valorMercadoDelta}` : `${valorMercadoDelta}`;
 
   const estado: EstadoClausula = blindado ? "blindado" : candado ? "candado" : "clausulable";
   const estadoTexto = {
@@ -239,27 +230,18 @@ export default function PlayerCard({
             <p className="flex flex-wrap gap-x-1.5 text-xs text-neutral-500">
               <span>Elo {jugador.elo}</span>
               <span>· {t.ficha.pts(puntosJornada)}</span>
-              <span>
-                · {jugador.valorMercado} M <span className={deltaColor}>{deltaTexto}</span>
-              </span>
+              <span>· {jugador.valorMercado} M</span>
             </p>
-            {proximosRivales && proximosRivales.length > 0 ? (
-              proximosRivales.map((r, i) => (
-                <p key={i} className="break-words text-xs leading-snug text-neutral-400">
-                  <span className="font-medium text-neutral-500">{r.torneo}</span> ·{" "}
+            {proximosRivales?.map((r, i) => (
+              <p key={i} className="break-words text-xs leading-snug text-neutral-400">
+                {t.graficas.proxRival}{" "}
+                <span className="font-medium text-neutral-500">
                   {r.descansa
                     ? t.graficas.sinEmparejar
                     : `${r.rivalNombre}${r.rivalElo != null ? ` (${r.rivalElo})` : ""}`}
-                </p>
-              ))
-            ) : (
-              torneos &&
-              torneos.length > 0 && (
-                <p className="break-words text-xs leading-snug text-neutral-400">
-                  {torneos.map((tn) => tn.nombre).join(" · ")}
-                </p>
-              )
-            )}
+                </span>
+              </p>
+            ))}
           </div>
         </button>
 
@@ -357,7 +339,15 @@ export default function PlayerCard({
               )}
             </div>
 
-            <ProximoRivalLinea rivales={proximosRivales} className="mt-2" />
+            {torneos && torneos.length > 0 && (
+              <p className="mt-2 text-xs text-neutral-500">
+                <span className="font-medium text-neutral-600 dark:text-neutral-400">
+                  {t.ficha.torneos}
+                </span>{" "}
+                {torneos.map((tn) => tn.nombre).join(" · ")}
+              </p>
+            )}
+            <ProximoRivalLinea rivales={proximosRivales} className="mt-1" />
 
             <div className="mt-3 flex items-center justify-between text-sm">
               <div className="flex gap-1">
@@ -368,7 +358,6 @@ export default function PlayerCard({
               <div className="flex items-center gap-3">
                 <span>{t.ficha.pts(puntosJornada)}</span>
                 <span className="font-medium">{jugador.valorMercado} M</span>
-                <span className={deltaColor}>{deltaTexto}</span>
               </div>
             </div>
 
