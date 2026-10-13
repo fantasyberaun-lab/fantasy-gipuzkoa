@@ -32,6 +32,16 @@ export default definirTextos(
     topeTitulares: "Límite alcanzado — no puedes poner más titulares.",
     jugadoresEnPlantilla: "Jugadores en plantilla",
     plantillaCompleta: "Plantilla completa.",
+    // Secciones y resumen compacto
+    seccionTitulares: "Titulares",
+    seccionSuplentes: "Suplentes",
+    sinSuplentes: "No tienes suplentes.",
+    resumenTitulares: "Titulares",
+    resumenPlantilla: "Plantilla",
+    resumenValor: "Valor",
+    masDetalle: "Más detalle",
+    menosDetalle: "Menos detalle",
+    sinCapitan: "Todavía no has elegido capitán.",
     // Vacía
     vacioPublica:
       "Todavía no tienes jugadores. Ve a la pestaña Mercado y ficha a los que quieras: todos están disponibles y el fichaje es inmediato.",
@@ -71,6 +81,15 @@ export default definirTextos(
       topeTitulares: "Mugara iritsi zara — ezin duzu titular gehiago jarri.",
       jugadoresEnPlantilla: "Jokalariak plantillan",
       plantillaCompleta: "Plantilla beteta.",
+      seccionTitulares: "Titularrak",
+      seccionSuplentes: "Ordezkoak",
+      sinSuplentes: "Ez duzu ordezkorik.",
+      resumenTitulares: "Titularrak",
+      resumenPlantilla: "Plantilla",
+      resumenValor: "Balioa",
+      masDetalle: "Xehetasun gehiago",
+      menosDetalle: "Xehetasun gutxiago",
+      sinCapitan: "Oraindik ez duzu kapitainik aukeratu.",
       vacioPublica:
         "Oraindik ez duzu jokalaririk. Joan Merkatua fitxara eta fitxatu nahi dituzunak: denak daude eskuragarri eta fitxaketa berehalakoa da.",
       vacioPrivada:
@@ -107,6 +126,15 @@ export default definirTextos(
       topeTitulares: "Limit reached — you can't add more starters.",
       jugadoresEnPlantilla: "Players in squad",
       plantillaCompleta: "Squad full.",
+      seccionTitulares: "Starters",
+      seccionSuplentes: "Bench",
+      sinSuplentes: "You have no bench players.",
+      resumenTitulares: "Starters",
+      resumenPlantilla: "Squad",
+      resumenValor: "Value",
+      masDetalle: "More detail",
+      menosDetalle: "Less detail",
+      sinCapitan: "You haven't picked a captain yet.",
       vacioPublica:
         "You don't have any players yet. Go to the Market tab and sign whoever you like: everyone is available and signings are instant.",
       vacioPrivada:

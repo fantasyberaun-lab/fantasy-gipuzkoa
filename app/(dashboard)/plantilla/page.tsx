@@ -13,60 +13,6 @@ const MAX_POR_TORNEO = gameConfig.plantilla.maximoTitularesPorTorneo;
 const MAX_TITULARES = gameConfig.plantilla.maximoTitulares;
 const MAX_PLANTILLA = gameConfig.plantilla.tamanoPlantilla;
 
-function ContadorSlots({
-  label,
-  actual,
-  max,
-  avisoTope,
-  detalle,
-}: {
-  label: string;
-  actual: number;
-  max: number;
-  avisoTope?: string;
-  // Texto pequeño bajo el título (p. ej. el torneo al que se refiere).
-  detalle?: string;
-}) {
-  const alTope = actual >= max;
-  return (
-    <div className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
-          {label}
-        </span>
-        <span
-          className={`text-sm font-semibold ${
-            alTope ? "text-amber-600 dark:text-amber-400" : "text-neutral-900 dark:text-neutral-100"
-          }`}
-        >
-          {actual} / {max}
-        </span>
-      </div>
-
-      {detalle && <p className="mt-0.5 truncate text-xs text-neutral-500">{detalle}</p>}
-
-      <div className="mt-2 flex gap-1.5">
-        {Array.from({ length: max }).map((_, i) => (
-          <div
-            key={i}
-            className={`h-2 flex-1 rounded-full ${
-              i < actual
-                ? alTope
-                  ? "bg-amber-500"
-                  : "bg-green-500"
-                : "bg-neutral-200 dark:bg-neutral-800"
-            }`}
-          />
-        ))}
-      </div>
-
-      {alTope && avisoTope && (
-        <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">{avisoTope}</p>
-      )}
-    </div>
-  );
-}
-
 function Cifra({
   etiqueta,
   valor,
@@ -88,40 +34,97 @@ function Cifra({
 function ResumenDePlantilla({
   squad,
   titulares,
+  torneoMasLleno,
+  titularesEnTorneoMasLleno,
 }: {
   squad: Parameters<typeof resumenPlantilla>[0];
   titulares: Record<string, boolean>;
+  torneoMasLleno?: { nombre: string };
+  titularesEnTorneoMasLleno: number;
 }) {
   const tp = useT().plantilla;
+  const [detalleAbierto, setDetalleAbierto] = useState(false);
   const r = resumenPlantilla(squad, titulares);
   const sinTitulares = r.numTitulares === 0;
+  const topeTorneo = titularesEnTorneoMasLleno >= MAX_POR_TORNEO;
+
+  const compacta = (etiqueta: string, valor: string, alTope = false) => (
+    <div className="flex-1 text-center">
+      <p
+        className={`text-base font-semibold ${
+          alTope ? "text-amber-600 dark:text-amber-400" : "text-neutral-900 dark:text-neutral-100"
+        }`}
+      >
+        {valor}
+      </p>
+      <p className="text-[11px] text-neutral-500">{etiqueta}</p>
+    </div>
+  );
 
   return (
-    <div className="mb-4 rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <Cifra
-          etiqueta={tp.valorPlantilla}
-          valor={`${r.valorPlantilla} M`}
-          detalle={tp.jugadores(squad.length)}
-        />
-        <Cifra
-          etiqueta={tp.valorTitulares}
-          valor={sinTitulares ? "–" : `${r.valorTitulares} M`}
-          detalle={sinTitulares ? tp.sinTitulares : tp.titulares(r.numTitulares)}
-        />
-        <Cifra
-          etiqueta={tp.eloMedioPlantilla}
-          valor={r.eloMedioPlantilla === null ? "–" : String(r.eloMedioPlantilla)}
-        />
-        <Cifra
-          etiqueta={tp.eloMedioTitulares}
-          valor={r.eloMedioTitulares === null ? "–" : String(r.eloMedioTitulares)}
-        />
+    <div className="mb-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
+      <div className="flex divide-x divide-neutral-200 px-1 py-2 dark:divide-neutral-800">
+        {compacta(tp.resumenTitulares, `${r.numTitulares}/${MAX_TITULARES}`, r.numTitulares >= MAX_TITULARES)}
+        {compacta(tp.resumenPlantilla, `${squad.length}/${MAX_PLANTILLA}`, squad.length >= MAX_PLANTILLA)}
+        {compacta(tp.resumenValor, `${r.valorPlantilla} M`)}
       </div>
-      {r.sinElo > 0 && (
-        <p className="mt-2 text-[11px] text-neutral-400">
-          {tp.notaSinElo(r.sinElo)}
+
+      {topeTorneo && torneoMasLleno && (
+        <p className="border-t border-neutral-200 px-3 py-2 text-xs text-amber-600 dark:border-neutral-800 dark:text-amber-400">
+          {torneoMasLleno.nombre}: {titularesEnTorneoMasLleno}/{MAX_POR_TORNEO}. {tp.topeTorneo}
         </p>
+      )}
+
+      <button
+        onClick={() => setDetalleAbierto((v) => !v)}
+        className="flex w-full items-center justify-center gap-1 border-t border-neutral-200 py-1.5 text-xs font-medium text-neutral-500 dark:border-neutral-800"
+      >
+        {detalleAbierto ? tp.menosDetalle : tp.masDetalle}
+        <svg
+          className={`h-3 w-3 transition-transform ${detalleAbierto ? "rotate-180" : ""}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {detalleAbierto && (
+        <div className="border-t border-neutral-200 p-3 dark:border-neutral-800">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <Cifra
+              etiqueta={tp.valorPlantilla}
+              valor={`${r.valorPlantilla} M`}
+              detalle={tp.jugadores(squad.length)}
+            />
+            <Cifra
+              etiqueta={tp.valorTitulares}
+              valor={sinTitulares ? "–" : `${r.valorTitulares} M`}
+              detalle={sinTitulares ? tp.sinTitulares : tp.titulares(r.numTitulares)}
+            />
+            <Cifra
+              etiqueta={tp.eloMedioPlantilla}
+              valor={r.eloMedioPlantilla === null ? "–" : String(r.eloMedioPlantilla)}
+            />
+            <Cifra
+              etiqueta={tp.eloMedioTitulares}
+              valor={r.eloMedioTitulares === null ? "–" : String(r.eloMedioTitulares)}
+            />
+          </div>
+          <p className="mt-2 text-xs text-neutral-500">
+            {tp.titularesMismoTorneo}:{" "}
+            <span className="font-medium">
+              {titularesEnTorneoMasLleno > 0 && torneoMasLleno
+                ? `${torneoMasLleno.nombre} (${titularesEnTorneoMasLleno}/${MAX_POR_TORNEO})`
+                : tp.sinTitularesTorneo}
+            </span>
+          </p>
+          {r.sinElo > 0 && (
+            <p className="mt-1 text-[11px] text-neutral-400">{tp.notaSinElo(r.sinElo)}</p>
+          )}
+        </div>
       )}
     </div>
   );
@@ -248,10 +251,6 @@ export default function PlantillaPage() {
     );
   }
 
-  const titularesSeleccionados = squad.filter(
-    (slot) => titulares[slot.jugador.id]
-  ).length;
-
   // Titulares que tienes en cada torneo (un jugador que juega varios torneos
   // cuenta en cada uno).
   const porTorneo = titularesPorTorneo(squad, titulares);
@@ -273,40 +272,69 @@ export default function PlantillaPage() {
     if (!resultado.ok) setAvisoTitular(resultado.mensaje);
   };
 
-  const totalPlantilla = squad.length;
   const hayBlindado = squad.some((slot) => slot.blindado);
+
+  const renderJugador = (slot: (typeof squad)[number]) => {
+    const esTitular = !!titulares[slot.jugador.id];
+    const motivoBloqueo = motivoBloqueoTitular(squad, titulares, slot.jugador.id, tp) ?? undefined;
+
+    return (
+      <PlayerCard
+        key={slot.jugador.id}
+        {...slot}
+        esTitular={esTitular}
+        esCapitan={capitanId === slot.jugador.id}
+        bloqueadoPorTope={motivoBloqueo !== undefined}
+        motivoBloqueo={motivoBloqueo}
+        blindajeAgotado={hayBlindado && !slot.blindado}
+        ligaPublica={esLigaPublica}
+        onToggleTitular={() => onToggleTitular(slot.jugador.id)}
+        onToggleCapitan={() => toggleCapitan(slot.jugador.id)}
+        onBlindar={() => blindarJugador(slot.jugador.id)}
+        onVender={() => venderJugador(slot.jugador.id, slot.jugador.valorMercado)}
+        onSubirClausula={(importe) => subirClausula(slot.jugador.id, importe)}
+      />
+    );
+  };
+
+  const slotsTitulares = squad.filter((slot) => titulares[slot.jugador.id]);
+  const slotsSuplentes = squad.filter((slot) => !titulares[slot.jugador.id]);
+
+  const seccion = (titulo: string, max: number | null, slots: typeof squad, vacio?: string) => (
+    <section className="mb-5">
+      <h2 className="mb-2 flex items-baseline gap-2 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+        {titulo}
+        <span className="text-xs font-normal text-neutral-500">
+          {slots.length}
+          {max !== null ? ` / ${max}` : ""}
+        </span>
+      </h2>
+      {slots.length === 0 ? (
+        vacio && <p className="text-sm text-neutral-500">{vacio}</p>
+      ) : (
+        <div className="grid gap-2 sm:grid-cols-2">{slots.map(renderJugador)}</div>
+      )}
+    </section>
+  );
 
   return (
     <div>
       {!esLigaPublica && <OfertasRecibidas ofertas={ofertasRecibidas} />}
 
-      {squad.length > 0 && <ResumenDePlantilla squad={squad} titulares={titulares} />}
+      {squad.length > 0 && (
+        <ResumenDePlantilla
+          squad={squad}
+          titulares={titulares}
+          torneoMasLleno={torneoMasLleno}
+          titularesEnTorneoMasLleno={titularesEnTorneoMasLleno}
+        />
+      )}
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <ContadorSlots
-          label={tp.titularesMismoTorneo}
-          actual={titularesEnTorneoMasLleno}
-          max={MAX_POR_TORNEO}
-          detalle={
-            torneoMasLleno && titularesEnTorneoMasLleno > 0
-              ? torneoMasLleno.nombre
-              : tp.sinTitularesTorneo
-          }
-          avisoTope={tp.topeTorneo}
-        />
-        <ContadorSlots
-          label={tp.titularesSeleccionados}
-          actual={titularesSeleccionados}
-          max={MAX_TITULARES}
-          avisoTope={tp.topeTitulares}
-        />
-        <ContadorSlots
-          label={tp.jugadoresEnPlantilla}
-          actual={totalPlantilla}
-          max={MAX_PLANTILLA}
-          avisoTope={tp.plantillaCompleta}
-        />
-      </div>
+      {slotsTitulares.length > 0 && capitanId === null && (
+        <p className="mb-4 rounded-lg bg-yellow-50 px-3 py-2 text-sm text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300">
+          {tp.sinCapitan}
+        </p>
+      )}
 
       {avisoTitular && (
         <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
@@ -316,36 +344,13 @@ export default function PlantillaPage() {
 
       {squad.length === 0 ? (
         <p className="text-sm text-neutral-500">
-          {esLigaPublica
-            ? tp.vacioPublica
-            : tp.vacioPrivada}
+          {esLigaPublica ? tp.vacioPublica : tp.vacioPrivada}
         </p>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {squad.map((slot) => {
-            const esTitular = !!titulares[slot.jugador.id];
-            const motivoBloqueo = motivoBloqueoTitular(squad, titulares, slot.jugador.id, tp) ?? undefined;
-            const bloqueadoPorTope = motivoBloqueo !== undefined;
-
-            return (
-              <PlayerCard
-                key={slot.jugador.id}
-                {...slot}
-                esTitular={esTitular}
-                esCapitan={capitanId === slot.jugador.id}
-                bloqueadoPorTope={bloqueadoPorTope}
-                motivoBloqueo={motivoBloqueo}
-                blindajeAgotado={hayBlindado && !slot.blindado}
-                ligaPublica={esLigaPublica}
-                onToggleTitular={() => onToggleTitular(slot.jugador.id)}
-                onToggleCapitan={() => toggleCapitan(slot.jugador.id)}
-                onBlindar={() => blindarJugador(slot.jugador.id)}
-                onVender={() => venderJugador(slot.jugador.id, slot.jugador.valorMercado)}
-                onSubirClausula={(importe) => subirClausula(slot.jugador.id, importe)}
-              />
-            );
-          })}
-        </div>
+        <>
+          {seccion(tp.seccionTitulares, MAX_TITULARES, slotsTitulares, tp.sinTitulares)}
+          {seccion(tp.seccionSuplentes, null, slotsSuplentes, tp.sinSuplentes)}
+        </>
       )}
     </div>
   );
