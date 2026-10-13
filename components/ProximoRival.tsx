@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useT } from "@/components/IdiomaProvider";
+import { useIdioma } from "@/components/IdiomaProvider";
 import type { ProximoRival } from "@/lib/types";
 import { torneoCorto } from "@/lib/torneos";
 
@@ -18,14 +18,15 @@ export default function ProximoRivalLinea({
   // Enseña solo la categoría del torneo (SEGUNDA, OPEN DE GROS…).
   torneoResumido?: boolean;
 }) {
-  const tg = useT().graficas;
+  const { t, idioma } = useIdioma();
+  const tg = t.graficas;
   if (!rivales || rivales.length === 0) return null;
 
   return (
     <div className={`flex flex-col gap-0.5 ${className}`}>
       {rivales.map((r, i) => {
         const detalle = [
-          torneoResumido && r.torneo ? torneoCorto(r.torneo) : r.torneo,
+          torneoResumido && r.torneo ? torneoCorto(r.torneo, idioma) : r.torneo,
           tg.ronda(r.jornada),
           r.tablero != null ? tg.mesa(r.tablero) : null,
         ]

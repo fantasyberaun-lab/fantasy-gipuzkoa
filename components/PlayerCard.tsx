@@ -7,7 +7,7 @@ import { gameConfig } from "@/lib/gameConfig";
 import { ordenarPorCategoria, resumenTorneos } from "@/lib/torneos";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import ProximoRivalLinea from "@/components/ProximoRival";
-import { useT } from "@/components/IdiomaProvider";
+import { useIdioma } from "@/components/IdiomaProvider";
 
 function iniciales(nombre: string) {
   return nombre
@@ -121,7 +121,7 @@ export default function PlayerCard({
   onVender,
   onSubirClausula,
 }: Props) {
-  const t = useT();
+  const { t, idioma } = useIdioma();
   // Mismo orden que la etiqueta de torneos (primero Segunda, luego Cadete…).
   const proximosRivales = rivalesSinOrdenar
     ? ordenarPorCategoria(rivalesSinOrdenar, (r) => r.torneo)
@@ -241,7 +241,7 @@ export default function PlayerCard({
             <p className="break-words font-medium leading-tight">{jugador.nombre}</p>
             {nombresTorneo.length > 0 && (
               <p className="break-words text-[10px] font-semibold uppercase leading-tight tracking-wide text-neutral-500 dark:text-neutral-400">
-                {resumenTorneos(nombresTorneo)}
+                {resumenTorneos(nombresTorneo, idioma)}
               </p>
             )}
             <p className="flex flex-wrap gap-x-1.5 text-xs text-neutral-500">
@@ -366,7 +366,7 @@ export default function PlayerCard({
                 <span className="font-medium text-neutral-600 dark:text-neutral-400">
                   {t.ficha.torneos}
                 </span>{" "}
-                {resumenTorneos(nombresTorneo)}
+                {resumenTorneos(nombresTorneo, idioma)}
               </p>
             )}
             <ProximoRivalLinea rivales={proximosRivales} className="mt-1" torneoResumido />

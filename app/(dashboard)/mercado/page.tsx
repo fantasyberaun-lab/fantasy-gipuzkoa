@@ -296,7 +296,7 @@ function MercadoConPujas() {
                   <p className="text-xs text-neutral-500">
                     {jugador.club} · {t.ficha.categoria(jugador.categoria)} · Elo {jugador.elo}
                   </p>
-                  <ProximoRivalLinea rivales={jugador.proximosRivales} className="mt-0.5" />
+                  <ProximoRivalLinea rivales={jugador.proximosRivales} className="mt-0.5" torneoResumido />
                   <p className="mt-0.5 text-xs text-neutral-500">
                     {t.mercado.ptsTemporada(jugador.puntosTotales)}
                   </p>

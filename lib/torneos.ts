@@ -4,6 +4,7 @@
 // Todos los textos son libres y opcionales (salvo el nombre): nada valida
 // el formato porque solo los administradores crean torneos.
 
+import type { Idioma } from "@/lib/i18n/config";
 import type { Categoria, ResultadoPartida } from "@/lib/types";
 
 export interface DatosTorneo {
@@ -174,38 +175,44 @@ export function formatearPuntos(n: number): string {
 
 // Categorías que se reconocen dentro del nombre de un torneo, en el orden en
 // que se enseñan cuando un jugador juega dos a la vez.
-const CATEGORIAS_TORNEO = [
-  { patron: /primera|lehen/, corto: "PRIMERA" },
-  { patron: /segunda|bigarren/, corto: "SEGUNDA" },
-  { patron: /tercera|hirugarren/, corto: "TERCERA" },
-  { patron: /absolut/, corto: "ABSOLUTO" },
+const CATEGORIAS_TORNEO: { patron: RegExp; corto: Record<Idioma, string> }[] = [
+  { patron: /primera|lehen/, corto: { es: "PRIMERA", eu: "LEHEN MAILA", en: "FIRST DIVISION" } },
+  { patron: /segunda|bigarren/, corto: { es: "SEGUNDA", eu: "BIGARREN MAILA", en: "SECOND DIVISION" } },
+  { patron: /tercera|hirugarren/, corto: { es: "TERCERA", eu: "HIRUGARREN MAILA", en: "THIRD DIVISION" } },
+  { patron: /absolut/, corto: { es: "ABSOLUTO", eu: "MAILA GORENA", en: "PREMIER DIVISION" } },
   // "Open de Gros", "II Open de Otoño Gros Xake Udazkeneko Irekia"…
-  { patron: /open.*gros|gros.*open/, corto: "OPEN DE GROS" },
-  { patron: /superveteran/, corto: "SUPERVETERANOS" },
-  { patron: /cadete|kadete/, corto: "CADETE" },
+  {
+    patron: /open.*gros|gros.*open/,
+    corto: { es: "OPEN DE GROS", eu: "GROSEKO IREKIA", en: "GROS OPEN" },
+  },
+  {
+    patron: /super[vb]eteran/,
+    corto: { es: "SUPERVETERANOS", eu: "SUPERBETERANOAK", en: "65+ SENIORS" },
+  },
+  { patron: /cadete|kadete/, corto: { es: "CADETE", eu: "KADETEA", en: "UNDER-16" } },
 ];
 
 const sinTildes = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-function categoriaDeTorneo(nombre: string): { orden: number; texto: string } {
+function categoriaDeTorneo(nombre: string, idioma: Idioma = "es"): { orden: number; texto: string } {
   const plano = sinTildes(nombre).toLowerCase();
   const orden = CATEGORIAS_TORNEO.findIndex((c) => c.patron.test(plano));
-  if (orden !== -1) return { orden, texto: CATEGORIAS_TORNEO[orden].corto };
+  if (orden !== -1) return { orden, texto: CATEGORIAS_TORNEO[orden].corto[idioma] };
   // Sin categoría conocida: lo que va tras el último guion largo, o el nombre entero.
   const partes = nombre.split(/\s[—–-]\s/);
   return { orden: CATEGORIAS_TORNEO.length, texto: partes[partes.length - 1].trim().toUpperCase() };
 }
 
 // "Campeonato de Gipuzkoa Individual 2026 — Tercera Irun" -> "TERCERA".
-// No incluye dónde se juega: solo la categoría.
-export function torneoCorto(nombre: string): string {
-  return categoriaDeTorneo(nombre).texto;
+// No incluye dónde se juega: solo la categoría, en el idioma de la interfaz.
+export function torneoCorto(nombre: string, idioma: Idioma = "es"): string {
+  return categoriaDeTorneo(nombre, idioma).texto;
 }
 
 // Resumen para la fila de un jugador: "SEGUNDA / OPEN DE GROS".
-export function resumenTorneos(torneos: { nombre: string }[]): string {
+export function resumenTorneos(torneos: { nombre: string }[], idioma: Idioma = "es"): string {
   const textos = torneos
-    .map((t) => categoriaDeTorneo(t.nombre))
+    .map((t) => categoriaDeTorneo(t.nombre, idioma))
     .sort((a, b) => a.orden - b.orden)
     .map((r) => r.texto);
   return [...new Set(textos)].join(" / ");
