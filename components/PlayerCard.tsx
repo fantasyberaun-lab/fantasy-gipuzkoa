@@ -207,17 +207,16 @@ export default function PlayerCard({
     }
   };
 
-  const avatar = (
+  // En la fila, el estado de la cláusula va siempre en la esquina del avatar
+  // (misma posición en todos los jugadores). En la hoja se muestra con texto.
+  const avatar = (conEstado: boolean) => (
     <div className="relative shrink-0">
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-100 text-sm font-semibold dark:bg-neutral-800">
+      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-neutral-100 text-sm font-semibold dark:bg-neutral-800">
         {iniciales(jugador.nombre)}
       </div>
-      {esCapitan && (
-        <span
-          title={t.ficha.capitanTitle(gameConfig.capitan.multiplicador)}
-          className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-yellow-400 text-[10px] font-bold text-yellow-950"
-        >
-          C
+      {conEstado && !ligaPublica && (
+        <span className="absolute -bottom-1 -right-1 rounded-full ring-2 ring-white dark:ring-neutral-900">
+          <InsigniaEstado estado={estado} title={estadoTexto.title} />
         </span>
       )}
     </div>
@@ -226,23 +225,18 @@ export default function PlayerCard({
   return (
     <>
       <div
-        className={`flex items-center gap-2 rounded-xl border-l-4 border-y border-r border-neutral-200 bg-white py-2 pl-3 pr-2 dark:border-neutral-800 dark:bg-neutral-900 ${
+        className={`flex items-center gap-3 rounded-xl border-l-4 border-y border-r border-neutral-200 bg-white py-3 pl-3 pr-3 dark:border-neutral-800 dark:bg-neutral-900 ${
           esTitular ? "border-l-green-500" : "border-l-red-400"
         }`}
       >
         <button
           onClick={() => setMostrarAcciones(true)}
-          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+          className="flex min-w-0 flex-1 items-center gap-4 text-left"
         >
-          {avatar}
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-              <p className="break-words font-medium leading-tight">{jugador.nombre}</p>
-              {!ligaPublica && (
-                <InsigniaEstado estado={estado} title={estadoTexto.title} />
-              )}
-            </div>
-            <p className="mt-0.5 flex flex-wrap gap-x-1.5 text-xs text-neutral-500">
+          {avatar(true)}
+          <div className="min-w-0 flex-1 space-y-1">
+            <p className="break-words font-medium leading-tight">{jugador.nombre}</p>
+            <p className="flex flex-wrap gap-x-1.5 text-xs text-neutral-500">
               <span>Elo {jugador.elo}</span>
               <span>· {t.ficha.pts(puntosJornada)}</span>
               <span>
@@ -322,7 +316,7 @@ export default function PlayerCard({
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-neutral-300 dark:bg-neutral-700 sm:hidden" />
 
             <div className="flex items-start gap-3">
-              {avatar}
+              {avatar(false)}
               <div className="min-w-0 flex-1">
                 <p className="font-semibold">{jugador.nombre}</p>
                 <p className="text-sm text-neutral-500">
