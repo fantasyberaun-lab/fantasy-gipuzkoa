@@ -170,3 +170,52 @@ export function formatearPuntos(n: number): string {
   if (n - entero < 0.5) return String(entero);
   return entero === 0 ? "½" : `${entero}½`;
 }
+// ---------- Nombre corto para las fichas ----------
+
+// Categorías que se reconocen dentro del nombre de un torneo, en el orden en
+// que se enseñan cuando un jugador juega dos a la vez.
+const CATEGORIAS_TORNEO = [
+  { patron: /primera|lehen/, corto: "PRIMERA" },
+  { patron: /segunda|bigarren/, corto: "SEGUNDA" },
+  { patron: /tercera|hirugarren/, corto: "TERCERA" },
+  { patron: /absolut/, corto: "ABSOLUTO" },
+  // "Open de Gros", "II Open de Otoño Gros Xake Udazkeneko Irekia"…
+  { patron: /open.*gros|gros.*open/, corto: "OPEN DE GROS" },
+  { patron: /superveteran/, corto: "SUPERVETERANOS" },
+  { patron: /cadete|kadete/, corto: "CADETE" },
+];
+
+const sinTildes = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+function categoriaDeTorneo(nombre: string): { orden: number; texto: string } {
+  const plano = sinTildes(nombre).toLowerCase();
+  const orden = CATEGORIAS_TORNEO.findIndex((c) => c.patron.test(plano));
+  if (orden !== -1) return { orden, texto: CATEGORIAS_TORNEO[orden].corto };
+  // Sin categoría conocida: lo que va tras el último guion largo, o el nombre entero.
+  const partes = nombre.split(/\s[—–-]\s/);
+  return { orden: CATEGORIAS_TORNEO.length, texto: partes[partes.length - 1].trim().toUpperCase() };
+}
+
+// "Campeonato de Gipuzkoa Individual 2026 — Tercera Irun" -> "TERCERA".
+// No incluye dónde se juega: solo la categoría.
+export function torneoCorto(nombre: string): string {
+  return categoriaDeTorneo(nombre).texto;
+}
+
+// Resumen para la fila de un jugador: "SEGUNDA / OPEN DE GROS".
+export function resumenTorneos(torneos: { nombre: string }[]): string {
+  const textos = torneos
+    .map((t) => categoriaDeTorneo(t.nombre))
+    .sort((a, b) => a.orden - b.orden)
+    .map((r) => r.texto);
+  return [...new Set(textos)].join(" / ");
+}
+
+// Ordena (sin tocar el original) por categoría de torneo, en el mismo orden
+// que resumenTorneos: así "SEGUNDA / CADETE" y sus rivales van a la par.
+export function ordenarPorCategoria<T>(items: T[], nombreTorneo: (item: T) => string | null | undefined): T[] {
+  return [...items].sort(
+    (a, b) =>
+      categoriaDeTorneo(nombreTorneo(a) ?? "").orden - categoriaDeTorneo(nombreTorneo(b) ?? "").orden
+  );
+}

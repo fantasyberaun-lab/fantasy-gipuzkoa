@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useT } from "@/components/IdiomaProvider";
 import type { ProximoRival } from "@/lib/types";
+import { torneoCorto } from "@/lib/torneos";
 
 // Línea "Próx. rival" para la tarjeta de un jugador (plantilla y mercado).
 // No pinta nada si no hay emparejamientos publicados pendientes.
@@ -10,9 +11,12 @@ import type { ProximoRival } from "@/lib/types";
 export default function ProximoRivalLinea({
   rivales,
   className = "",
+  torneoResumido = false,
 }: {
   rivales?: ProximoRival[];
   className?: string;
+  // Enseña solo la categoría del torneo (SEGUNDA, OPEN DE GROS…).
+  torneoResumido?: boolean;
 }) {
   const tg = useT().graficas;
   if (!rivales || rivales.length === 0) return null;
@@ -21,7 +25,7 @@ export default function ProximoRivalLinea({
     <div className={`flex flex-col gap-0.5 ${className}`}>
       {rivales.map((r, i) => {
         const detalle = [
-          r.torneo,
+          torneoResumido && r.torneo ? torneoCorto(r.torneo) : r.torneo,
           tg.ronda(r.jornada),
           r.tablero != null ? tg.mesa(r.tablero) : null,
         ]

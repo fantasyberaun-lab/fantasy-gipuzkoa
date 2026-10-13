@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { PlantillaSlot } from "@/lib/types";
 import { gameConfig } from "@/lib/gameConfig";
+import { ordenarPorCategoria, resumenTorneos } from "@/lib/torneos";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import ProximoRivalLinea from "@/components/ProximoRival";
 import { useT } from "@/components/IdiomaProvider";
@@ -112,7 +113,7 @@ export default function PlayerCard({
   ligaPublica = false,
   candado,
   blindado,
-  proximosRivales,
+  proximosRivales: rivalesSinOrdenar,
   torneos,
   onToggleTitular,
   onToggleCapitan,
@@ -121,6 +122,10 @@ export default function PlayerCard({
   onSubirClausula,
 }: Props) {
   const t = useT();
+  // Mismo orden que la etiqueta de torneos (primero Segunda, luego Cadete…).
+  const proximosRivales = rivalesSinOrdenar
+    ? ordenarPorCategoria(rivalesSinOrdenar, (r) => r.torneo)
+    : undefined;
   const [mostrarAcciones, setMostrarAcciones] = useState(false);
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
@@ -134,6 +139,13 @@ export default function PlayerCard({
   const [errorCapitan, setErrorCapitan] = useState<string | null>(null);
 
   const precioBlindaje = Math.ceil(jugador.valorMercado * gameConfig.blindaje.porcentaje);
+
+  // Torneos de la fila: los inscritos y los de sus próximos rivales (un
+  // jugador puede tener partida en un torneo en el que no figura inscrito).
+  const nombresTorneo = [
+    ...(torneos ?? []).map((tn) => tn.nombre),
+    ...(proximosRivales ?? []).flatMap((r) => (r.torneo ? [r.torneo] : [])),
+  ].map((nombre) => ({ nombre }));
 
   const estado: EstadoClausula = blindado ? "blindado" : candado ? "candado" : "clausulable";
   const estadoTexto = {
@@ -227,21 +239,31 @@ export default function PlayerCard({
           {avatar(true)}
           <div className="min-w-0 flex-1 space-y-1">
             <p className="break-words font-medium leading-tight">{jugador.nombre}</p>
+            {nombresTorneo.length > 0 && (
+              <p className="break-words text-[10px] font-semibold uppercase leading-tight tracking-wide text-neutral-500 dark:text-neutral-400">
+                {resumenTorneos(nombresTorneo)}
+              </p>
+            )}
             <p className="flex flex-wrap gap-x-1.5 text-xs text-neutral-500">
               <span>Elo {jugador.elo}</span>
               <span>· {t.ficha.pts(puntosJornada)}</span>
               <span>· {jugador.valorMercado} M</span>
             </p>
-            {proximosRivales?.map((r, i) => (
-              <p key={i} className="break-words text-xs leading-snug text-neutral-400">
-                {t.graficas.proxRival}{" "}
-                <span className="font-medium text-neutral-500">
-                  {r.descansa
-                    ? t.graficas.sinEmparejar
-                    : `${r.rivalNombre}${r.rivalElo != null ? ` (${r.rivalElo})` : ""}`}
-                </span>
-              </p>
-            ))}
+            {proximosRivales && proximosRivales.length > 0 && (
+              <div className="pt-1">
+                <p className="text-[11px] text-neutral-400">{t.graficas.proxRival}</p>
+                {proximosRivales.map((r, i) => (
+                  <p
+                    key={i}
+                    className="break-words text-xs font-medium leading-snug text-neutral-600 dark:text-neutral-300"
+                  >
+                    {r.descansa
+                      ? t.graficas.sinEmparejar
+                      : `${r.rivalNombre}${r.rivalElo != null ? ` (${r.rivalElo})` : ""}`}
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
         </button>
 
@@ -339,15 +361,15 @@ export default function PlayerCard({
               )}
             </div>
 
-            {torneos && torneos.length > 0 && (
+            {nombresTorneo.length > 0 && (
               <p className="mt-2 text-xs text-neutral-500">
                 <span className="font-medium text-neutral-600 dark:text-neutral-400">
                   {t.ficha.torneos}
                 </span>{" "}
-                {torneos.map((tn) => tn.nombre).join(" · ")}
+                {resumenTorneos(nombresTorneo)}
               </p>
             )}
-            <ProximoRivalLinea rivales={proximosRivales} className="mt-1" />
+            <ProximoRivalLinea rivales={proximosRivales} className="mt-1" torneoResumido />
 
             <div className="mt-3 flex items-center justify-between text-sm">
               <div className="flex gap-1">
