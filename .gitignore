@@ -21,3 +21,8 @@ npm-debug.log*
 # supabase
 supabase/.branches
 supabase/.temp
+
+# impeccable (herramienta local de diseño)
+/.github/agents/
+/.github/hooks/
+/.github/skills/
