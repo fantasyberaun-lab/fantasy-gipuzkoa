@@ -49,7 +49,9 @@ const config: Config = {
           200: "#E1DEEE",
           300: "#CBC6DE",
           400: "#9A94B3",
-          500: "#746D90",
+          // Texto secundario: cambia con el tema (ver --texto-suave en
+          // globals.css) para cumplir el contraste AA en claro y en oscuro.
+          500: "rgb(var(--texto-suave) / <alpha-value>)",
           600: "#57516E",
           700: "#3F3A55",
           800: "#2A2640",
