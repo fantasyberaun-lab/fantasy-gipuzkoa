@@ -94,8 +94,7 @@ interface GameState {
   cargando: boolean;
   tieneEquipo: boolean;
   esRoot: boolean;
-  // Avatar de perfil elegido (id de lib/avatares.ts). En prueba: solo se carga
-  // y se enseña a los root.
+  // Avatar de perfil elegido (id de lib/avatares.ts), desbloqueado por nivel.
   avatar: string | null;
   setAvatar: (avatar: string | null) => void;
   // La liga activa es la pública "todos contra todos": sin plantilla inicial,
@@ -323,7 +322,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       fetchMisLigas(supabase),
     ]);
     setEsRoot(rol === "root");
-    setAvatar(rol === "root" ? avatarGuardado : null);
+    setAvatar(avatarGuardado);
     setMisLigas(ligas);
 
     if (ligas.length === 0) {

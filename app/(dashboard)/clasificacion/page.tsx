@@ -7,6 +7,9 @@ import { useGameState } from "@/components/GameStateProvider";
 import { useIdioma } from "@/components/IdiomaProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import ProximoRivalLinea from "@/components/ProximoRival";
+import AvatarPerfil from "@/components/AvatarPerfil";
+import InsigniaNivel from "@/components/InsigniaNivel";
+import { fetchNivelesLiga, type NivelPublico } from "@/lib/supabase/nivelesQueries";
 import { createClient } from "@/lib/supabase/client";
 import {
   fetchJornadasSemanales,
@@ -66,6 +69,19 @@ export default function ClasificacionPage() {
   // Nº de managers de la liga (lo cuenta la base de datos en mis_ligas()).
   const totalManagers =
     misLigas.find((l) => l.ligaId === equipo.leagueId)?.miembros ?? clasificacion.length;
+
+  // Nivel e icono de cada manager de la liga, por id de equipo (0088).
+  const [niveles, setNiveles] = useState<Record<string, NivelPublico>>({});
+  useEffect(() => {
+    if (!equipo.leagueId) return;
+    let vigente = true;
+    fetchNivelesLiga(createClient(), equipo.leagueId).then((n) => {
+      if (vigente) setNiveles(n);
+    });
+    return () => {
+      vigente = false;
+    };
+  }, [equipo.leagueId]);
 
   // Desplegable: "" = puntos totales, o el sábado de una jornada (fin de semana).
   const [jornadaSel, setJornadaSel] = useState<string>("");
@@ -354,6 +370,14 @@ export default function ClasificacionPage() {
               entry.esMiEquipo ? "rounded-lg bg-accent/10 px-3" : "px-3"
             }`}
           >
+            <div className="flex min-w-0 items-center gap-2.5">
+            {entry.equipoId && (
+              <AvatarPerfil
+                avatar={niveles[entry.equipoId]?.avatar}
+                nombre={entry.nombreManager || entry.nombreEquipo}
+                tamano={36}
+              />
+            )}
             <span className="min-w-0">
               {posicion}.{" "}
               {entry.equipoId ? (
@@ -365,6 +389,9 @@ export default function ClasificacionPage() {
                   >
                     {entry.nombreEquipo}
                   </Link>
+                  {niveles[entry.equipoId] && (
+                    <InsigniaNivel nivel={niveles[entry.equipoId].nivel} className="ml-1.5 align-middle" />
+                  )}
                 </>
               ) : (
                 entry.nombreEquipo
@@ -384,6 +411,7 @@ export default function ClasificacionPage() {
                 </Link>
               )}
             </span>
+            </div>
             <div className="flex shrink-0 items-center gap-3 pl-2">
               <span className="whitespace-nowrap font-medium">
                 {c.pts(puntosParaOrden(entry))}{" "}

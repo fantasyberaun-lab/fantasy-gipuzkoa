@@ -1,18 +1,21 @@
 "use client";
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useDatosCacheados } from "@/lib/useDatosCacheados";
 import { createClient } from "@/lib/supabase/client";
 import { useIdioma, useT } from "@/components/IdiomaProvider";
 import AlineacionesJornadas from "@/components/AlineacionesJornadas";
 import HistorialValorChart from "@/components/HistorialValorChart";
 import AvatarPerfil from "@/components/AvatarPerfil";
+import InsigniaNivel from "@/components/InsigniaNivel";
+import PestanaNiveles from "@/components/PestanaNiveles";
 import { useGameState } from "@/components/GameStateProvider";
 import {
   fetchEvolucionValorPlantilla,
   fetchPerfilManager,
 } from "@/lib/supabase/queries";
+import { fetchNivelEquipo, type NivelPublico } from "@/lib/supabase/nivelesQueries";
 import type { PerfilManager, PuntoValorPlantilla } from "@/lib/types";
 import type { PuntoValor } from "@/lib/supabase/jugadoresQueries";
 
@@ -44,18 +47,35 @@ function PerfilManagerContenido() {
   const t = useT();
   const tm = t.managers;
   const { locale } = useIdioma();
-  // Avatares en prueba: solo root, y solo en su propio perfil (ver 0077).
-  const { esRoot, avatar } = useGameState();
+  // El icono elegido solo se enseña en el perfil propio.
+  const { avatar } = useGameState();
 
   const { datos, cargando } = useDatosCacheados(`manager:${id}`, () =>
     Promise.all([fetchPerfilManager(supabase, id), fetchEvolucionValorPlantilla(supabase, id)])
   );
+  // Nivel e icono del manager (0088). El propio icono sale del estado, que se
+  // actualiza al instante cuando lo cambias.
+  const [nivelPublico, setNivelPublico] = useState<NivelPublico | null>(null);
+  useEffect(() => {
+    let vigente = true;
+    fetchNivelEquipo(supabase, id).then((n) => {
+      if (vigente) setNivelPublico(n);
+    });
+    return () => {
+      vigente = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
   const perfil: PerfilManager | null = datos?.[0] ?? null;
   const evolucion: PuntoValorPlantilla[] = datos?.[1] ?? [];
   // Si se llega desde el botón "Jornadas" de Clasificación (?tab=jornadas).
   const searchParams = useSearchParams();
-  const [pestana, setPestana] = useState<"resumen" | "jornadas">(
-    searchParams.get("tab") === "jornadas" ? "jornadas" : "resumen"
+  const [pestana, setPestana] = useState<"resumen" | "jornadas" | "niveles">(
+    searchParams.get("tab") === "jornadas"
+      ? "jornadas"
+      : searchParams.get("tab") === "niveles"
+        ? "niveles"
+        : "resumen"
   );
 
 
@@ -93,6 +113,13 @@ function PerfilManagerContenido() {
     );
   }
 
+  const pestanas: [typeof pestana, string][] = [
+    ["resumen", tm.resumen],
+    ["jornadas", tm.jornadas],
+  ];
+  // Los niveles son solo del propio perfil.
+  if (perfil.esMio) pestanas.push(["niveles", t.niveles.pestana]);
+
   return (
     <div className="flex flex-col gap-5">
       <button
@@ -104,14 +131,15 @@ function PerfilManagerContenido() {
 
       <div className="flex items-center gap-3">
         <AvatarPerfil
-          avatar={esRoot && perfil.esMio ? avatar : null}
+          avatar={perfil.esMio ? avatar : nivelPublico?.avatar}
           nombre={perfil.nombreManager}
-          tamano={perfil.esMio && esRoot && avatar ? 80 : 48}
+          tamano={(perfil.esMio ? avatar : nivelPublico?.avatar) ? 80 : 48}
           ampliable
         />
         <div>
           <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold">
             {perfil.nombreManager}
+            {nivelPublico && <InsigniaNivel nivel={nivelPublico.nivel} />}
             {perfil.esMio && (
               <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-white">
                 {tm.tuPerfil}
@@ -126,12 +154,7 @@ function PerfilManagerContenido() {
       </div>
 
       <div className="flex gap-1 border-b border-neutral-200 dark:border-neutral-800">
-        {(
-          [
-            ["resumen", tm.resumen],
-            ["jornadas", tm.jornadas],
-          ] as const
-        ).map(([clave, etiqueta]) => (
+        {pestanas.map(([clave, etiqueta]) => (
           <button
             key={clave}
             onClick={() => setPestana(clave)}
@@ -179,6 +202,8 @@ function PerfilManagerContenido() {
       )}
 
       {pestana === "jornadas" && <AlineacionesJornadas equipoId={id} />}
+
+      {pestana === "niveles" && perfil.esMio && <PestanaNiveles nombreManager={perfil.nombreManager} />}
     </div>
   );
 }

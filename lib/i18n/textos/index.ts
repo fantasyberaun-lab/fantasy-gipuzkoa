@@ -23,6 +23,7 @@ import reglas from "./reglas";
 import juego from "./juego";
 import sugerencias from "./sugerencias";
 import avatares from "./avatares";
+import niveles from "./niveles";
 
 // Todas las secciones de textos. Para añadir una: crea textos/<seccion>.ts
 // con definirTextos(...) y regístrala aquí.
@@ -51,6 +52,7 @@ const SECCIONES = {
   juego,
   sugerencias,
   avatares,
+  niveles,
 };
 
 type Secciones = typeof SECCIONES;

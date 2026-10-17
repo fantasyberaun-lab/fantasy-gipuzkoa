@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
 import { useT } from "@/components/IdiomaProvider";
-import { buscarAvatar, nombreAvatar, type Avatar } from "@/lib/avatares";
+import { buscarAvatar, descripcionAvatar, nombreAvatar, type Avatar } from "@/lib/avatares";
 
 function iniciales(nombre: string) {
   return nombre
@@ -21,6 +21,7 @@ function iniciales(nombre: string) {
 function AvatarAmpliado({ avatar, onCerrar }: { avatar: Avatar; onCerrar: () => void }) {
   const t = useT();
   const nombre = nombreAvatar(avatar, t);
+  const descripcion = descripcionAvatar(avatar, t);
 
   useEffect(() => {
     const alTeclear = (e: KeyboardEvent) => {
@@ -55,9 +56,17 @@ function AvatarAmpliado({ avatar, onCerrar }: { avatar: Avatar; onCerrar: () => 
         height={800}
         unoptimized
         onClick={(e) => e.stopPropagation()}
-        className="h-auto w-full max-w-[min(90vw,70vh,800px)] rounded-lg shadow-2xl"
+        className="h-auto w-full max-w-[min(90vw,60vh,800px)] rounded-lg shadow-2xl"
       />
       <p className="font-display text-lg font-semibold text-white">{nombre}</p>
+      {descripcion && (
+        <p
+          onClick={(e) => e.stopPropagation()}
+          className="max-w-md px-2 text-center text-sm leading-snug text-white/80"
+        >
+          {descripcion}
+        </p>
+      )}
     </div>,
     document.body
   );
