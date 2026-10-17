@@ -51,7 +51,6 @@ import {
   unirseLigaDB,
   unirseLigaPublicaDB,
   venderJugadorDB,
-  venderJugadorPublicoDB,
 } from "@/lib/supabase/queries";
 import type {
   ClasificacionEntry,
@@ -672,9 +671,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     valorMercado: number
   ): Promise<ResultadoAccion> {
     if (!equipo.id) return { ok: false, mensaje: t.juego.sinEquipo };
-    const resultado = esLigaPublica
-      ? await venderJugadorPublicoDB(supabase, id, equipo.leagueId)
-      : await venderJugadorDB(supabase, equipo.id, id, valorMercado);
+    // El valor lo calcula el servidor (vender_jugador): el navegador ya no manda
+    // el importe. `valorMercado` se conserva en la firma por los llamadores.
+    void valorMercado;
+    const resultado = await venderJugadorDB(supabase, id, equipo.leagueId);
     if (resultado.ok) await recargarJuego();
     return resultado;
   }

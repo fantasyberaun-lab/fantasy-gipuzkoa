@@ -784,52 +784,9 @@ export async function blindarJugadorDB(
   return data as ResultadoAccion;
 }
 
+// Vende al valor de mercado, al instante y de forma atómica, en cualquier tipo de
+// liga (ver vender_jugador en 0036 y 0083). El importe lo calcula el servidor.
 export async function venderJugadorDB(
-  supabase: Supabase,
-  equipoId: string,
-  playerId: string,
-  valorMercado: number
-): Promise<ResultadoAccion> {
-  const { error: errorBaja } = await supabase
-    .from("squad_slots")
-    .update({ fecha_salida: new Date().toISOString() })
-    .eq("fantasy_team_id", equipoId)
-    .eq("player_id", playerId)
-    .is("fecha_salida", null);
-
-  if (errorBaja) return { ok: false, mensaje: errorBaja.message };
-
-  const { data: equipoActual, error: errorLectura } = await supabase
-    .from("fantasy_teams")
-    .select("presupuesto")
-    .eq("id", equipoId)
-    .single();
-
-  if (errorLectura || !equipoActual) {
-    return { ok: false, mensaje: "No se pudo leer el saldo actual." };
-  }
-
-  const { error: errorSaldo } = await supabase
-    .from("fantasy_teams")
-    .update({ presupuesto: Number(equipoActual.presupuesto) + valorMercado })
-    .eq("id", equipoId);
-
-  if (errorSaldo) return { ok: false, mensaje: errorSaldo.message };
-
-  await supabase.from("operations_log").insert({
-    fantasy_team_id: equipoId,
-    tipo: "venta",
-    player_id: playerId,
-    importe: valorMercado,
-  });
-
-  return { ok: true };
-}
-
-// Liga pública: vende al valor de mercado, al instante y de forma atómica
-// (ver vender_jugador en 0036_liga_publica.sql). Las ligas privadas siguen
-// usando venderJugadorDB.
-export async function venderJugadorPublicoDB(
   supabase: Supabase,
   playerId: string,
   leagueId: string
