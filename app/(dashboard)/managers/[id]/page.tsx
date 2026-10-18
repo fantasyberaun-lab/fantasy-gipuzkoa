@@ -129,16 +129,16 @@ function PerfilManagerContenido() {
         ← {t.comun.volver}
       </button>
 
-      <div className="flex items-center gap-3">
+      <div className="flex min-w-0 items-center gap-3">
         <AvatarPerfil
           avatar={perfil.esMio ? avatar : nivelPublico?.avatar}
           nombre={perfil.nombreManager}
           tamano={(perfil.esMio ? avatar : nivelPublico?.avatar) ? 80 : 48}
           ampliable
         />
-        <div>
+        <div className="min-w-0">
           <h2 className="flex flex-wrap items-center gap-2 text-lg font-semibold">
-            {perfil.nombreManager}
+            <span className="min-w-0 break-words">{perfil.nombreManager}</span>
             {nivelPublico && <InsigniaNivel nivel={nivelPublico.nivel} />}
             {perfil.esMio && (
               <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-white">

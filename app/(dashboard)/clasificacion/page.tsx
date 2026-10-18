@@ -378,7 +378,7 @@ export default function ClasificacionPage() {
                 tamano={36}
               />
             )}
-            <span className="min-w-0">
+            <span className="min-w-0 break-words">
               {posicion}.{" "}
               {entry.equipoId ? (
                 <>

@@ -40,12 +40,12 @@ export default function NivelChip() {
         (estado.xpNivelSiguiente - estado.xp).toLocaleString(),
         estado.nivel + 1
       )}`}
-      className="mt-1.5 inline-flex items-center gap-2 rounded-full bg-white/10 py-1 pl-2.5 pr-3 ring-1 ring-white/15 transition-colors hover:bg-white/20"
+      className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-white/10 py-1 pl-2.5 pr-3 ring-1 ring-white/15 transition-colors hover:bg-white/20"
     >
       <span className="text-xs font-bold uppercase tracking-wide text-gold">
         {tn.nivelCorto(estado.nivel)}
       </span>
-      <span className="h-1.5 w-14 overflow-hidden rounded-full bg-black/40" aria-hidden="true">
+      <span className="h-1.5 w-10 overflow-hidden sm:w-14 rounded-full bg-black/40" aria-hidden="true">
         <span
           className="block h-full rounded-full bg-gradient-to-r from-brand-300 to-gold"
           style={{ width: `${progreso * 100}%` }}
