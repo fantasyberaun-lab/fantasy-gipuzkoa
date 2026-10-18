@@ -21,7 +21,12 @@ export default definirTextos(
     reclamar: (importe: number) => `Reclamar ${importe} M`,
     ingresadoEquipos: (equipos: number) => `Ingresado en tus ${equipos} equipos.`,
     chipAria: (n: number, pendiente: boolean) =>
-      `Racha de ${n} día${n === 1 ? "" : "s"}${pendiente ? ". Hoy falta reclamar" : ""}`,
+      `Racha de ${n} día${n === 1 ? "" : "s"}${pendiente ? ". Tienes un cofre por abrir" : ""}`,
+    // Inicio de sesión automático y XP (0086)
+    masXp: (xp: number) => `+${xp} XP`,
+    cofresListos: (n: number) =>
+      n === 1 ? "Tienes un cofre de 5 a 10 M por abrir" : `Tienes ${n} cofres de 5 a 10 M por abrir`,
+    entradaHoy: (importe: number, xp: number) => `+${importe} M · +${xp} XP por entrar hoy`,
   },
   {
     eu: {
@@ -43,7 +48,11 @@ export default definirTextos(
       reclamar: (importe: number) => `Jaso ${importe} M`,
       ingresadoEquipos: (equipos: number) => `Zure ${equipos} taldeetan sartu da.`,
       chipAria: (n: number, pendiente: boolean) =>
-        `${n} eguneko bolada${pendiente ? ". Gaurkoa jasotzeke" : ""}`,
+        `${n} eguneko bolada${pendiente ? ". Kutxa bat ireki gabe duzu" : ""}`,
+      masXp: (xp: number) => `+${xp} XP`,
+      cofresListos: (n: number) =>
+        n === 1 ? "5-10 M-ko kutxa bat ireki gabe duzu" : `5-10 M-ko ${n} kutxa ireki gabe dituzu`,
+      entradaHoy: (importe: number, xp: number) => `+${importe} M · +${xp} XP gaur sartzeagatik`,
     },
     en: {
       cofreAria: "Streak chest",
@@ -64,7 +73,11 @@ export default definirTextos(
       reclamar: (importe: number) => `Claim ${importe} M`,
       ingresadoEquipos: (equipos: number) => `Paid into your ${equipos} teams.`,
       chipAria: (n: number, pendiente: boolean) =>
-        `${n}-day streak${pendiente ? ". Today's reward is unclaimed" : ""}`,
+        `${n}-day streak${pendiente ? ". You have a chest to open" : ""}`,
+      masXp: (xp: number) => `+${xp} XP`,
+      cofresListos: (n: number) =>
+        n === 1 ? "You have a 5–10 M chest to open" : `You have ${n} 5–10 M chests to open`,
+      entradaHoy: (importe: number, xp: number) => `+${importe} M · +${xp} XP for logging in today`,
     },
   }
 );

@@ -7,15 +7,19 @@ import { useGameState } from "@/components/GameStateProvider";
 import { useT } from "@/components/IdiomaProvider";
 import { redondear2 } from "@/lib/saldo";
 import {
+  abrirCofreDB,
   fetchEstadoRacha,
-  reclamarRecompensaDB,
+  registrarInicioSesionDB,
   type EstadoRacha,
-  type ResultadoReclamar,
+  type ResultadoCofre,
 } from "@/lib/supabase/rachaQueries";
 
-type Cobro = Extract<ResultadoReclamar, { ok: true }>;
+type Cofre = Extract<ResultadoCofre, { ok: true }>;
 
-// Puntos de la semana de racha: los días ya reclamados del ciclo hasta el cofre.
+// Aviso a otros componentes (pestaña de niveles) de que ha cambiado la XP.
+export const EVENTO_XP = "fantasy:xp";
+
+// Puntos de la semana de racha: los días ya hechos del ciclo hasta el cofre.
 function PuntosCiclo({ hechos, total }: { hechos: number; total: number }) {
   return (
     <div className="flex gap-1.5" aria-hidden="true">
@@ -31,10 +35,32 @@ function PuntosCiclo({ hechos, total }: { hechos: number; total: number }) {
   );
 }
 
-// Modal del cofre: primero cerrado, al pulsar se abre y enseña el premio.
-function ModalCofre({ cobro, onCerrar }: { cobro: Cobro; onCerrar: () => void }) {
+// Modal del cofre: primero cerrado; al tocarlo se abre de verdad (el premio se
+// sortea en el servidor) y enseña lo ganado.
+function ModalCofre({
+  racha,
+  onAbrir,
+  onCerrar,
+}: {
+  racha: number;
+  onAbrir: () => Promise<ResultadoCofre>;
+  onCerrar: () => void;
+}) {
   const t = useT();
-  const [abierto, setAbierto] = useState(false);
+  const [abriendo, setAbriendo] = useState(false);
+  const [cofre, setCofre] = useState<Cofre | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function abrir() {
+    if (abriendo || cofre) return;
+    setAbriendo(true);
+    setError(null);
+    const r = await onAbrir();
+    setAbriendo(false);
+    if (r.ok) setCofre(r);
+    else setError(r.mensaje);
+  }
+
   return (
     <div
       role="dialog"
@@ -43,24 +69,29 @@ function ModalCofre({ cobro, onCerrar }: { cobro: Cobro; onCerrar: () => void })
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
     >
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center text-neutral-900 shadow-xl dark:bg-neutral-900 dark:text-neutral-100">
-        <p className="text-sm font-medium text-neutral-500">{t.racha.diasDeRachaExclamacion(cobro.racha)}</p>
+        <p className="text-sm font-medium text-neutral-500">
+          {t.racha.diasDeRachaExclamacion(cofre?.racha ?? racha)}
+        </p>
         <button
-          onClick={() => setAbierto(true)}
-          disabled={abierto}
+          onClick={abrir}
+          disabled={abriendo || cofre !== null}
           className={`mx-auto mt-4 block text-7xl transition-transform duration-300 ${
-            abierto ? "scale-110" : "animate-bounce hover:scale-110"
+            cofre ? "scale-110" : "animate-bounce hover:scale-110"
           }`}
           aria-label={t.racha.abrirCofre}
         >
-          {abierto ? "💰" : "🎁"}
+          {cofre ? "💰" : "🎁"}
         </button>
-        {abierto ? (
+        {cofre ? (
           <>
             <p className="mt-4 font-display text-4xl font-semibold text-accent">
-              +{redondear2(cobro.importeCofre)} M
+              +{redondear2(cofre.importeCofre)} M
+            </p>
+            <p className="mt-1 text-sm font-semibold text-gold-dark">
+              {t.racha.masXp(cofre.xp)}
             </p>
             <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-              {t.racha.masElMillon(cobro.equipos)}
+              {t.racha.ingresadoEquipos(cofre.equipos)}
             </p>
             <button
               onClick={onCerrar}
@@ -70,29 +101,37 @@ function ModalCofre({ cobro, onCerrar }: { cobro: Cobro; onCerrar: () => void })
             </button>
           </>
         ) : (
-          <p className="mt-4 text-sm text-neutral-600 dark:text-neutral-400">
-            {t.racha.tocaCofre}
-          </p>
+          <>
+            <p className="mt-4 text-sm text-neutral-600 dark:text-neutral-400">{t.racha.tocaCofre}</p>
+            {error && <p className="mt-2 text-xs text-negative dark:text-red-400">{error}</p>}
+            {error && (
+              <button
+                onClick={onCerrar}
+                className="mt-4 w-full rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium dark:border-neutral-700"
+              >
+                {t.comun.cerrar}
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>
   );
 }
 
-// Racha diaria: un chip "🔥 N" en la cabecera, junto al saldo. El punto amarillo
-// avisa de que hoy falta reclamar; al tocarlo se abre la racha con el botón.
-// Ver 0075_racha_diaria.sql.
+// Racha diaria: un chip "🔥 N" en la cabecera, junto al saldo. La entrada de cada
+// día se registra sola al abrir la app (cobra el millón y da XP); lo único que
+// se reclama es el cofre, que avisa con un punto amarillo. Ver 0086_niveles.sql.
 export default function RachaDiaria() {
   const supabase = createClient();
   const t = useT();
   const { recargarSaldo, cargando } = useGameState();
   const [estado, setEstado] = useState<EstadoRacha | null>(null);
   const [abierto, setAbierto] = useState(false);
-  const [enviando, setEnviando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [cobro, setCobro] = useState<Cobro | null>(null);
   const [mostrarCofre, setMostrarCofre] = useState(false);
+  const [aviso, setAviso] = useState<string | null>(null);
   const botonRef = useRef<HTMLButtonElement>(null);
+  const entrandoRef = useRef(false);
   // Posición del desplegable. Va en un portal (fuera de la cabecera, que tiene
   // overflow: hidden) y se coloca a mano bajo el chip, sin salirse de la pantalla.
   const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
@@ -101,16 +140,40 @@ export default function RachaDiaria() {
     setEstado(await fetchEstadoRacha(supabase));
   }
 
+  // Registra la entrada de hoy (si falta) y refresca la racha. La PWA puede
+  // quedarse abierta de un día para otro, por eso también se llama al volver.
+  async function entrar() {
+    if (entrandoRef.current) return;
+    entrandoRef.current = true;
+    try {
+      const r = await registrarInicioSesionDB(supabase);
+      if (r.ok && r.nuevo) {
+        setAviso(t.racha.entradaHoy(redondear2(r.importeDiario), r.xp));
+        window.dispatchEvent(new Event(EVENTO_XP));
+        await recargarSaldo();
+      }
+      await cargar();
+    } finally {
+      entrandoRef.current = false;
+    }
+  }
+
   useEffect(() => {
-    cargar();
-    // La app (PWA) puede quedarse abierta de un día para otro.
+    entrar();
     const alVolver = () => {
-      if (document.visibilityState === "visible") cargar();
+      if (document.visibilityState === "visible") entrar();
     };
     document.addEventListener("visibilitychange", alVolver);
     return () => document.removeEventListener("visibilitychange", alVolver);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // El aviso de "+1 M · +10 XP" se quita solo.
+  useEffect(() => {
+    if (!aviso) return;
+    const id = setTimeout(() => setAviso(null), 4500);
+    return () => clearTimeout(id);
+  }, [aviso]);
 
   function alternar() {
     if (abierto) {
@@ -148,29 +211,24 @@ export default function RachaDiaria() {
     };
   }, [abierto]);
 
-  async function reclamar() {
-    setEnviando(true);
-    setError(null);
-    const r = await reclamarRecompensaDB(supabase);
+  async function abrirCofre(): Promise<ResultadoCofre> {
+    const r = await abrirCofreDB(supabase);
     if (r.ok) {
-      setCobro(r);
-      if (r.importeCofre > 0) {
-        setAbierto(false);
-        setMostrarCofre(true);
-      }
+      window.dispatchEvent(new Event(EVENTO_XP));
       await Promise.all([cargar(), recargarSaldo()]);
-    } else {
-      setError(r.mensaje);
-      await cargar();
     }
-    setEnviando(false);
+    return r;
   }
 
   if (cargando || !estado) return null;
 
-  const pendiente = !estado.reclamadaHoy;
-  const hechosCiclo = estado.racha === 0 ? 0 : estado.diasCofre - estado.diasParaCofre;
-  const tocaCofreHoy = pendiente && estado.diasParaCofre === 1;
+  const hayCofre = estado.cofresPendientes > 0;
+  const hechosCiclo =
+    estado.racha === 0
+      ? 0
+      : estado.diasParaCofre === estado.diasCofre
+        ? estado.diasCofre
+        : estado.diasCofre - estado.diasParaCofre;
 
   return (
     <>
@@ -178,12 +236,12 @@ export default function RachaDiaria() {
         ref={botonRef}
         onClick={alternar}
         aria-expanded={abierto}
-        aria-label={t.racha.chipAria(estado.racha, pendiente)}
+        aria-label={t.racha.chipAria(estado.racha, hayCofre)}
         className="relative flex items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-sm font-semibold text-white ring-1 ring-white/15 transition-colors hover:bg-white/20"
       >
         <span aria-hidden="true">🔥</span>
         {estado.racha}
-        {pendiente && (
+        {hayCofre && (
           <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-gold ring-2 ring-brand-950" />
         )}
       </button>
@@ -202,49 +260,52 @@ export default function RachaDiaria() {
           </p>
 
           <div className="mt-2.5">
-            <PuntosCiclo
-              hechos={!pendiente && estado.diasParaCofre === estado.diasCofre ? estado.diasCofre : hechosCiclo}
-              total={estado.diasCofre}
-            />
+            <PuntosCiclo hechos={hechosCiclo} total={estado.diasCofre} />
           </div>
 
           <p className="mt-2 text-xs text-neutral-500">
-            {!pendiente
-              ? t.racha.vuelveManana(
-                  estado.diasParaCofre === estado.diasCofre
-                    ? t.racha.proximoCofreEn(estado.diasCofre)
-                    : t.racha.cofreEn(estado.diasParaCofre)
-                )
-              : tocaCofreHoy
-                ? t.racha.hoyCofre
+            {hayCofre
+              ? t.racha.cofresListos(estado.cofresPendientes)
+              : estado.diasParaCofre === estado.diasCofre
+                ? t.racha.proximoCofreEn(estado.diasCofre)
                 : t.racha.cofreEnDias(estado.diasParaCofre)}
           </p>
 
-          {pendiente ? (
+          {hayCofre && (
             <button
-              onClick={reclamar}
-              disabled={enviando}
-              className="mt-3 w-full rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+              onClick={() => {
+                setAbierto(false);
+                setMostrarCofre(true);
+              }}
+              className="mt-3 w-full rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-hover"
             >
-              {enviando ? "…" : t.racha.reclamar(redondear2(estado.recompensaDiaria))}
+              {t.racha.abrirCofre}
             </button>
-          ) : (
-            cobro && (
-              <p className="mt-3 text-xs font-medium text-positive">
-                +{redondear2(cobro.importeDiario + cobro.importeCofre)} M
-                {cobro.equipos > 1 ? ` · ${t.racha.ingresadoEquipos(cobro.equipos)}` : ""}
-              </p>
-            )
           )}
-
-          {error && <p className="mt-2 text-xs text-negative dark:text-red-400">{error}</p>}
         </div>
         </>,
         document.body
       )}
 
-      {mostrarCofre && cobro && createPortal(
-        <ModalCofre cobro={cobro} onCerrar={() => setMostrarCofre(false)} />,
+      {mostrarCofre && createPortal(
+        <ModalCofre
+          racha={estado.racha}
+          onAbrir={abrirCofre}
+          onCerrar={() => setMostrarCofre(false)}
+        />,
+        document.body
+      )}
+
+      {aviso && createPortal(
+        <div
+          role="status"
+          className="pointer-events-none fixed inset-x-0 z-50 flex justify-center px-4"
+          style={{ bottom: "calc(env(safe-area-inset-bottom) + 5.5rem)" }}
+        >
+          <p className="rounded-full bg-brand-900 px-4 py-2 text-sm font-semibold text-white shadow-lg ring-1 ring-white/15">
+            {aviso}
+          </p>
+        </div>,
         document.body
       )}
     </>

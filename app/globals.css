@@ -6,6 +6,8 @@
   /* Morado del club (RGB separado para poder usar bg-accent/10, etc.) */
   --accent: 109 34 224;
   --accent-hover: 90 23 189;
+  /* Gris del texto secundario (neutral-500). #6A6386: 5,1:1 sobre el fondo claro */
+  --texto-suave: 106 99 134;
 }
 
 html {
@@ -17,6 +19,8 @@ html.dark {
   /* Un punto más claro para que el texto morado se lea sobre fondo oscuro */
   --accent: 149 80 251;
   --accent-hover: 176 120 255;
+  /* #9A94B3: 6,8:1 sobre el fondo oscuro */
+  --texto-suave: 154 148 179;
 }
 
 @layer base {

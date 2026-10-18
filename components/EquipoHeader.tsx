@@ -11,13 +11,15 @@ import InstallPwaButton from "@/components/InstallPwaButton";
 import InfoReglasButton from "@/components/InfoReglasButton";
 import AvatarPerfil from "@/components/AvatarPerfil";
 import RachaDiaria from "@/components/RachaDiaria";
+import TutorialNiveles from "@/components/TutorialNiveles";
+import NivelChip from "@/components/NivelChip";
 import { useT } from "@/components/IdiomaProvider";
 
 // Contenido de la cabecera morada: escudo, nombre del equipo, liga y saldo.
 export default function EquipoHeader() {
-  const { equipo, cargando, misLigas, comprometidoEnPujas, esRoot, avatar } = useGameState();
+  const { equipo, cargando, misLigas, comprometidoEnPujas, avatar } = useGameState();
   // Avatares en prueba: solo root, y solo si ha elegido uno (ver 0077).
-  const conAvatar = !cargando && esRoot && avatar !== null;
+  const conAvatar = !cargando && avatar !== null;
   const t = useT();
   const ligaActiva = misLigas.find((l) => l.ligaId === equipo.leagueId);
 
@@ -65,11 +67,13 @@ export default function EquipoHeader() {
                 {ligaActiva.tipo === "publica" ? t.ajustes.todosContraTodos : ""}
               </p>
             )}
+            <NivelChip />
           </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
           <RachaDiaria />
+          <TutorialNiveles />
           <div className="shrink-0 rounded-xl bg-white/10 px-4 py-2 ring-1 ring-white/15">
             <p className="text-xs font-medium text-white/70">{t.ajustes.saldo}</p>
             <p className="font-display text-2xl font-semibold leading-tight text-gold [&_span]:text-red-300">
@@ -158,18 +162,18 @@ function ContenidoTarjeta({
 // "Cambiar o crear liga". Lo de la cuenta (cerrar sesión, eliminarla,
 // admin...) está en el menú de ajustes (MenuAjustes).
 export function EquipoAcciones() {
-  const { equipo, cargando, esRoot, avatar } = useGameState();
+  const { equipo, cargando, avatar } = useGameState();
   const t = useT();
   const [mostrarModalLiga, setMostrarModalLiga] = useState(false);
   // Avatares en prueba: solo root, y solo si ha elegido uno (ver 0077).
-  const conAvatar = !cargando && esRoot && avatar !== null;
+  const conAvatar = !cargando && avatar !== null;
   const circulo =
     "flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent transition-colors group-hover:bg-accent group-hover:text-white";
 
   return (
     <div className="mb-5 grid grid-cols-2 gap-2.5 sm:gap-3">
       {!cargando && equipo.id ? (
-        <Link href={`/managers/${equipo.id}`} className={TARJETA}>
+        <Link href={`/managers/${equipo.id}`} className={TARJETA} data-tutorial="perfil">
           <ContenidoTarjeta
             icono={
               conAvatar ? (
