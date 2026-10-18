@@ -46,7 +46,7 @@ export default function EquipoHeader() {
         </div>
       </div>
 
-      <div className="flex items-end justify-between gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
         <div className="flex min-w-0 items-center gap-3">
           {conAvatar && (
             <AvatarPerfil
@@ -54,7 +54,7 @@ export default function EquipoHeader() {
               nombre={equipo.nombreEquipo}
               tamano={64}
               ampliable
-              className="ring-1 ring-white/25"
+              className="shrink-0 ring-1 ring-white/25"
             />
           )}
           <div className="min-w-0">
@@ -67,14 +67,14 @@ export default function EquipoHeader() {
                 {ligaActiva.tipo === "publica" ? t.ajustes.todosContraTodos : ""}
               </p>
             )}
-            <NivelChip />
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0 sm:flex-nowrap">
+          <NivelChip />
           <RachaDiaria />
           <TutorialNiveles />
-          <div className="shrink-0 rounded-xl bg-white/10 px-4 py-2 ring-1 ring-white/15">
+          <div className="ml-auto shrink-0 rounded-xl bg-white/10 px-4 py-2 ring-1 ring-white/15 sm:ml-0">
             <p className="text-xs font-medium text-white/70">{t.ajustes.saldo}</p>
             <p className="font-display text-2xl font-semibold leading-tight text-gold [&_span]:text-red-300">
               {cargando ? (

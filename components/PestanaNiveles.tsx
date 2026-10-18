@@ -83,7 +83,7 @@ export default function PestanaNiveles({ nombreManager }: { nombreManager: strin
         </div>
         <div className="mt-1.5 flex justify-between gap-2 text-xs text-white/70">
           <span>{f(xpNivelActual)}</span>
-          <span className="font-medium text-white">{tn.faltan(f(xpNivelSiguiente - xp), nivel + 1)}</span>
+          <span className="min-w-0 text-center font-medium text-white">{tn.faltan(f(xpNivelSiguiente - xp), nivel + 1)}</span>
           <span>{f(xpNivelSiguiente)}</span>
         </div>
 
