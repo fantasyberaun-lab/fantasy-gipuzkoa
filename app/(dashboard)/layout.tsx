@@ -4,6 +4,7 @@ import EquipoHeader, { EquipoAcciones } from "@/components/EquipoHeader";
 import LigaGate from "@/components/LigaGate";
 import LegalGate from "@/components/legal/LegalGate";
 import ActividadTracker from "@/components/ActividadTracker";
+import { ChatProvider } from "@/components/ChatProvider";
 import EnlacesLegales from "@/components/legal/EnlacesLegales";
 
 export default function DashboardLayout({
@@ -16,6 +17,7 @@ export default function DashboardLayout({
     <GameStateProvider>
       <ActividadTracker />
       <LigaGate>
+      <ChatProvider>
         <header className="banner-tablero">
           <div className="mx-auto max-w-5xl px-4 pb-5 pt-[calc(env(safe-area-inset-top)+1rem)]">
             <EquipoHeader />
@@ -31,6 +33,7 @@ export default function DashboardLayout({
 
           <EnlacesLegales className="mt-10" />
         </div>
+      </ChatProvider>
       </LigaGate>
     </GameStateProvider>
     </LegalGate>

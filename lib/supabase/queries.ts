@@ -26,8 +26,21 @@ type ResultadoAccion = { ok: true } | { ok: false; mensaje: string };
 // ---------- Lecturas ----------
 
 export async function fetchMisLigas(supabase: Supabase): Promise<LigaResumen[]> {
-  const { data, error } = await supabase.rpc("mis_ligas");
-  if (error || !data) return [];
+  return (await fetchMisLigasOError(supabase)) ?? [];
+}
+
+// Como fetchMisLigas, pero devuelve null si la consulta falla (tras reintentar), para
+// no confundir un error con "no estás en ninguna liga".
+export async function fetchMisLigasOError(supabase: Supabase): Promise<LigaResumen[] | null> {
+  let data: unknown = null;
+  let fallo = true;
+  for (let intento = 0; intento < 3 && fallo; intento++) {
+    if (intento > 0) await new Promise((r) => setTimeout(r, 600 * intento));
+    const r = await supabase.rpc("mis_ligas");
+    fallo = Boolean(r.error) || !r.data;
+    data = r.data;
+  }
+  if (fallo) return null;
 
   return (data as any[]).map((l) => ({
     ligaId: l.liga_id,

@@ -1,5 +1,7 @@
 import {
+  DIAS_CONSERVACION_CHAT,
   FECHA_CONDICIONES,
+  MAX_DENUNCIAS_DIA_CHAT,
   RESPONSABLE as R,
   VERSION_CONDICIONES,
 } from "./config";
@@ -79,7 +81,7 @@ export const SECCIONES_CONDICIONES: Seccion[] = [
     titulo: "8. Los jugadores que aparecen en el juego",
     bloques: [
       p("Los jugadores seleccionables son personas reales cuyos datos deportivos se tratan conforme a la Política de Privacidad. Que un jugador aparezca en el Fantasy no implica que tenga una cuenta ni que participe, colabore o esté de acuerdo con ninguna opinión o decisión de los usuarios."),
-      p("Debes tratar a los jugadores con respeto. Está prohibido utilizar la aplicación para acosar, insultar o contactar de forma insistente con los jugadores, o para difundir información sobre ellos que no figure en la propia aplicación."),
+      p("Debes tratar a los jugadores con respeto. Está prohibido utilizar la aplicación para acosar, insultar o contactar de forma insistente con los jugadores, o para difundir información sobre ellos que no figure en la propia aplicación. Esto incluye el chat."),
       p(`Los datos de los jugadores son visibles únicamente para los usuarios registrados. No está permitido copiarlos de forma masiva, extraerlos con programas automáticos, publicarlos fuera de la aplicación ni reutilizarlos para otros fines. Cualquier jugador, o sus representantes legales si es menor, puede solicitar su exclusión del Fantasy escribiendo a ${R.email}.`),
     ],
   },
@@ -94,6 +96,7 @@ export const SECCIONES_CONDICIONES: Seccion[] = [
         "aprovechar errores o fallos de la aplicación en beneficio propio en lugar de comunicarlos;",
         "intentar acceder a cuentas o datos ajenos, ni interferir en el funcionamiento o la seguridad de la aplicación;",
         "usar nombres de usuario, de equipo o de liga ofensivos, discriminatorios o que suplanten a otra persona;",
+        "usar el chat para los fines prohibidos en la sección 11;",
         "utilizar la aplicación para fines ilegales o contrarios a la buena fe."
       ),
     ],
@@ -101,50 +104,69 @@ export const SECCIONES_CONDICIONES: Seccion[] = [
   {
     titulo: "10. Ligas privadas",
     bloques: [
-      p("Quien crea una liga privada recibe un código para invitar a otros managers. Eres responsable de con quién compartes ese código. Las ligas privadas tienen un número máximo de miembros, y la organización puede eliminar ligas o expulsar a participantes que incumplan estas condiciones."),
+      p("Quien crea una liga privada recibe un código para invitar a otros managers. Eres responsable de con quién compartes ese código. Las ligas privadas tienen un número máximo de miembros, y la organización puede eliminar ligas o expulsar a participantes que incumplan estas condiciones. Quien crea una liga privada puede borrar mensajes del chat de su liga, pero no sancionar a otros miembros; la organización conserva la facultad de moderar también esas ligas a partir de denuncias."),
     ],
   },
   {
-    titulo: "11. Suspensión y baja",
+    titulo: "11. Chat y contenido que publicas",
     bloques: [
-      p("Si incumples estas condiciones, la organización puede avisarte, corregir o anular tus operaciones y, en casos graves o reiterados, suspender o eliminar tu cuenta."),
+      p("El juego incluye un chat de texto. Cada liga privada tiene el suyo, que solo ven sus miembros, y la liga pública tiene uno que ven todos los usuarios registrados."),
+      ul(
+        "En el chat solo se puede escribir texto y emojis. No se pueden enviar imágenes, archivos, enlaces ni mensajes privados.",
+        "Tú eres responsable de lo que escribes. Tus mensajes los verán otras personas, entre las que puede haber menores de edad.",
+        "No está permitido escribir mensajes insultantes, acosadores, amenazantes, discriminatorios, violentos o de contenido sexual; hacer spam o publicidad; compartir datos personales tuyos o de otras personas (teléfonos, direcciones, correos, perfiles en redes); suplantar a otra persona; ni coordinarte con otros usuarios para falsear la competición.",
+        "No uses el chat para insultar, acosar ni difundir información sobre los jugadores de ajedrez que aparecen en el juego, ni para hacer comentarios sobre ellos que vayan más allá de lo deportivo y del propio juego. Esto es especialmente importante si son menores.",
+        "Puedes mencionar a otros usuarios con «@». En el chat público puedes silenciar las menciones desde el propio chat: si lo haces, nadie podrá mencionarte allí.",
+        "Los mensajes no son confidenciales. La organización puede leerlos para moderar el chat, atender denuncias y cumplir obligaciones legales."
+      ),
+      p(`Puedes denunciar cualquier mensaje ajeno con el botón «Denunciar» o escribiendo a ${R.email}. Revisaremos las denuncias sin dilación indebida. Denunciar es para casos reales: no se puede denunciar el mismo mensaje más de una vez, hay un máximo de ${MAX_DENUNCIAS_DIA_CHAT} denuncias al día por persona, y el uso abusivo o malintencionado de las denuncias (por ejemplo, denunciar en masa o para molestar a alguien) se considera una infracción y puede dar lugar a las mismas medidas que cualquier otra.`),
+      p(`Si un mensaje incumple estas condiciones, podemos borrarlo, impedirte escribir en el chat durante un tiempo (en el chat de una liga privada, esto se decide a partir de una denuncia) o suspender tu acceso a él. Solo la organización puede aplicar estas medidas. Te lo comunicaremos indicando el motivo, salvo que la ley o la seguridad lo impidan. Puedes pedir que se revise la decisión escribiendo a ${R.email}.`),
+      p(`Los mensajes se borran automáticamente transcurridos ${DIAS_CONSERVACION_CHAT} días. Puedes borrar tus propios mensajes antes. Si eliminas tu cuenta, tus mensajes se borran. Los mensajes denunciados pueden conservarse más tiempo, solo mientras se resuelve la denuncia y los plazos legales lo exijan.`),
+      p("Al escribir en el chat nos autorizas a mostrar tu mensaje a los demás participantes del chat mientras exista. No lo usaremos fuera de la aplicación ni para otro fin."),
+      p("La organización no revisa los mensajes antes de que aparezcan. Actuará con diligencia cuando tenga conocimiento de un contenido ilícito o contrario a estas condiciones."),
+    ],
+  },
+  {
+    titulo: "12. Suspensión y baja",
+    bloques: [
+      p("Si incumples estas condiciones, la organización puede avisarte, corregir o anular tus operaciones y, en casos graves o reiterados, suspender o eliminar tu cuenta, incluida la suspensión temporal del acceso a escribir en el chat."),
       p("Puedes eliminar tu cuenta cuando quieras desde la propia aplicación. Al hacerlo, se borran tu perfil y tu equipo, y los jugadores de tu plantilla vuelven al mercado. Los datos que debamos conservar por obligación legal, como la constancia de tus aceptaciones, se tratan según la Política de Privacidad."),
     ],
   },
   {
-    titulo: "12. Disponibilidad del servicio",
+    titulo: "13. Disponibilidad del servicio",
     bloques: [
       p("Intentamos que la aplicación funcione de forma continua, pero no podemos garantizarlo. Puede haber interrupciones por mantenimiento, fallos técnicos o causas ajenas a nuestro control, y la aplicación puede cambiar, ampliarse o dejar de ofrecerse. Al ser un servicio gratuito y recreativo, procuraremos avisar con antelación razonable de los cambios importantes."),
     ],
   },
   {
-    titulo: "13. Propiedad intelectual y ausencia de vinculación",
+    titulo: "14. Propiedad intelectual y ausencia de vinculación",
     bloques: [
       p("El diseño, el código, los textos, el nombre y el escudo de la aplicación y del club pertenecen al club o a sus licenciantes y no pueden reproducirse ni usarse fuera de lo permitido sin autorización."),
       p("Fantasy Beraun Bera es una iniciativa independiente del club. No está patrocinada, avalada ni gestionada por la FIDE, la FEDA, la Federación Vasca de Ajedrez, la Federación Guipuzcoana de Ajedrez ni por los clubes o torneos cuyos datos deportivos se utilizan; estos nombres se citan solo para identificar la procedencia de la información."),
     ],
   },
   {
-    titulo: "14. Responsabilidad",
+    titulo: "15. Responsabilidad",
     bloques: [
       p("La aplicación se ofrece «tal cual», con fines recreativos. En la medida que permita la ley, el club no responde de los daños derivados de interrupciones del servicio, errores en los datos deportivos, pérdida de información del juego o del uso que hagan otros usuarios de la aplicación."),
       p("Nada de lo dispuesto en estas condiciones limita la responsabilidad que no pueda excluirse legalmente ni los derechos que la normativa reconozca a las personas consumidoras y usuarias."),
     ],
   },
   {
-    titulo: "15. Protección de datos",
+    titulo: "16. Protección de datos",
     bloques: [
       p(`El tratamiento de tus datos personales y de los de los jugadores se explica en la Política de Privacidad. Puedes ejercer tus derechos escribiendo a ${R.email}.`),
     ],
   },
   {
-    titulo: "16. Cambios en estas condiciones",
+    titulo: "17. Cambios en estas condiciones",
     bloques: [
       p("Podemos actualizar estas condiciones para adaptarlas a cambios legales, a nuevas funcionalidades o a la evolución del juego. La versión vigente estará siempre disponible en la aplicación. Cuando el cambio sea sustancial, te lo comunicaremos y te pediremos que aceptes la nueva versión para seguir usando la aplicación."),
     ],
   },
   {
-    titulo: "17. Legislación aplicable y contacto",
+    titulo: "18. Legislación aplicable y contacto",
     bloques: [
       p("Estas condiciones se rigen por la legislación española. Las controversias se someterán a los juzgados y tribunales que resulten competentes conforme a la normativa aplicable, incluidos, si eres persona consumidora, los de tu domicilio."),
       lineas(

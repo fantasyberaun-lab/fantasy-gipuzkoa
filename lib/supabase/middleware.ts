@@ -10,6 +10,7 @@ const RUTAS_PROTEGIDAS = [
   "/clasificacion",
   "/torneos",
   "/notificaciones",
+  "/chat",
   "/managers",
 ];
 const RUTAS_SOLO_SIN_SESION = ["/login", "/registro", "/recuperar"];

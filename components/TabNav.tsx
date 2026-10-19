@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useGameState } from "@/components/GameStateProvider";
 import { useT } from "@/components/IdiomaProvider";
+import { useChat } from "@/components/ChatProvider";
 
 // Iconos (trazo, 24x24) para la barra inferior del móvil.
 const icon = (d: string) => (
@@ -22,7 +23,7 @@ const icon = (d: string) => (
 
 interface Tab {
   href: string;
-  clave: "plantilla" | "mercado" | "jugadores" | "clasificacion" | "torneos" | "avisos"; // mismo nombre en escritorio y en la barra inferior del móvil
+  clave: "plantilla" | "mercado" | "jugadores" | "clasificacion" | "torneos" | "chat"; // mismo nombre en escritorio y en la barra inferior del móvil
   icono: ReactNode;
 }
 
@@ -63,10 +64,10 @@ const TABS: Tab[] = [
     ),
   },
   {
-    href: "/notificaciones",
-    clave: "avisos",
+    href: "/chat",
+    clave: "chat",
     icono: icon(
-      "M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
+      "M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155"
     ),
   },
 ];
@@ -97,11 +98,11 @@ function Badge({
 export default function TabNav() {
   const pathname = usePathname();
   const t = useT();
-  const { avisosNoLeidos, esLigaPublica } = useGameState();
+  const { esLigaPublica } = useGameState();
+  const { globo } = useChat();
 
   // En la liga pública no hay plantillas ajenas con clausulazos: todo se hace
-  // desde el Mercado. Sí hay pestaña de Avisos, pero solo con los comunicados
-  // del administrador (no con las operaciones de otros managers).
+  // desde el Mercado. Los Avisos viven en la campana de la cabecera; la pestaña de abajo es el Chat.
   const etiqueta = (tab: Tab) => t.nav[tab.clave];
   const tabs = esLigaPublica ? TABS.filter((tab) => tab.href !== "/jugadores") : TABS;
 
@@ -111,7 +112,7 @@ export default function TabNav() {
       <nav className="hidden gap-6 border-b border-neutral-200 dark:border-neutral-800 sm:flex">
         {tabs.map((tab) => {
           const isActive = pathname?.startsWith(tab.href);
-          const badge = tab.href === "/notificaciones" ? avisosNoLeidos : 0;
+          const badge = tab.href === "/chat" && !isActive ? globo : 0;
           return (
             <Link
               key={tab.href}
@@ -137,7 +138,7 @@ export default function TabNav() {
         <ul className="mx-auto flex max-w-md">
           {tabs.map((tab) => {
             const isActive = pathname?.startsWith(tab.href);
-            const badge = tab.href === "/notificaciones" ? avisosNoLeidos : 0;
+            const badge = tab.href === "/chat" && !isActive ? globo : 0;
             return (
               <li key={tab.href} className="min-w-0 flex-1">
                 <Link

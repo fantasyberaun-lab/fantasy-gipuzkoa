@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { contarSugerenciasPendientes } from "@/lib/supabase/sugerenciasQueries";
+import { contarDenunciasChatPendientes } from "@/lib/supabase/chatQueries";
 
 const TABS = [
   { href: "/admin", label: "Jugadores" },
@@ -13,6 +14,7 @@ const TABS = [
   { href: "/admin/comunicados", label: "Comunicados" },
   { href: "/admin/actividad", label: "Actividad" },
   { href: "/admin/sugerencias", label: "Sugerencias" },
+  { href: "/admin/chat", label: "Chat" },
 ];
 
 export default function AdminNav() {
@@ -20,9 +22,12 @@ export default function AdminNav() {
   // Sugerencias sin leer, para el globo de la pestaña. Se recuenta al cambiar
   // de pestaña (p. ej. al volver tras marcar varias como leídas).
   const [pendientes, setPendientes] = useState(0);
+  const [denuncias, setDenuncias] = useState(0);
 
   useEffect(() => {
-    contarSugerenciasPendientes(createClient()).then(setPendientes);
+    const supabase = createClient();
+    contarSugerenciasPendientes(supabase).then(setPendientes);
+    contarDenunciasChatPendientes(supabase).then(setDenuncias);
   }, [pathname]);
 
   return (
@@ -43,6 +48,11 @@ export default function AdminNav() {
             {tab.href === "/admin/sugerencias" && pendientes > 0 && (
               <span className="ml-1.5 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
                 {pendientes > 9 ? "9+" : pendientes}
+              </span>
+            )}
+            {tab.href === "/admin/chat" && denuncias > 0 && (
+              <span className="ml-1.5 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
+                {denuncias > 9 ? "9+" : denuncias}
               </span>
             )}
           </Link>

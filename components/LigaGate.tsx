@@ -8,7 +8,7 @@ import LigaForm from "@/components/LigaForm";
 import { useT } from "@/components/IdiomaProvider";
 
 export default function LigaGate({ children }: { children: React.ReactNode }) {
-  const { cargando, tieneEquipo, esLigaPublica } = useGameState();
+  const { cargando, tieneEquipo, esLigaPublica, errorCarga, recargar } = useGameState();
   const pathname = usePathname();
   const router = useRouter();
   const t = useT();
@@ -26,6 +26,21 @@ export default function LigaGate({ children }: { children: React.ReactNode }) {
     return (
       <div className="mx-auto max-w-sm px-4 pt-24 text-center text-sm text-neutral-500">
         {t.comun.cargando}
+      </div>
+    );
+  }
+
+  if (errorCarga) {
+    return (
+      <div className="mx-auto max-w-sm px-4 pt-24 text-center">
+        <p className="text-sm text-neutral-600 dark:text-neutral-300">{t.liga.errorCarga}</p>
+        <button
+          type="button"
+          onClick={() => recargar()}
+          className="mt-4 rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white"
+        >
+          {t.liga.reintentar}
+        </button>
       </div>
     );
   }

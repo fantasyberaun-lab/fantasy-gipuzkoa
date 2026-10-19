@@ -6,6 +6,8 @@ export default definirTextos(
     // Pantalla sin equipo (LigaGate)
     tituloSinEquipo: "Fantasy Campeonatos de Gipuzkoa",
     sinEquipo: "Todavía no tienes equipo en ninguna liga.",
+    errorCarga: "No hemos podido cargar tus ligas. Tus datos están a salvo.",
+    reintentar: "Reintentar",
     cerrarSesion: "Cerrar sesión",
 
     // Formulario (LigaForm)
@@ -53,6 +55,8 @@ export default definirTextos(
     eu: {
       tituloSinEquipo: "Fantasy Gipuzkoako Txapelketak",
       sinEquipo: "Oraindik ez duzu talderik inongo ligatan.",
+      errorCarga: "Ezin izan ditugu zure ligak kargatu. Zure datuak seguru daude.",
+      reintentar: "Saiatu berriro",
       cerrarSesion: "Saioa itxi",
 
       ligaCreada: "Liga sortu da!",
@@ -98,6 +102,8 @@ export default definirTextos(
     en: {
       tituloSinEquipo: "Gipuzkoa Championships Fantasy",
       sinEquipo: "You don't have a team in any league yet.",
+      errorCarga: "We couldn't load your leagues. Your data is safe.",
+      reintentar: "Try again",
       cerrarSesion: "Log out",
 
       ligaCreada: "League created!",

@@ -1,5 +1,9 @@
 import { definirTextos } from "../definir";
-import { RESPONSABLE as R } from "@/lib/legal/config";
+import {
+  DIAS_CONSERVACION_CHAT as DIAS,
+  MAX_DENUNCIAS_DIA_CHAT as MAX_DEN,
+  RESPONSABLE as R,
+} from "@/lib/legal/config";
 import { INFO_BASICA } from "@/lib/legal/privacidad";
 
 // Interfaz alrededor de los textos legales. Los documentos (condiciones y
@@ -41,6 +45,22 @@ export default definirTextos(
       "Hemos incorporado unas Condiciones de Uso y una Política de Privacidad. Para seguir usando Fantasy Beraun Bera necesitamos que las leas y las aceptes.",
     aceptarContinuar: "Aceptar y continuar",
     noAcepto: "No acepto — cerrar sesión",
+
+    // LegalGate cuando ya habías aceptado una versión anterior: se explica el motivo
+    // del cambio para no tener que releerlo todo. Al subir otra vez la versión de los
+    // textos legales, actualiza el motivo y las novedades.
+    gateIntroActualizacion:
+      "Hemos actualizado las Condiciones de Uso y la Política de Privacidad. Para seguir usando Fantasy Beraun Bera necesitamos que las aceptes de nuevo.",
+    motivoTitulo: "Hemos implementado un chat",
+    motivoIntro: "Por eso actualizamos las condiciones. Lo esencial:",
+    novedades: [
+      "Hay un chat de texto para cada liga privada y otro para la liga pública. Solo texto y emojis.",
+      "Hay normas sobre lo que se puede escribir, un botón para denunciar mensajes y medidas de moderación: borrar mensajes o impedir escribir durante un tiempo.",
+      `Los mensajes se borran solos a los ${DIAS} días, y también si eliminas tu cuenta.`,
+      "Puedes silenciar el chat público para que nadie pueda mencionarte.",
+      `Para evitar abusos, hay un máximo de ${MAX_DEN} denuncias al día por persona.`,
+    ] as string[],
+    verCambios: "Puedes leer los textos completos en los enlaces de abajo.",
   },
   {
     eu: {
@@ -95,6 +115,19 @@ export default definirTextos(
         "Erabilera-baldintzak eta Pribatutasun-politika gehitu ditugu. Fantasy Beraun Bera erabiltzen jarraitzeko, irakurri eta onartu egin behar dituzu.",
       aceptarContinuar: "Onartu eta jarraitu",
       noAcepto: "Ez dut onartzen — saioa itxi",
+
+      gateIntroActualizacion:
+        "Erabilera-baldintzak eta Pribatutasun-politika eguneratu ditugu. Fantasy Beraun Bera erabiltzen jarraitzeko, berriro onartu behar dituzu.",
+      motivoTitulo: "Txat bat ezarri dugu",
+      motivoIntro: "Horregatik eguneratu ditugu baldintzak. Funtsezkoena:",
+      novedades: [
+        "Testuzko txat bat dago liga pribatu bakoitzarentzat eta beste bat liga publikoarentzat. Testua eta emojiak soilik.",
+        "Idazteko arauak daude, mezuak salatzeko botoi bat eta moderazio-neurriak: mezuak ezabatzea edo denbora batez idaztea eragoztea.",
+        `Mezuak ${DIAS} egunera ezabatzen dira automatikoki, eta baita zure kontua ezabatzen baduzu ere.`,
+        "Liga publikoko txata isilaraz dezakezu, inork ez zaitzan aipa.",
+        `Abusuak saihesteko, pertsona bakoitzak gehienez ${MAX_DEN} salaketa egin ditzake egunean.`,
+      ] as string[],
+      verCambios: "Testu osoak beheko esteketan irakur ditzakezu.",
     },
     en: {
       irALaApp: "Go to the app",
@@ -148,6 +181,19 @@ export default definirTextos(
         "We've added Terms of Use and a Privacy Policy. To keep using Fantasy Beraun Bera, please read and accept them.",
       aceptarContinuar: "Accept and continue",
       noAcepto: "I don't accept — log out",
+
+      gateIntroActualizacion:
+        "We've updated the Terms of Use and the Privacy Policy. To keep using Fantasy Beraun Bera, please accept them again.",
+      motivoTitulo: "We've added a chat",
+      motivoIntro: "That's why we've updated the terms. The essentials:",
+      novedades: [
+        "There's a text chat for each private league and another for the public league. Text and emojis only.",
+        "There are rules about what you can write, a button to report messages, and moderation measures: deleting messages or stopping someone from writing for a while.",
+        `Messages are deleted automatically after ${DIAS} days, and also if you delete your account.`,
+        "You can mute the public chat so nobody can mention you.",
+        `To prevent abuse, each person can send at most ${MAX_DEN} reports per day.`,
+      ] as string[],
+      verCambios: "You can read the full texts using the links below.",
     },
   }
 );
