@@ -139,6 +139,24 @@ export async function fetchMensajesNuevos(
   return (data as FilaMensaje[]).map(aMensaje);
 }
 
+// Sondeo en una llamada (0090): mensajes nuevos + ids borrados desde el cursor `seq`.
+// Con `seq` nulo (primera vez) solo se fija el cursor.
+export async function fetchNovedadesChat(
+  supabase: Supabase,
+  ligaId: string,
+  desde: number,
+  seq: number | null
+): Promise<{ nuevos: MensajeChat[]; borrados: number[]; seq: number } | null> {
+  const { data, error } = await supabase.rpc("chat_novedades", { p_liga: ligaId, p_desde: desde, p_seq: seq });
+  const d = data as { ok?: boolean; nuevos?: FilaMensaje[]; borrados?: number[]; seq?: number } | null;
+  if (error || !d || d.ok !== true) return null;
+  return {
+    nuevos: (d.nuevos ?? []).map(aMensaje),
+    borrados: (d.borrados ?? []).map(Number),
+    seq: Number(d.seq ?? seq ?? 0),
+  };
+}
+
 export async function enviarMensajeChat(
   supabase: Supabase,
   ligaId: string,
