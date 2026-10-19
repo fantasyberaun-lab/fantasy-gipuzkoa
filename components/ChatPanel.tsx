@@ -25,6 +25,7 @@ import {
   fetchEstadoChat,
   fetchMensajesChat,
   fetchMensajesNuevos,
+  fetchNovedadesChat,
   marcarChatLeidoDB,
   marcarNormasChatVistasDB,
   silenciarChatPublicoDB,
@@ -43,6 +44,8 @@ const TRAS_INACTIVIDAD_MS = 3 * 60_000;
 // mensajes que han borrado otros (el sondeo normal solo trae los nuevos).
 const VUELTAS_PARA_RECONCILIAR = 12;
 const PAGINA = 40;
+// Ids de mensajes borrados ya aplicados (0090): cursor por liga.
+type CursorBorrados = { liga: string | null; seq: number | null };
 const AGRUPAR_MS = 5 * 60_000;
 
 const EMOJIS = [
@@ -126,6 +129,7 @@ export default function ChatPanel() {
   const pegarAbajo = useRef(true);
   const ultimoIdRef = useRef(0);
   const ligaRef = useRef(ligaId);
+  const borradosRef = useRef<CursorBorrados>({ liga: null, seq: null });
   const alturaAntes = useRef<number | null>(null);
   const forzarBajar = useRef(false);
 
@@ -219,9 +223,21 @@ export default function ChatPanel() {
   const traerNuevos = useCallback(async () => {
     const liga = ligaRef.current;
     if (!liga) return;
-    const nuevos = await fetchMensajesNuevos(supabase, liga, ultimoIdRef.current);
-    if (ligaRef.current !== liga || !nuevos?.length) return;
-    añadirNuevos(nuevos);
+    const cursor = borradosRef.current.liga === liga ? borradosRef.current.seq : null;
+    const r = await fetchNovedadesChat(supabase, liga, ultimoIdRef.current, cursor);
+    if (ligaRef.current !== liga) return;
+    if (!r) {
+      // Sin la migración 0090 (o con un fallo puntual): el sondeo de siempre.
+      const nuevos = await fetchMensajesNuevos(supabase, liga, ultimoIdRef.current);
+      if (ligaRef.current === liga && nuevos?.length) añadirNuevos(nuevos);
+      return;
+    }
+    borradosRef.current = { liga, seq: r.seq };
+    if (r.borrados.length) {
+      const fuera = new Set(r.borrados);
+      setMensajes((prev) => (prev.some((m) => fuera.has(m.id)) ? prev.filter((m) => !fuera.has(m.id)) : prev));
+    }
+    if (r.nuevos.length) añadirNuevos(r.nuevos);
   }, [supabase, añadirNuevos]);
 
   const reconciliar = useCallback(async () => {
