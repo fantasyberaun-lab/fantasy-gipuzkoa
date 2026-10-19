@@ -8,6 +8,7 @@ import { ordenarPorCategoria, resumenTorneos } from "@/lib/torneos";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import ProximoRivalLinea from "@/components/ProximoRival";
 import { useIdioma } from "@/components/IdiomaProvider";
+import InsigniaEstadoClausula, { estadoClausula } from "@/components/InsigniaEstadoClausula";
 
 function iniciales(nombre: string) {
   return nombre
@@ -23,61 +24,6 @@ const puntoColor: Record<string, string> = {
   tablas: "bg-neutral-400",
   derrota: "bg-negative",
 };
-
-const iconoBlindado =
-  "M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z";
-const iconoCandado =
-  "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z";
-const iconoClausulable =
-  "M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z";
-
-type EstadoClausula = "blindado" | "candado" | "clausulable";
-
-const estadoEstilo: Record<EstadoClausula, { icono: string; clases: string }> = {
-  blindado: {
-    icono: iconoBlindado,
-    clases: "bg-violet-100 text-violet-800 dark:bg-violet-900/40 dark:text-violet-300",
-  },
-  candado: {
-    icono: iconoCandado,
-    clases: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
-  },
-  clausulable: {
-    icono: iconoClausulable,
-    clases: "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300",
-  },
-};
-
-// Icono (fila) o icono + texto (hoja) del estado de la cláusula del jugador.
-function InsigniaEstado({
-  estado,
-  texto,
-  title,
-}: {
-  estado: EstadoClausula;
-  texto?: string;
-  title: string;
-}) {
-  const { icono, clases } = estadoEstilo[estado];
-  return (
-    <span
-      title={title}
-      aria-label={title}
-      className={`inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-xs font-medium ${clases}`}
-    >
-      <svg
-        className="h-3 w-3"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={2}
-      >
-        <path strokeLinecap="round" strokeLinejoin="round" d={icono} />
-      </svg>
-      {texto}
-    </span>
-  );
-}
 
 type Props = PlantillaSlot & {
   esTitular: boolean;
@@ -148,7 +94,7 @@ export default function PlayerCard({
     ...(proximosRivales ?? []).flatMap((r) => (r.torneo ? [r.torneo] : [])),
   ].map((nombre) => ({ nombre }));
 
-  const estado: EstadoClausula = blindado ? "blindado" : candado ? "candado" : "clausulable";
+  const estado = estadoClausula({ blindado, candado });
   const estadoTexto = {
     blindado: { corto: t.ficha.blindado, title: t.ficha.blindadoTitle },
     candado: { corto: t.ficha.candado, title: t.ficha.candadoTitle },
@@ -220,7 +166,7 @@ export default function PlayerCard({
       </div>
       {conEstado && !ligaPublica && (
         <span className="absolute -bottom-1 -right-1 rounded-full ring-2 ring-white dark:ring-neutral-900">
-          <InsigniaEstado estado={estado} title={estadoTexto.title} />
+          <InsigniaEstadoClausula estado={estado} title={estadoTexto.title} />
         </span>
       )}
     </div>
@@ -358,7 +304,7 @@ export default function PlayerCard({
                 </span>
               )}
               {!ligaPublica && (
-                <InsigniaEstado estado={estado} texto={estadoTexto.corto} title={estadoTexto.title} />
+                <InsigniaEstadoClausula estado={estado} texto={estadoTexto.corto} title={estadoTexto.title} />
               )}
             </div>
 
