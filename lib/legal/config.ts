@@ -24,6 +24,7 @@ export const FECHA_CONDICIONES = "19 de octubre de 2026";
 export const DIAS_CONSERVACION_CHAT = 90;
 export const MESES_CONSERVACION_DENUNCIAS = 12;
 export const MAX_DENUNCIAS_DIA_CHAT = 3;
+export const MINUTOS_EDICION_CHAT = 30; // debe coincidir con game_config 'chat_minutos_edicion'
 
 // REVISAR antes de publicar: en el documento original estos dos datos estaban
 // entre corchetes (pendientes de rellenar).

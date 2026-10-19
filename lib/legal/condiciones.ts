@@ -2,6 +2,7 @@ import {
   DIAS_CONSERVACION_CHAT,
   FECHA_CONDICIONES,
   MAX_DENUNCIAS_DIA_CHAT,
+  MINUTOS_EDICION_CHAT,
   RESPONSABLE as R,
   VERSION_CONDICIONES,
 } from "./config";
@@ -121,7 +122,7 @@ export const SECCIONES_CONDICIONES: Seccion[] = [
       ),
       p(`Puedes denunciar cualquier mensaje ajeno con el botón «Denunciar» o escribiendo a ${R.email}. Revisaremos las denuncias sin dilación indebida. Denunciar es para casos reales: no se puede denunciar el mismo mensaje más de una vez, hay un máximo de ${MAX_DENUNCIAS_DIA_CHAT} denuncias al día por persona, y el uso abusivo o malintencionado de las denuncias (por ejemplo, denunciar en masa o para molestar a alguien) se considera una infracción y puede dar lugar a las mismas medidas que cualquier otra.`),
       p(`Si un mensaje incumple estas condiciones, podemos borrarlo, impedirte escribir en el chat durante un tiempo (en el chat de una liga privada, esto se decide a partir de una denuncia) o suspender tu acceso a él. Solo la organización puede aplicar estas medidas. Te lo comunicaremos indicando el motivo, salvo que la ley o la seguridad lo impidan. Puedes pedir que se revise la decisión escribiendo a ${R.email}.`),
-      p(`Los mensajes se borran automáticamente transcurridos ${DIAS_CONSERVACION_CHAT} días. Puedes borrar tus propios mensajes antes. Si eliminas tu cuenta, tus mensajes se borran. Los mensajes denunciados pueden conservarse más tiempo, solo mientras se resuelve la denuncia y los plazos legales lo exijan.`),
+      p(`Los mensajes se borran automáticamente transcurridos ${DIAS_CONSERVACION_CHAT} días. Puedes borrar tus propios mensajes antes, y editarlos durante los ${MINUTOS_EDICION_CHAT} minutos siguientes a enviarlos: el mensaje editado debe cumplir las mismas normas y se muestra marcado como «editado». Si eliminas tu cuenta, tus mensajes se borran. Los mensajes denunciados pueden conservarse más tiempo, solo mientras se resuelve la denuncia y los plazos legales lo exijan.`),
       p("Al escribir en el chat nos autorizas a mostrar tu mensaje a los demás participantes del chat mientras exista. No lo usaremos fuera de la aplicación ni para otro fin."),
       p("La organización no revisa los mensajes antes de que aparezcan. Actuará con diligencia cuando tenga conocimiento de un contenido ilícito o contrario a estas condiciones."),
     ],
