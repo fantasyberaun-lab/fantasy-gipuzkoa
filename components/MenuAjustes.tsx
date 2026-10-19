@@ -14,6 +14,7 @@ import { useT } from "@/components/IdiomaProvider";
 import { createClient } from "@/lib/supabase/client";
 import { fetchPerfilManager } from "@/lib/supabase/queries";
 import { RESPONSABLE } from "@/lib/legal/config";
+import { REDES_CLUB } from "@/lib/redes";
 import {
   aplicarTema,
   guardarPreferenciaTema,
@@ -22,7 +23,7 @@ import {
   type PreferenciaTema,
 } from "@/lib/tema";
 
-type Vista = "inicio" | "cuenta" | "configuracion" | "legal" | "sugerencias" | "eliminar";
+type Vista = "inicio" | "cuenta" | "configuracion" | "legal" | "redes" | "sugerencias" | "eliminar";
 
 // Iconos de trazo 24x24, como los de la barra de pestañas.
 const icono = (d: string, clase = "h-5 w-5") => (
@@ -56,6 +57,11 @@ const D_SOBRE =
   "M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75";
 const D_BOMBILLA =
   "M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18";
+const D_INSTAGRAM =
+  "M7.5 3h9A4.5 4.5 0 0121 7.5v9a4.5 4.5 0 01-4.5 4.5h-9A4.5 4.5 0 013 16.5v-9A4.5 4.5 0 017.5 3zM16 12a4 4 0 11-8 0 4 4 0 018 0zM17.5 6.5h.01";
+const D_TIKTOK = "M14 3v11.5a3.5 3.5 0 11-3.5-3.5M14 3c.3 2.4 1.9 4 4.5 4.2";
+const D_GLOBO =
+  "M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418";
 const D_FLECHA = "M8.25 4.5l7.5 7.5-7.5 7.5";
 
 const FILA =
@@ -97,7 +103,11 @@ function Fila({
 
   if (href && externo) {
     return (
-      <a href={href} className={FILA}>
+      <a
+        href={href}
+        className={FILA}
+        {...(href.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+      >
         {contenido}
       </a>
     );
@@ -176,6 +186,36 @@ function VistaConfiguracion({
           {t.ajustes.temaAutoAyuda}
         </p>
       </Apartado>
+    </div>
+  );
+}
+
+function VistaRedes() {
+  const t = useT();
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="mb-1 text-sm text-neutral-600 dark:text-neutral-400">{t.ajustes.redesIntro}</p>
+      <Fila
+        d={D_INSTAGRAM}
+        titulo="Instagram"
+        detalle={REDES_CLUB.instagram.usuario}
+        href={REDES_CLUB.instagram.url}
+        externo
+      />
+      <Fila
+        d={D_TIKTOK}
+        titulo="TikTok"
+        detalle={REDES_CLUB.tiktok.usuario}
+        href={REDES_CLUB.tiktok.url}
+        externo
+      />
+      <Fila
+        d={D_GLOBO}
+        titulo={t.ajustes.webClub}
+        detalle={REDES_CLUB.web.usuario}
+        href={REDES_CLUB.web.url}
+        externo
+      />
     </div>
   );
 }
@@ -316,6 +356,12 @@ export default function MenuAjustes() {
                 onClick={() => setVista("legal")}
               />
               <Fila
+                d={D_GLOBO}
+                titulo={t.ajustes.titulos.redes}
+                detalle={t.ajustes.redesDetalle}
+                onClick={() => setVista("redes")}
+              />
+              <Fila
                 d={D_BOMBILLA}
                 titulo={t.ajustes.titulos.sugerencias}
                 detalle={t.sugerencias.detalleMenu}
@@ -346,6 +392,8 @@ export default function MenuAjustes() {
           {vista === "configuracion" && <VistaConfiguracion tema={tema} onTema={cambiarTema} />}
 
           {vista === "legal" && <VistaLegal onNavegar={cerrar} />}
+
+          {vista === "redes" && <VistaRedes />}
 
           {vista === "sugerencias" && <BuzonSugerencias />}
 
