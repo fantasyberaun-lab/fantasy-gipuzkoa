@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { gameConfig } from "@/lib/gameConfig";
+import { useReglasJuego } from "@/lib/reglasJuego";
 import { useT } from "@/components/IdiomaProvider";
 
 function Seccion({ titulo, children }: { titulo: string; children: ReactNode }) {
@@ -57,10 +58,11 @@ export default function InfoReglasButton({ onDark = false }: { onDark?: boolean 
     ? "border-white/25 text-white/80 hover:border-gold hover:text-gold"
     : "border-neutral-300 text-neutral-600 hover:border-accent hover:text-accent dark:border-neutral-700 dark:text-neutral-300";
 
-  const mult = gameConfig.capitan.multiplicador;
-  const pctBlindaje = Math.round(gameConfig.blindaje.porcentaje * 100);
-  const pctClausula = Math.round(gameConfig.clausula.porcentaje * 100);
-  const multClausula = gameConfig.subidaClausula.multiplicador;
+  const reglasJ = useReglasJuego();
+  const mult = reglasJ.capitanMultiplicador;
+  const pctBlindaje = Math.round(reglasJ.blindajePorcentaje * 100);
+  const pctClausula = Math.round(reglasJ.clausulaPorcentaje * 100);
+  const multClausula = reglasJ.multiplicadorSubida;
 
   return (
     <>
@@ -126,8 +128,8 @@ export default function InfoReglasButton({ onDark = false }: { onDark?: boolean 
                 <p>{negritas(r.descanso(gameConfig.puntosPorDescanso))}</p>
                 <p>{negritas(r.finDeSemana)}</p>
                 <p>{negritas(r.unTorneo)}</p>
-                <p>{r.limite(gameConfig.plantilla.maximoTitularesPorTorneo)}</p>
-                <p>{negritas(r.automatico(gameConfig.plantilla.maximoTitulares))}</p>
+                <p>{r.limite(reglasJ.maxTitularesPorTorneo)}</p>
+                <p>{negritas(r.automatico(reglasJ.maxTitulares))}</p>
               </Seccion>
 
               <Seccion titulo={r.mercadoTitulo}>

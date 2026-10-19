@@ -15,6 +15,7 @@ const TABS = [
   { href: "/admin/actividad", label: "Actividad" },
   { href: "/admin/sugerencias", label: "Sugerencias" },
   { href: "/admin/chat", label: "Chat" },
+  { href: "/admin/variables", label: "Variables" },
 ];
 
 export default function AdminNav() {

@@ -47,7 +47,7 @@ lib/
   importador/    lectores de Info64 y Chess-Results, emparejado de jugadores
   legal/         datos del responsable y versiones de los textos legales
 scripts/         fide-elo.mjs (Elo FIDE), actualizar-elo.sh (manual), test-importador.ts
-supabase/migrations/   0001 … 0074, la lógica de negocio vive aquí
+supabase/migrations/   0001 … 0097, la lógica de negocio vive aquí
 middleware.ts    refresca la sesión de Supabase en cada petición
 ```
 
@@ -89,11 +89,26 @@ uno, cambia el otro y dilo en la respuesta:
 
 | Regla | `gameConfig.ts` | SQL |
 |---|---|---|
-| Máx. titulares por equipo | `plantilla.maximoTitulares` | `validar_max_titulares()` (0050) |
-| Máx. titulares por torneo | `plantilla.maximoTitularesPorTorneo` | `validar_titulares_por_torneo()` (0048) |
-| Puntos por descanso | `puntosPorDescanso` | `puntos_descanso()` (0023) |
-| Multiplicador capitán | `capitan.multiplicador` | `multiplicador_capitan()` (0033) |
-| Blindaje (% del valor) | `blindaje.porcentaje` | `porcentaje_blindaje()` (0033) |
+| Máx. titulares por equipo | `plantilla.maximoTitulares` (valor por defecto) | variable `plantilla_max_titulares` (0092/0094; `validar_max_titulares()` la lee) |
+| Máx. titulares por torneo | `plantilla.maximoTitularesPorTorneo` (valor por defecto) | variable `plantilla_max_titulares_torneo` (0092/0094) |
+| Puntos por descanso | `puntosPorDescanso` | variable `puntos_descanso` (0092/0094; `puntos_descanso()` la lee) |
+| Multiplicador capitán | `capitan.multiplicador` | variable `capitan_multiplicador` (0096; `multiplicador_capitan()` la lee, global) |
+| Blindaje (% del valor) | `blindaje.porcentaje` | variable `blindaje_porcentaje` (0096; `porcentaje_blindaje()` la lee, global) |
+| Cláusula (% del valor) | `clausula.porcentaje` | variable `clausula_porcentaje` (0096; `pagar_clausula_privada`, `player_status`) |
+| Subida de cláusula | `subidaClausula.multiplicador` | variable `clausula_multiplicador_subida` (0096; `subir_clausula`) |
+| Tamaño de plantilla | `plantilla.tamanoPlantilla` | variable `plantilla_tamano` (0096; `validar_composicion_plantilla`) |
+| Valor de la plantilla inicial (400 M) | — | variable `plantilla_inicial_valor_max` (0097; `asignar_plantilla_inicial`) |
+| Puntos por diferencia de Elo | `puntuacionPorDiferenciaElo` | variable `puntos_por_diferencia_elo` (0096; `calcular_puntos_resultado`) |
+
+Todas esas filas se editan desde Admin > Variables (global o por liga, según la variable) y la base de
+datos las lee de la tabla: el valor de `gameConfig.ts` solo es el de respaldo, y el frontend usa el de
+`reglas_liga()` (`lib/reglasJuego.ts`). Excepciones: "Límite de operaciones por periodo" sigue sin
+aplicarse en ninguna función (solo lectura en el panel), y los textos de ayuda de las reglas
+("Cómo funciona el juego") con la tabla de puntos por Elo son fijos.
+
+Territorios (0093/0095): cada provincia o comunidad tiene su liga pública (`leagues.ambito/region`,
+una pública por territorio). Las ligas existentes y las privadas son Gipuzkoa. Las demás están en
+estado `prueba` (solo root). El selector del formulario de liga está en `lib/territorios.ts`.
 
 Puntos por partida: según diferencia de Elo (tabla en `gameConfig.puntuacionPorDiferenciaElo`).
 Valor de mercado dinámico: ver 0041 (K = 4 %, suelo 10 M, variación diaria con pg_cron).

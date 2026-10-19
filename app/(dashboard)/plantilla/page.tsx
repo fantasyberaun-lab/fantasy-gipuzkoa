@@ -9,9 +9,6 @@ import { gameConfig } from "@/lib/gameConfig";
 import { motivoBloqueoTitular, titularesPorTorneo } from "@/lib/titulares";
 import type { OfertaRecibida } from "@/lib/types";
 
-const MAX_POR_TORNEO = gameConfig.plantilla.maximoTitularesPorTorneo;
-const MAX_TITULARES = gameConfig.plantilla.maximoTitulares;
-const MAX_PLANTILLA = gameConfig.plantilla.tamanoPlantilla;
 
 function Cifra({
   etiqueta,
@@ -43,6 +40,10 @@ function ResumenDePlantilla({
   titularesEnTorneoMasLleno: number;
 }) {
   const tp = useT().plantilla;
+  const { reglas } = useGameState();
+  const MAX_PLANTILLA = reglas.maxPlantilla;
+  const MAX_POR_TORNEO = reglas.maxTitularesPorTorneo;
+  const MAX_TITULARES = reglas.maxTitulares;
   const [detalleAbierto, setDetalleAbierto] = useState(false);
   const r = resumenPlantilla(squad, titulares);
   const sinTitulares = r.numTitulares === 0;
@@ -234,6 +235,7 @@ export default function PlantillaPage() {
     esLigaPublica,
     cargando,
     tieneEquipo,
+    reglas,
   } = useGameState();
   const tp = useT().plantilla;
 
@@ -276,7 +278,7 @@ export default function PlantillaPage() {
 
   const renderJugador = (slot: (typeof squad)[number]) => {
     const esTitular = !!titulares[slot.jugador.id];
-    const motivoBloqueo = motivoBloqueoTitular(squad, titulares, slot.jugador.id, tp) ?? undefined;
+    const motivoBloqueo = motivoBloqueoTitular(squad, titulares, slot.jugador.id, tp, reglas) ?? undefined;
 
     return (
       <PlayerCard
@@ -348,7 +350,7 @@ export default function PlantillaPage() {
         </p>
       ) : (
         <>
-          {seccion(tp.seccionTitulares, MAX_TITULARES, slotsTitulares, tp.sinTitulares)}
+          {seccion(tp.seccionTitulares, reglas.maxTitulares, slotsTitulares, tp.sinTitulares)}
           {seccion(tp.seccionSuplentes, null, slotsSuplentes, tp.sinSuplentes)}
         </>
       )}
