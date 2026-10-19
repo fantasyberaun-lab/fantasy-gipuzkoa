@@ -250,7 +250,14 @@ export const SECCIONES_PRIVACIDAD: Seccion[] = [
   {
     titulo: "22. Cookies y tecnologías similares",
     bloques: [
-      p("Fantasy Beraun Bera utiliza cookies y almacenamiento local técnicos, necesarios para mantener la sesión, recordar preferencias y garantizar la seguridad, que no requieren consentimiento."),
+      p("Fantasy Beraun Bera utiliza cookies y almacenamiento local técnicos, necesarios para mantener la sesión, recordar preferencias y garantizar la seguridad, que no requieren consentimiento. En concreto:"),
+      ul(
+        "Cookies de sesión (Supabase, tercero proveedor de autenticación): mantienen iniciada tu sesión. Duran lo que dure la sesión o hasta que la cierres. Son estrictamente necesarias.",
+        "Cookie de idioma (propia): recuerda el idioma elegido para mostrar la aplicación en él. Dura un año.",
+        "Almacenamiento local del navegador (propio): guarda el tema claro u oscuro, la liga activa y la fecha de los últimos comunicados vistos. Permanece hasta que borres los datos del navegador.",
+        "Caché de la aplicación instalable (PWA, propia): guarda iconos y una página de «sin conexión». No contiene datos personales.",
+      ),
+      p("Además, usamos Vercel Analytics para obtener estadísticas agregadas de visitas (páginas, país y tipo de dispositivo). No utiliza cookies ni guarda información en tu dispositivo."),
       p("Si en el futuro se utilizan cookies analíticas, publicitarias o de terceros, se solicitará el consentimiento previo mediante un aviso de cookies y se informará en una Política de Cookies específica (art. 22.2 LSSI)."),
     ],
   },
