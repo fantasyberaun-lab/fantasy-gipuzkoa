@@ -17,7 +17,7 @@ import { useT } from "@/components/IdiomaProvider";
 
 // Contenido de la cabecera morada: escudo, nombre del equipo, liga y saldo.
 export default function EquipoHeader() {
-  const { equipo, cargando, misLigas, comprometidoEnPujas, avatar } = useGameState();
+  const { equipo, cargando, misLigas, comprometidoEnPujas, avatar, avisosNoLeidos } = useGameState();
   // Avatares en prueba: solo root, y solo si ha elegido uno (ver 0077).
   const conAvatar = !cargando && avatar !== null;
   const t = useT();
@@ -42,6 +42,21 @@ export default function EquipoHeader() {
         <div className="flex items-center gap-2">
           <InstallPwaButton onDark />
           <InfoReglasButton onDark />
+          <Link
+            href="/notificaciones"
+            aria-label={t.chat.campana(avisosNoLeidos)}
+            title={t.nav.avisos}
+            className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/25 text-white/80 transition-colors hover:border-gold hover:text-gold"
+          >
+            <svg className="h-[18px] w-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+            </svg>
+            {avisosNoLeidos > 0 && (
+              <span className="absolute -right-1 -top-1 rounded-full bg-gold px-1 py-[3px] text-[9px] font-semibold leading-none text-brand-950">
+                {avisosNoLeidos > 9 ? "9+" : avisosNoLeidos}
+              </span>
+            )}
+          </Link>
           <MenuAjustes />
         </div>
       </div>

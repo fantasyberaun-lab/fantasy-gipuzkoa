@@ -31,6 +31,7 @@ import {
   fetchMiAvatar,
   fetchMiRol,
   fetchMisLigas,
+  fetchMisLigasOError,
   fetchMisOfertas,
   fetchNotificaciones,
   fetchOfertasRecibidas,
@@ -102,6 +103,7 @@ interface GameState {
   esLigaPublica: boolean;
   equipo: EquipoManager;
   misLigas: LigaResumen[];
+  errorCarga: boolean;
   squad: PlantillaSlot[];
   titulares: Record<string, boolean>;
   // Id del jugador capitán (puntúa doble), o null si no hay.
@@ -188,6 +190,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   const [cargando, setCargando] = useState(true);
   const [tieneEquipo, setTieneEquipo] = useState(false);
   const [esRoot, setEsRoot] = useState(false);
+  const [errorCarga, setErrorCarga] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(null);
   const [esLigaPublica, setEsLigaPublica] = useState(false);
   const [equipo, setEquipo] = useState<EquipoManager>(EQUIPO_VACIO);
@@ -297,12 +300,19 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     // getSession lee la sesión del navegador sin ir a la red (y la refresca si
     // ha caducado). La validación de verdad ya la hace el middleware en cada
     // petición, así que aquí no hace falta pagar otra llamada a Supabase Auth.
-    const {
+    let {
       data: { session },
     } = await supabase.auth.getSession();
+    if (!session?.user) {
+      // Puede ser un instante en que la sesión se está refrescando: un reintento corto.
+      await new Promise((r) => setTimeout(r, 700));
+      session = (await supabase.auth.getSession()).data.session;
+    }
     const user = session?.user;
 
     if (!user) {
+      // Sin sesión no es "sin liga": se pide reintentar en vez de enseñar crear/unirse.
+      setErrorCarga(true);
       setCargando(false);
       return;
     }
@@ -319,10 +329,17 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     const [rol, avatarGuardado, ligas] = await Promise.all([
       fetchMiRol(supabase, user.id),
       fetchMiAvatar(supabase, user.id),
-      fetchMisLigas(supabase),
+      fetchMisLigasOError(supabase),
     ]);
     setEsRoot(rol === "root");
     setAvatar(avatarGuardado);
+    if (ligas === null) {
+      // La consulta falló: no es que no estés en ninguna liga. Se avisa para reintentar.
+      setErrorCarga(true);
+      setCargando(false);
+      return;
+    }
+    setErrorCarga(false);
     setMisLigas(ligas);
 
     if (ligas.length === 0) {
@@ -844,6 +861,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         esLigaPublica,
         equipo,
         misLigas,
+        errorCarga,
         squad,
         titulares,
         capitanId,

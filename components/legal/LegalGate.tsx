@@ -14,6 +14,8 @@ import { useT } from "@/components/IdiomaProvider";
 
 type Estado = "cargando" | "ok" | "pendiente" | "error";
 
+// "Ya aceptó una versión anterior" (y hay que volver a aceptar) frente a "nunca ha aceptado".
+
 // true cuando el usuario tiene aceptados los textos vigentes. Lo usa, por
 // ejemplo, ActividadTracker para no registrar nada antes de la aceptación.
 const LegalOkContext = createContext(false);
@@ -34,8 +36,11 @@ export default function LegalGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const t = useT();
   const [estado, setEstado] = useState<Estado>("cargando");
+  const [reaceptacion, setReaceptacion] = useState(false);
   const [aceptacion, setAceptacion] = useState<AceptacionLegal>(ACEPTACION_INICIAL);
   const [enviando, setEnviando] = useState(false);
+  // Sube al aceptar: la app se monta de nuevo y carga sus datos ya con la sesión al día.
+  const [montaje, setMontaje] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const comprobar = useCallback(async () => {
@@ -58,6 +63,8 @@ export default function LegalGate({ children }: { children: React.ReactNode }) {
       tiene("privacidad", VERSION_PRIVACIDAD) &&
       tiene("mayor_14");
 
+    // Si ya había aceptado alguna versión, se le explica qué ha cambiado.
+    setReaceptacion(tiene("condiciones") || tiene("privacidad"));
     setEstado(al_dia ? "ok" : "pendiente");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -80,6 +87,7 @@ export default function LegalGate({ children }: { children: React.ReactNode }) {
       setError(error?.message ?? data?.mensaje ?? t.legal.errorGuardar);
       return;
     }
+    setMontaje((n) => n + 1);
     setEstado("ok");
   }
 
@@ -111,9 +119,22 @@ export default function LegalGate({ children }: { children: React.ReactNode }) {
         <div>
           <h1 className="font-display text-2xl font-semibold">{t.legal.antesDeContinuar}</h1>
           <p className="mt-1 text-sm text-neutral-500">
-            {t.legal.gateIntro}
+            {reaceptacion ? t.legal.gateIntroActualizacion : t.legal.gateIntro}
           </p>
         </div>
+
+        {reaceptacion && (
+          <div className="rounded-xl border border-accent/40 bg-accent/5 p-4">
+            <p className="font-display text-lg font-semibold text-accent">{t.legal.motivoTitulo}</p>
+            <p className="mt-1 text-sm">{t.legal.motivoIntro}</p>
+            <ul className="mt-2 list-disc space-y-1.5 pl-5 text-sm">
+              {t.legal.novedades.map((n) => (
+                <li key={n}>{n}</li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-neutral-500">{t.legal.verCambios}</p>
+          </div>
+        )}
 
         <InfoBasicaRGPD conEnlace />
 
@@ -139,7 +160,9 @@ export default function LegalGate({ children }: { children: React.ReactNode }) {
   return (
     <LegalOkContext.Provider value={estado === "ok"}>
       {pantalla}
-      <div hidden={estado !== "ok"}>{children}</div>
+      <div key={montaje} hidden={estado !== "ok"}>
+        {children}
+      </div>
     </LegalOkContext.Provider>
   );
 }
