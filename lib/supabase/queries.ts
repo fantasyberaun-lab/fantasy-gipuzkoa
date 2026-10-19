@@ -1,5 +1,6 @@
 import type { createClient } from "@/lib/supabase/client";
 import { gameConfig } from "@/lib/gameConfig";
+import { esperarReglasJuego, reglasJuegoActuales } from "@/lib/reglasJuego";
 import type {
   Categoria,
   ClasificacionEntry,
@@ -367,6 +368,11 @@ export async function fetchMiPlantilla(
     return (a.matchdays?.created_at ?? "").localeCompare(b.matchdays?.created_at ?? "");
   });
 
+  // La cláusula depende de una variable del panel (0096): se espera a que lleguen las
+  // reglas de la liga, que se piden a la vez que esto y casi nunca tardan más.
+  await esperarReglasJuego();
+  const porcentajeClausula = reglasJuegoActuales().clausulaPorcentaje;
+
   return slots
     .filter((s: any) => s.players)
     .map((s: any) => {
@@ -411,7 +417,7 @@ export async function fetchMiPlantilla(
         puntosJornada: masReciente ? masReciente.puntos : 0,
         valorMercadoDelta: 0,
         clausula:
-          Math.ceil(Number(s.players.valor_mercado) * gameConfig.clausula.porcentaje) +
+          Math.ceil(Number(s.players.valor_mercado) * porcentajeClausula) +
           Number(s.clausula_extra ?? 0),
         resultadosRecientes: resultadosJugador
           .slice(-4)
@@ -1055,12 +1061,21 @@ export async function fetchPlantillaEquipoPublicaDB(
 export async function crearLigaDB(
   supabase: Supabase,
   nombreLiga: string,
-  nombreEquipo: string
+  nombreEquipo: string,
+  // Solo root: liga privada de prueba en otro territorio (parámetros opcionales de crear_liga, 0095).
+  territorio?: { ambito: "provincia" | "comunidad"; region: string }
 ): Promise<ResultadoAccion & { codigo?: string; liga_id?: string }> {
-  const { data, error } = await supabase.rpc("crear_liga", {
-    p_nombre_liga: nombreLiga,
-    p_nombre_equipo: nombreEquipo,
-  });
+  const { data, error } = await supabase.rpc(
+    "crear_liga",
+    territorio
+      ? {
+          p_nombre_liga: nombreLiga,
+          p_nombre_equipo: nombreEquipo,
+          p_ambito: territorio.ambito,
+          p_region: territorio.region,
+        }
+      : { p_nombre_liga: nombreLiga, p_nombre_equipo: nombreEquipo }
+  );
 
   if (error) return { ok: false, mensaje: error.message };
   return data as ResultadoAccion & { codigo?: string; liga_id?: string };

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { PlantillaSlot } from "@/lib/types";
-import { gameConfig } from "@/lib/gameConfig";
+import { useReglasJuego } from "@/lib/reglasJuego";
 import { ordenarPorCategoria, resumenTorneos } from "@/lib/torneos";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import ProximoRivalLinea from "@/components/ProximoRival";
@@ -137,8 +137,9 @@ export default function PlayerCard({
   const [enviandoBlindaje, setEnviandoBlindaje] = useState(false);
   const [errorBlindaje, setErrorBlindaje] = useState<string | null>(null);
   const [errorCapitan, setErrorCapitan] = useState<string | null>(null);
+  const reglasJ = useReglasJuego();
 
-  const precioBlindaje = Math.ceil(jugador.valorMercado * gameConfig.blindaje.porcentaje);
+  const precioBlindaje = Math.ceil(jugador.valorMercado * reglasJ.blindajePorcentaje);
 
   // Torneos de la fila: los inscritos y los de sus próximos rivales (un
   // jugador puede tener partida en un torneo en el que no figura inscrito).
@@ -191,7 +192,7 @@ export default function PlayerCard({
   };
 
   const importeNumerico = Number(importeClausula) || 0;
-  const nuevaClausula = clausula + importeNumerico * gameConfig.subidaClausula.multiplicador;
+  const nuevaClausula = clausula + importeNumerico * reglasJ.multiplicadorSubida;
 
   const confirmarSubirClausula = async () => {
     if (!importeNumerico || importeNumerico <= 0) {
@@ -277,7 +278,7 @@ export default function PlayerCard({
               ? t.ficha.capitanSoloTitular
               : esCapitan
                 ? t.ficha.quitarCapitania
-                : t.ficha.capitanPuntua(gameConfig.capitan.multiplicador)
+                : t.ficha.capitanPuntua(reglasJ.capitanMultiplicador)
           }
           className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-bold disabled:cursor-not-allowed disabled:opacity-30 ${
             esCapitan
@@ -350,10 +351,10 @@ export default function PlayerCard({
               </span>
               {esCapitan && (
                 <span
-                  title={t.ficha.capitanTitle(gameConfig.capitan.multiplicador)}
+                  title={t.ficha.capitanTitle(reglasJ.capitanMultiplicador)}
                   className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-bold text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300"
                 >
-                  C · x{gameConfig.capitan.multiplicador}
+                  C · x{reglasJ.capitanMultiplicador}
                 </span>
               )}
               {!ligaPublica && (
@@ -411,7 +412,7 @@ export default function PlayerCard({
               {bloqueadoPorTope && (
                 <p className="text-xs text-amber-600 dark:text-amber-400">
                   {motivoBloqueo ??
-                    t.ficha.topeTitulares(gameConfig.plantilla.maximoTitularesPorTorneo)}
+                    t.ficha.topeTitulares(reglasJ.maxTitularesPorTorneo)}
                 </p>
               )}
               <p className="text-xs text-neutral-500">
@@ -419,7 +420,7 @@ export default function PlayerCard({
                   ? t.ficha.capitanSoloTitular
                   : esCapitan
                     ? t.ficha.quitarCapitania
-                    : t.ficha.capitanPuntua(gameConfig.capitan.multiplicador)}
+                    : t.ficha.capitanPuntua(reglasJ.capitanMultiplicador)}
               </p>
               {errorCapitan && <p className="text-xs text-negative">{errorCapitan}</p>}
 
@@ -538,7 +539,7 @@ export default function PlayerCard({
 
             <p className="text-base font-semibold">{t.ficha.blindarA(jugador.nombre)}</p>
             <p className="mt-1 text-sm text-neutral-500">
-              {t.ficha.pagarasBlindaje(precioBlindaje, Math.round(gameConfig.blindaje.porcentaje * 100))}
+              {t.ficha.pagarasBlindaje(precioBlindaje, Math.round(reglasJ.blindajePorcentaje * 100))}
             </p>
             <p className="mt-2 rounded-lg bg-violet-50 p-3 text-xs text-violet-800 dark:bg-violet-900/20 dark:text-violet-300">
               {t.ficha.unoPorJornadaAntes}
@@ -581,7 +582,7 @@ export default function PlayerCard({
 
             <p className="text-base font-semibold">{t.ficha.subirClausulaDe(jugador.nombre)}</p>
             <p className="mt-1 text-sm text-neutral-500">
-              {t.ficha.clausulaActual(clausula, gameConfig.subidaClausula.multiplicador)}
+              {t.ficha.clausulaActual(clausula, reglasJ.multiplicadorSubida)}
             </p>
 
             <div className="mt-4">

@@ -7,7 +7,7 @@ import { useGameState } from "@/components/GameStateProvider";
 import { useT } from "@/components/IdiomaProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import SelectorTorneo, { juegaTorneo } from "@/components/SelectorTorneo";
-import { gameConfig } from "@/lib/gameConfig";
+import { useReglasJuego } from "@/lib/reglasJuego";
 import { redondear2 } from "@/lib/saldo";
 
 // Mercado de la liga pública "todos contra todos": todos los jugadores están
@@ -37,7 +37,7 @@ export default function MercadoPublico() {
   const [enviando, setEnviando] = useState(false);
   const [mensajePorJugador, setMensajePorJugador] = useState<Record<string, MensajeAccion>>({});
 
-  const maxPlantilla = gameConfig.plantilla.tamanoPlantilla;
+  const maxPlantilla = useReglasJuego().maxPlantilla;
   const idsMiPlantilla = useMemo(
     () => new Set(squad.map((s) => s.jugador.id)),
     [squad]

@@ -16,6 +16,13 @@ import {
   marcarAvisosSugerenciasVistosDB,
   type Sugerencia,
 } from "@/lib/supabase/sugerenciasQueries";
+import { fetchReglasLiga } from "@/lib/supabase/configQueries";
+import {
+  fijarReglasJuego,
+  registrarCargaReglas,
+  REGLAS_JUEGO_POR_DEFECTO,
+  type ReglasJuego,
+} from "@/lib/reglasJuego";
 import { motivoBloqueoTitular } from "@/lib/titulares";
 import { clausulazosCerrados, proximaTandaMercado } from "@/lib/mercadoCountdown";
 import { useT } from "@/components/IdiomaProvider";
@@ -95,6 +102,8 @@ interface GameState {
   cargando: boolean;
   tieneEquipo: boolean;
   esRoot: boolean;
+  // Límites de titulares que aplica la base de datos a la liga activa.
+  reglas: ReglasJuego;
   // Avatar de perfil elegido (id de lib/avatares.ts), desbloqueado por nivel.
   avatar: string | null;
   setAvatar: (avatar: string | null) => void;
@@ -153,7 +162,8 @@ interface GameState {
   cancelarOferta: (ofertaId: string) => Promise<ResultadoAccion>;
   crearLiga: (
     nombreLiga: string,
-    nombreEquipo: string
+    nombreEquipo: string,
+    territorio?: { ambito: "provincia" | "comunidad"; region: string }
   ) => Promise<ResultadoAccion & { codigo?: string }>;
   unirseLiga: (codigo: string, nombreEquipo: string) => Promise<ResultadoAccion>;
   unirseLigaPublica: (nombreEquipo: string) => Promise<ResultadoAccion>;
@@ -223,6 +233,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   // Liga cuyos datos se están mostrando. Si una recarga parcial termina después
   // de cambiar de liga, sus datos se descartan.
   const ligaCargadaRef = useRef("");
+  const [reglas, setReglas] = useState<ReglasJuego>(REGLAS_JUEGO_POR_DEFECTO);
 
   function pedirEstados(leagueId: string) {
     return fetchEstadoJugadores(supabase, leagueId).then((estados) => {
@@ -353,6 +364,17 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     const ligaSeleccionada = ligas.find((l) => l.ligaId === idGuardado) ?? ligas[0];
     guardarLigaActiva(ligaSeleccionada.ligaId);
     ligaCargadaRef.current = ligaSeleccionada.ligaId;
+
+    // Límites de titulares de esta liga: no bloquea la carga, y si falla valen los del reglamento.
+    const ligaDeLasReglas = ligaSeleccionada.ligaId;
+    // También trae cláusula, blindaje, capitán y tamaño de plantilla (0096) para enseñar los importes.
+    const cargaReglas = fetchReglasLiga(supabase, ligaDeLasReglas).then((r) => {
+      if (ligaCargadaRef.current === ligaDeLasReglas) {
+        setReglas(r ?? REGLAS_JUEGO_POR_DEFECTO);
+        fijarReglasJuego(r);
+      }
+    });
+    registrarCargaReglas(cargaReglas);
 
     const esPublica = ligaSeleccionada.tipo === "publica";
     setEsLigaPublica(esPublica);
@@ -646,7 +668,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   async function toggleTitular(id: string): Promise<ResultadoAccion> {
     const nuevoValor = !titulares[id];
     if (nuevoValor) {
-      const motivo = motivoBloqueoTitular(squad, titulares, id, t.plantilla);
+      const motivo = motivoBloqueoTitular(squad, titulares, id, t.plantilla, reglas);
       if (motivo) return { ok: false, mensaje: motivo };
     }
     const capitanAnterior = capitanId;
@@ -797,9 +819,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
   async function crearLiga(
     nombreLiga: string,
-    nombreEquipo: string
+    nombreEquipo: string,
+    territorio?: { ambito: "provincia" | "comunidad"; region: string }
   ): Promise<ResultadoAccion & { codigo?: string }> {
-    const resultado = await crearLigaDB(supabase, nombreLiga, nombreEquipo);
+    const resultado = await crearLigaDB(supabase, nombreLiga, nombreEquipo, territorio);
     if (resultado.ok) {
       if (resultado.liga_id) guardarLigaActiva(resultado.liga_id);
       await cargarTodo(resultado.liga_id);
@@ -859,6 +882,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         avatar,
         setAvatar,
         esLigaPublica,
+        reglas,
         equipo,
         misLigas,
         errorCarga,
