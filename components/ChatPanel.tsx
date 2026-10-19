@@ -26,6 +26,7 @@ import {
   fetchMensajesChat,
   fetchMensajesNuevos,
   fetchNovedadesChat,
+  editarMensajeChat,
   marcarChatLeidoDB,
   marcarNormasChatVistasDB,
   silenciarChatPublicoDB,
@@ -92,7 +93,21 @@ function mismoDia(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 
-type MenuMensaje = { id: number; confirmando: "borrar" | "denunciar" | null };
+// El menú se pinta con position:fixed junto al botón (arriba o abajo según el sitio que
+// haya), para que no lo recorte la lista de mensajes con scroll.
+type PosMenu = { left: number; top?: number; bottom?: number };
+type MenuMensaje = { id: number; confirmando: "borrar" | "denunciar" | null; pos: PosMenu };
+type Edicion = { id: number; texto: string; menciones: string[]; guardando: boolean };
+
+const ANCHO_MENU = 176;
+const ALTO_MENU = 132;
+
+function posicionMenu(boton: HTMLElement): PosMenu {
+  const r = boton.getBoundingClientRect();
+  const left = Math.max(8, Math.min(r.right - ANCHO_MENU, window.innerWidth - ANCHO_MENU - 8));
+  const cabeAbajo = r.bottom + 4 + ALTO_MENU <= window.innerHeight - 8;
+  return cabeAbajo ? { left, top: r.bottom + 4 } : { left, bottom: window.innerHeight - r.top + 4 };
+}
 
 export default function ChatPanel() {
   const supabase = useMemo(() => createClient(), []);
@@ -117,6 +132,7 @@ export default function ChatPanel() {
   const [aviso, setAviso] = useState<{ texto: string; error: boolean } | null>(null);
   const [emojisAbiertos, setEmojisAbiertos] = useState(false);
   const [menu, setMenu] = useState<MenuMensaje | null>(null);
+  const [edicion, setEdicion] = useState<Edicion | null>(null);
 
   // Selector de @
   const [consulta, setConsulta] = useState<{ inicio: number; texto: string } | null>(null);
@@ -236,6 +252,10 @@ export default function ChatPanel() {
     if (r.borrados.length) {
       const fuera = new Set(r.borrados);
       setMensajes((prev) => (prev.some((m) => fuera.has(m.id)) ? prev.filter((m) => !fuera.has(m.id)) : prev));
+    }
+    if (r.editados.length) {
+      const porId = new Map(r.editados.map((m) => [m.id, m]));
+      setMensajes((prev) => prev.map((m) => porId.get(m.id) ?? m));
     }
     if (r.nuevos.length) añadirNuevos(r.nuevos);
   }, [supabase, añadirNuevos]);
@@ -469,6 +489,52 @@ export default function ChatPanel() {
     return () => document.removeEventListener("mousedown", cerrar);
   }, [menu]);
 
+  useEffect(() => {
+    if (!menu) return;
+    const cerrar = () => setMenu(null);
+    window.addEventListener("resize", cerrar);
+    window.addEventListener("scroll", cerrar, true);
+    return () => {
+      window.removeEventListener("resize", cerrar);
+      window.removeEventListener("scroll", cerrar, true);
+    };
+  }, [menu]);
+
+  function puedeEditarMsg(m: MensajeChat) {
+    if (!estado?.miembro || estado.baneadoHasta && new Date(estado.baneadoHasta) > new Date()) return false;
+    return Date.now() - new Date(m.creado).getTime() < estado.minutosEdicion * 60_000;
+  }
+
+  function empezarEdicion(m: MensajeChat) {
+    setMenu(null);
+    setEdicion({ id: m.id, texto: m.texto, menciones: m.menciones, guardando: false });
+  }
+
+  async function guardarEdicion() {
+    if (!edicion || edicion.guardando) return;
+    const limpio = edicion.texto.trim();
+    if (!limpio) return;
+    const original = mensajes.find((m) => m.id === edicion.id);
+    if (original && limpio === original.texto) {
+      setEdicion(null);
+      return;
+    }
+    setEdicion({ ...edicion, guardando: true });
+    const r = await editarMensajeChat(supabase, edicion.id, limpio, edicion.menciones);
+    if (r.ok) {
+      setMensajes((prev) =>
+        prev.map((m) => (m.id === edicion.id ? { ...m, texto: r.texto, editado: r.editado ?? m.editado } : m))
+      );
+      setEdicion(null);
+      if (r.cambio) mostrarAviso(tc.mensajeEditado);
+      return;
+    }
+    setEdicion({ ...edicion, guardando: false });
+    if (r.codigo === "larga") mostrarAviso(tc.errorLarga(r.maximo ?? estado?.maxCaracteres ?? 300), true);
+    else if (r.codigo === "plazo") mostrarAviso(tc.errorEditarPlazo(r.minutos ?? estado?.minutosEdicion ?? 30), true);
+    else mostrarAviso(tc.errores[r.codigo] ?? tc.errores.red, true);
+  }
+
   async function confirmarAccion() {
     if (!menu || !menu.confirmando) return;
     const { id, confirmando } = menu;
@@ -604,7 +670,8 @@ export default function ChatPanel() {
                   const meMencionan = !mio && miId !== "" && m.menciones.includes(miId);
                   const puedeBorrar = mio || estado?.moderador !== null;
                   const puedeDenunciar = !mio && Boolean(estado?.miembro);
-                  const hayAcciones = puedeBorrar || puedeDenunciar;
+                  const puedeEditar = mio && puedeEditarMsg(m);
+                  const hayAcciones = puedeBorrar || puedeDenunciar || puedeEditar;
                   const abierto = menu?.id === m.id;
 
                   return (
@@ -633,6 +700,47 @@ export default function ChatPanel() {
                             </p>
                           )}
                           <div className={`flex min-w-0 items-start gap-1 ${mio ? "flex-row-reverse" : ""}`}>
+                            {edicion?.id === m.id ? (
+                              <div className="flex w-full min-w-[min(16rem,70vw)] flex-col gap-1.5">
+                                <textarea
+                                  autoFocus
+                                  aria-label={tc.editando}
+                                  value={edicion.texto}
+                                  onChange={(e) => setEdicion({ ...edicion, texto: e.target.value })}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Escape") setEdicion(null);
+                                    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                                      e.preventDefault();
+                                      guardarEdicion();
+                                    }
+                                  }}
+                                  rows={2}
+                                  maxLength={(estado?.maxCaracteres ?? 300) + 50}
+                                  className="w-full resize-none rounded-xl border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-900 focus:border-accent focus:outline-none dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-100"
+                                />
+                                <div className="flex items-center justify-end gap-2 text-xs">
+                                  <span className={edicion.texto.length > (estado?.maxCaracteres ?? 300) ? "text-negative" : "text-neutral-500"}>
+                                    {edicion.texto.length}/{estado?.maxCaracteres ?? 300}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEdicion(null)}
+                                    className="rounded-lg border border-neutral-300 px-2.5 py-1 font-medium dark:border-neutral-700"
+                                  >
+                                    {t.comun.cancelar}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={guardarEdicion}
+                                    disabled={edicion.guardando || !edicion.texto.trim()}
+                                    className="rounded-lg bg-accent px-2.5 py-1 font-semibold text-white hover:bg-accent-hover disabled:opacity-50"
+                                  >
+                                    {tc.guardarEdicion}
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
                             <p
                               title={fechaHoraDe(m.creado)}
                               className={`min-w-0 whitespace-pre-wrap break-words rounded-2xl px-3 py-1.5 text-sm leading-snug ${
@@ -643,6 +751,9 @@ export default function ChatPanel() {
                             >
                               {meMencionan && <span className="sr-only">{tc.mencionTuya}. </span>}
                               {resaltar(m.texto, m.mencionesNombres)}
+                              {m.editado && (
+                                <span className="ml-1.5 select-none text-[10px] opacity-70">· {tc.editado}</span>
+                              )}
                             </p>
                             {hayAcciones && (
                               <div className="relative shrink-0" data-menu-mensaje>
@@ -650,7 +761,7 @@ export default function ChatPanel() {
                                   type="button"
                                   aria-label={tc.acciones}
                                   aria-expanded={abierto}
-                                  onClick={() => setMenu(abierto ? null : { id: m.id, confirmando: null })}
+                                  onClick={(e) => setMenu(abierto ? null : { id: m.id, confirmando: null, pos: posicionMenu(e.currentTarget) })}
                                   className="flex h-7 w-7 items-center justify-center rounded-full text-neutral-400 opacity-60 hover:bg-neutral-100 hover:text-neutral-700 group-hover:opacity-100 focus-visible:opacity-100 dark:hover:bg-neutral-800 dark:hover:text-neutral-200"
                                 >
                                   <Icono d={D_PUNTOS} className="h-4 w-4" />
@@ -658,9 +769,8 @@ export default function ChatPanel() {
                                 {abierto && (
                                   <div
                                     role="menu"
-                                    className={`absolute top-full z-20 mt-1 w-44 rounded-xl border border-neutral-200 bg-white p-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-900 ${
-                                      mio ? "right-0" : "left-0"
-                                    }`}
+                                    style={{ left: menu.pos.left, top: menu.pos.top, bottom: menu.pos.bottom }}
+                                    className="fixed z-50 w-44 rounded-xl border border-neutral-200 bg-white p-1 shadow-lg dark:border-neutral-700 dark:bg-neutral-900"
                                   >
                                     {menu?.confirmando ? (
                                       <div className="p-2 text-xs">
@@ -686,11 +796,21 @@ export default function ChatPanel() {
                                       </div>
                                     ) : (
                                       <>
+                                        {puedeEditar && (
+                                          <button
+                                            type="button"
+                                            role="menuitem"
+                                            onClick={() => empezarEdicion(m)}
+                                            className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                                          >
+                                            {tc.editar}
+                                          </button>
+                                        )}
                                         {puedeDenunciar && (
                                           <button
                                             type="button"
                                             role="menuitem"
-                                            onClick={() => setMenu({ id: m.id, confirmando: "denunciar" })}
+                                            onClick={() => setMenu({ ...menu, confirmando: "denunciar" })}
                                             className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-neutral-100 dark:hover:bg-neutral-800"
                                           >
                                             {tc.denunciar}
@@ -700,7 +820,7 @@ export default function ChatPanel() {
                                           <button
                                             type="button"
                                             role="menuitem"
-                                            onClick={() => setMenu({ id: m.id, confirmando: "borrar" })}
+                                            onClick={() => setMenu({ ...menu, confirmando: "borrar" })}
                                             className="block w-full rounded-lg px-3 py-2 text-left text-sm text-negative hover:bg-neutral-100 dark:hover:bg-neutral-800"
                                           >
                                             {tc.borrar}
@@ -711,6 +831,8 @@ export default function ChatPanel() {
                                   </div>
                                 )}
                               </div>
+                            )}
+                              </>
                             )}
                           </div>
                         </div>

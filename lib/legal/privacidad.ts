@@ -2,6 +2,7 @@ import {
   DIAS_CONSERVACION_CHAT,
   FECHA_PRIVACIDAD,
   MESES_CONSERVACION_DENUNCIAS,
+  MINUTOS_EDICION_CHAT,
   PLAZO_INACTIVIDAD,
   PROVEEDORES_TECNOLOGICOS,
   RESPONSABLE as R,
@@ -142,7 +143,7 @@ export const SECCIONES_PRIVACIDAD: Seccion[] = [
     titulo: "9. Datos de los usuarios registrados",
     bloques: [
       p("Para crear una cuenta se solicitan exclusivamente los datos necesarios para gestionarla: alias, dirección de correo electrónico y contraseña. Durante el uso de la aplicación se tratan además los equipos creados, los jugadores seleccionados, las puntuaciones, las clasificaciones y los datos técnicos necesarios para garantizar la seguridad (como registros de acceso y dirección IP)."),
-      p("Si usas el chat, se tratan los mensajes que escribes, la fecha y la hora de envío, a quién mencionas, el último mensaje que has leído en cada chat, tu preferencia de silenciar menciones y, si procede, las denuncias que hagas o recibas y las medidas de moderación aplicadas (borrado de mensajes, restricciones temporales para escribir y su motivo). Los mensajes del chat de una liga privada los ven los miembros de esa liga; los del chat público, todos los usuarios registrados; y el administrador puede verlos para moderar. En el chat se muestra tu alias, tu nivel y tu icono, nunca tu correo electrónico. No se almacena tu dirección IP con esta finalidad."),
+      p(`Si usas el chat, se tratan los mensajes que escribes, la fecha y la hora de envío, a quién mencionas, el último mensaje que has leído en cada chat, tu preferencia de silenciar menciones y, si procede, las denuncias que hagas o recibas y las medidas de moderación aplicadas (borrado de mensajes, restricciones temporales para escribir y su motivo). Los mensajes del chat de una liga privada los ven los miembros de esa liga; los del chat público, todos los usuarios registrados; y el administrador puede verlos para moderar. En el chat se muestra tu alias, tu nivel y tu icono, nunca tu correo electrónico. No se almacena tu dirección IP con esta finalidad. Puedes editar tus mensajes durante ${MINUTOS_EDICION_CHAT} minutos tras enviarlos; el texto anterior no se conserva, salvo en una denuncia, que guarda el mensaje tal como estaba al denunciarlo.`),
       p("Los datos marcados como obligatorios en el formulario de registro son necesarios para participar; si no se facilitan, no será posible crear la cuenta."),
       p("La dirección de correo electrónico no se publica en las clasificaciones ni se muestra al resto de participantes. En las clasificaciones solo aparece el alias elegido por el usuario, por lo que se recomienda no utilizar como alias el nombre completo."),
       p("Para entender cómo se usa la aplicación y mejorarla, se registra de forma agregada la actividad de los usuarios registrados: qué pantallas abren y cuántas veces por día, la fecha del último acceso y la ubicación aproximada desde la que se accede (país, región y ciudad), que se deduce de la dirección IP en el momento del acceso; la dirección IP no se almacena con esta finalidad. Esta información solo la ve el administrador, no se muestra a otros participantes y no se utiliza para publicidad. Además, se emplean estadísticas de visitas del proveedor de alojamiento (Vercel Analytics), que no usan cookies ni identifican personalmente al visitante."),

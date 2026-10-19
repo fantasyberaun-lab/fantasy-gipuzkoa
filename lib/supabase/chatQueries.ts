@@ -16,6 +16,7 @@ export interface MensajeChat {
   menciones: string[]; // ids de los mencionados
   mencionesNombres: string[]; // sus alias, para resaltar "@alias" en el texto
   creado: string; // ISO
+  editado: string | null; // ISO, si se ha editado
 }
 
 export interface EstadoChat {
@@ -30,6 +31,7 @@ export interface EstadoChat {
   nivelMinimo: number;
   maxCaracteres: number;
   maxDenunciasDia: number;
+  minutosEdicion: number;
 }
 
 export interface ResumenChat {
@@ -59,6 +61,10 @@ export type CodigoErrorChat =
   | "limite"
   | "repetido"
   | "menciones"
+  | "permiso"
+  | "no_existe"
+  | "plazo"
+  | "denunciado"
   | "red";
 
 export type ResultadoEnvio =
@@ -77,6 +83,7 @@ type FilaMensaje = {
   menciones: string[] | null;
   menciones_nombres: string[] | null;
   created_at: string;
+  editado_en?: string | null;
 };
 
 function aMensaje(f: FilaMensaje): MensajeChat {
@@ -90,6 +97,7 @@ function aMensaje(f: FilaMensaje): MensajeChat {
     menciones: f.menciones ?? [],
     mencionesNombres: f.menciones_nombres ?? [],
     creado: f.created_at,
+    editado: f.editado_en ?? null,
   };
 }
 
@@ -109,6 +117,7 @@ export async function fetchEstadoChat(supabase: Supabase, ligaId: string): Promi
     nivelMinimo: Number(d.nivel_minimo ?? 1),
     maxCaracteres: Number(d.max_caracteres ?? 300),
     maxDenunciasDia: Number(d.max_denuncias_dia ?? 3),
+    minutosEdicion: Number(d.minutos_edicion ?? 0),
   };
 }
 
@@ -146,13 +155,20 @@ export async function fetchNovedadesChat(
   ligaId: string,
   desde: number,
   seq: number | null
-): Promise<{ nuevos: MensajeChat[]; borrados: number[]; seq: number } | null> {
+): Promise<{ nuevos: MensajeChat[]; borrados: number[]; editados: MensajeChat[]; seq: number } | null> {
   const { data, error } = await supabase.rpc("chat_novedades", { p_liga: ligaId, p_desde: desde, p_seq: seq });
-  const d = data as { ok?: boolean; nuevos?: FilaMensaje[]; borrados?: number[]; seq?: number } | null;
+  const d = data as {
+    ok?: boolean;
+    nuevos?: FilaMensaje[];
+    borrados?: number[];
+    editados?: FilaMensaje[];
+    seq?: number;
+  } | null;
   if (error || !d || d.ok !== true) return null;
   return {
     nuevos: (d.nuevos ?? []).map(aMensaje),
     borrados: (d.borrados ?? []).map(Number),
+    editados: (d.editados ?? []).map(aMensaje),
     seq: Number(d.seq ?? seq ?? 0),
   };
 }
@@ -179,6 +195,38 @@ export async function enviarMensajeChat(
     hasta: (d.hasta as string | undefined) ?? undefined,
     maximo: d.maximo != null ? Number(d.maximo) : undefined,
     nivelMinimo: d.nivel_minimo != null ? Number(d.nivel_minimo) : undefined,
+  };
+}
+
+// Editar un mensaje propio (0091). Devuelve el texto ya limpio por el servidor.
+export type ResultadoEdicion =
+  | { ok: true; texto: string; editado: string | null; cambio: boolean; mencionesIgnoradas: number }
+  | { ok: false; codigo: CodigoErrorChat; hasta?: string; maximo?: number; minutos?: number };
+
+export async function editarMensajeChat(
+  supabase: Supabase,
+  id: number,
+  texto: string,
+  menciones: string[]
+): Promise<ResultadoEdicion> {
+  const { data, error } = await supabase.rpc("chat_editar", { p_id: id, p_texto: texto, p_menciones: menciones });
+  const d = data as Record<string, unknown> | null;
+  if (error || !d) return { ok: false, codigo: "red" };
+  if (d.ok === true) {
+    return {
+      ok: true,
+      texto: String(d.texto ?? texto),
+      editado: (d.editado_en as string | null) ?? null,
+      cambio: d.cambio !== false,
+      mencionesIgnoradas: Number(d.menciones_ignoradas ?? 0),
+    };
+  }
+  return {
+    ok: false,
+    codigo: (d.codigo as CodigoErrorChat) ?? "red",
+    hasta: (d.hasta as string | undefined) ?? undefined,
+    maximo: d.maximo != null ? Number(d.maximo) : undefined,
+    minutos: d.minutos != null ? Number(d.minutos) : undefined,
   };
 }
 
