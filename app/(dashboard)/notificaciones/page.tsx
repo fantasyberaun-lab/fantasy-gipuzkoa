@@ -241,7 +241,6 @@ export default function NotificacionesPage() {
       });
     }
 
-    if (n.tipo !== "clausulazo") return a.avisoGenerico;
     if (n.tipo === "oferta_maquina") {
       return rellenar(a.ofertaMaquina, {
         ...valores,
@@ -271,10 +270,14 @@ export default function NotificacionesPage() {
       return rellenar(aMi ? a.sancionPuntosAMi(cantidad) : a.sancionPuntos(cantidad), huecos);
     }
 
-    // clausulazo
-    if (yo) return rellenar(a.clausulazoYo(n.objetivoNombre ?? null, imp), valores);
-    if (n.objetivoId === equipo.id) return rellenar(a.clausulazoAMi(imp), valores);
-    return rellenar(a.clausulazoOtro(n.objetivoNombre ?? null, imp), valores);
+    if (n.tipo === "clausulazo") {
+      if (yo) return rellenar(a.clausulazoYo(n.objetivoNombre ?? null, imp), valores);
+      if (n.objetivoId === equipo.id) return rellenar(a.clausulazoAMi(imp), valores);
+      return rellenar(a.clausulazoOtro(n.objetivoNombre ?? null, imp), valores);
+    }
+
+    // Tipo desconocido: texto genérico (siempre al final, tras todos los tipos conocidos).
+    return a.avisoGenerico;
   };
 
   const comunicadosOrdenados = ordenarComunicados(comunicados);
