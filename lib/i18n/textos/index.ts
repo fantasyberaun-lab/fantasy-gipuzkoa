@@ -26,6 +26,7 @@ import avatares from "./avatares";
 import niveles from "./niveles";
 import chat from "./chat";
 import minijuegos from "./minijuegos";
+import adminLiga from "./adminLiga";
 
 // Todas las secciones de textos. Para añadir una: crea textos/<seccion>.ts
 // con definirTextos(...) y regístrala aquí.
@@ -57,6 +58,7 @@ const SECCIONES = {
   niveles,
   chat,
   minijuegos,
+  adminLiga,
 };
 
 type Secciones = typeof SECCIONES;

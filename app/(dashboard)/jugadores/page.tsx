@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import { useT } from "@/components/IdiomaProvider";
+import InsigniaEstadoClausula, { estadoClausula } from "@/components/InsigniaEstadoClausula";
 
 const TRAMO_LISTA = 50;
 // Cuántos se veían al salir: al volver de la ficha de un jugador se mantienen,
@@ -209,6 +210,7 @@ export default function JugadoresPage() {
           const esFichable = !esLigaPublica && jugador.propietario !== null && !jugador.esMiEquipo;
           const ofertaActual = ofertas.find((o) => o.jugadorId === jugador.id);
           const mensaje = mensajePorJugador[jugador.id];
+          const estado = estadoClausula(jugador);
 
           return (
             <div
@@ -264,68 +266,14 @@ export default function JugadoresPage() {
                         ? tj.ofertaEnviadaLinea(ofertaActual.importe)
                         : ""}
                     </span>
-                    {jugador.propietario !== null &&
-                      (jugador.blindado ? (
-                        <span
-                          title={tj.blindadoTitulo}
-                          className="flex items-center gap-0.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-medium text-violet-800 dark:bg-violet-900/40 dark:text-violet-300"
-                        >
-                          <svg
-                            className="h-2.5 w-2.5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
-                            />
-                          </svg>
-                          {tj.blindado}
-                        </span>
-                      ) : jugador.candado ? (
-                        <span
-                          title={tj.candadoTitulo}
-                          className="flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
-                        >
-                          <svg
-                            className="h-2.5 w-2.5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                            />
-                          </svg>
-                          {tj.candado}
-                        </span>
-                      ) : (
-                        <span
-                          title={tj.clausulableTitulo}
-                          className="flex items-center gap-0.5 rounded-full bg-sky-100 px-1.5 py-0.5 text-[10px] font-medium text-sky-800 dark:bg-sky-900/40 dark:text-sky-300"
-                        >
-                          <svg
-                            className="h-2.5 w-2.5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M13.5 10.5V6.75a4.5 4.5 0 119 0v3.75M3.75 21.75h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H3.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"
-                            />
-                          </svg>
-                          {tj.clausulable}
-                        </span>
-                      ))}
+                    {jugador.propietario !== null && (
+                      <InsigniaEstadoClausula
+                        estado={estado}
+                        texto={tj[estado]}
+                        title={tj[`${estado}Titulo` as const]}
+                        className="text-[10px]"
+                      />
+                    )}
                   </p>
                 </div>
                 <span className="text-sm font-semibold">{tj.pts(jugador.puntosTotales)}</span>

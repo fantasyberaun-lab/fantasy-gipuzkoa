@@ -1,7 +1,8 @@
 "use client";
 
 import type { PuntosJornada } from "@/lib/types";
-import { useT } from "@/components/IdiomaProvider";
+import { useIdioma } from "@/components/IdiomaProvider";
+import { torneoCorto } from "@/lib/torneos";
 import { gameConfig } from "@/lib/gameConfig";
 
 interface Casilla {
@@ -45,7 +46,8 @@ export default function HistorialPuntosChart({
   historial: PuntosJornada[];
   rondas?: number;
 }) {
-  const tg = useT().graficas;
+  const { t, idioma } = useIdioma();
+  const tg = t.graficas;
   const grupos = agruparPorTorneo(historial, rondas);
   const max = Math.max(...historial.map((h) => Math.abs(h.puntos)), 1);
   const hayDescansos = historial.some((h) => h.descanso);
@@ -61,7 +63,7 @@ export default function HistorialPuntosChart({
           <div key={torneo}>
             {grupos.length > 1 && (
               <p className="mb-1 truncate text-[11px] text-neutral-400">
-                {torneo || tg.sinTorneo}
+                {torneo ? torneoCorto(torneo, idioma) : tg.sinTorneo}
               </p>
             )}
             <div className="flex items-end gap-2" style={{ height: 140 }}>

@@ -43,6 +43,11 @@ export default definirTextos(
       actualizacion_elo: "Actualización de Elo",
       pago_jornada: "Ingreso",
       otro: "Aviso",
+      sancion: "Sanción",
+      advertencia: "Advertencia",
+      expulsion: "Expulsión",
+      nuevo_admin: "Administrador",
+      oferta_maquina: "Oferta",
     },
     avisoGenerico: "Novedad en tu liga.",
     // Etiquetas de los comunicados
@@ -78,6 +83,18 @@ export default definirTextos(
       `Corrección de tus ingresos en ${dondeEs(jornada)}: {importe} (ahora cuentas ${puntos} puntos).`,
     pagoIngreso: (jornada: Num, puntos: number) =>
       `Has ingresado {importe} por tus ${puntos} puntos en ${dondeEs(jornada)}.`,
+    // Administrador de la liga (0100). {objetivo} es el equipo; {motivo}, lo que escribió.
+    sancionPuntos: (n: number) => `El administrador ha sancionado a {objetivo} con −${n} puntos. Motivo: {motivo}`,
+    sancionPuntosAMi: (n: number) => `El administrador te ha sancionado con −${n} puntos. Motivo: {motivo}`,
+    sancionMillones: (n: number) => `El administrador ha sancionado a {objetivo} con −${n} M. Motivo: {motivo}`,
+    sancionMillonesAMi: (n: number) => `El administrador te ha sancionado con −${n} M. Motivo: {motivo}`,
+    advertencia: "El administrador ha advertido a {objetivo}. Motivo: {motivo}",
+    advertenciaAMi: "El administrador te ha enviado una advertencia. Motivo: {motivo}",
+    expulsion: "El administrador ha expulsado a {objetivo} de la liga. Motivo: {motivo}",
+    nuevoAdmin: "{objetivo} es ahora el administrador de la liga.",
+    ofertaMaquina: "La máquina te ofrece {importe} por {jugador}. Acéptala o recházala en tu Plantilla.",
+    nuevoAdminAMi:
+      "Ahora eres el administrador de la liga: puedes gestionarla desde Clasificación → Administrar liga.",
     clausulazoYo: (obj: Txt, imp: Num) =>
       `Has pagado la cláusula de {jugador}${deObj(obj)}${por(imp)}.`,
     clausulazoAMi: (imp: Num) => `{actor} te ha quitado a {jugador} pagando su cláusula${por(imp)}.`,
@@ -108,6 +125,11 @@ export default definirTextos(
         actualizacion_elo: "Elo eguneratzea",
         pago_jornada: "Diru-sarrera",
         otro: "Oharra",
+        sancion: "Zigorra",
+        advertencia: "Abisua",
+        expulsion: "Kanporaketa",
+        nuevo_admin: "Administratzailea",
+        oferta_maquina: "Eskaintza",
       },
       avisoGenerico: "Albistea zure ligan.",
       etiquetas: {
@@ -145,6 +167,17 @@ export default definirTextos(
         `${jornada != null ? `${jornada}. jardunaldiko` : "Jardunaldiko"} diru-sarreren zuzenketa: {importe} (orain ${puntos} puntu dituzu).`,
       pagoIngreso: (jornada: Num, puntos: number) =>
         `{importe} jaso dituzu ${jornada != null ? `${jornada}. jardunaldian` : "jardunaldian"} lortutako ${puntos} puntuengatik.`,
+      sancionPuntos: (n: number) => `Administratzaileak {objetivo} zigortu du: −${n} puntu. Arrazoia: {motivo}`,
+      sancionPuntosAMi: (n: number) => `Administratzaileak zigortu zaitu: −${n} puntu. Arrazoia: {motivo}`,
+      sancionMillones: (n: number) => `Administratzaileak {objetivo} zigortu du: −${n} M. Arrazoia: {motivo}`,
+      sancionMillonesAMi: (n: number) => `Administratzaileak zigortu zaitu: −${n} M. Arrazoia: {motivo}`,
+      advertencia: "Administratzaileak abisua eman dio {objetivo} taldeari. Arrazoia: {motivo}",
+      advertenciaAMi: "Administratzaileak abisu bat bidali dizu. Arrazoia: {motivo}",
+      expulsion: "Administratzaileak {objetivo} ligatik kanporatu du. Arrazoia: {motivo}",
+      nuevoAdmin: "{objetivo} da orain ligako administratzailea.",
+      ofertaMaquina: "Makinak {importe} eskaintzen dizkizu {jugador} jokalariagatik. Onartu edo baztertu zure Plantillan.",
+      nuevoAdminAMi:
+        "Orain zu zara ligako administratzailea: Sailkapena → Liga kudeatu atalean kudea dezakezu.",
       clausulazoYo: (obj: Txt, imp: Num) =>
         `{jugador} jokalariaren klausula ordaindu duzu${objEu(obj)}${zenbat(imp)}.`,
       clausulazoAMi: (imp: Num) =>
@@ -175,6 +208,11 @@ export default definirTextos(
         actualizacion_elo: "Elo update",
         pago_jornada: "Earnings",
         otro: "Notice",
+        sancion: "Penalty",
+        advertencia: "Warning",
+        expulsion: "Expulsion",
+        nuevo_admin: "Admin",
+        oferta_maquina: "Offer",
       },
       avisoGenerico: "News in your league.",
       etiquetas: {
@@ -207,6 +245,16 @@ export default definirTextos(
         `Correction to your earnings for ${dondeEn(jornada)}: {importe} (you now have ${puntos} points).`,
       pagoIngreso: (jornada: Num, puntos: number) =>
         `You earned {importe} for your ${puntos} points in ${dondeEn(jornada)}.`,
+      sancionPuntos: (n: number) => `The admin has penalised {objetivo} with −${n} points. Reason: {motivo}`,
+      sancionPuntosAMi: (n: number) => `The admin has penalised you with −${n} points. Reason: {motivo}`,
+      sancionMillones: (n: number) => `The admin has penalised {objetivo} with −${n} M. Reason: {motivo}`,
+      sancionMillonesAMi: (n: number) => `The admin has penalised you with −${n} M. Reason: {motivo}`,
+      advertencia: "The admin has warned {objetivo}. Reason: {motivo}",
+      advertenciaAMi: "The admin has sent you a warning. Reason: {motivo}",
+      expulsion: "The admin has expelled {objetivo} from the league. Reason: {motivo}",
+      nuevoAdmin: "{objetivo} is now the league admin.",
+      ofertaMaquina: "The machine offers you {importe} for {jugador}. Accept or reject it in your Squad.",
+      nuevoAdminAMi: "You're now the league admin: you can manage it from Standings → Manage league.",
       clausulazoYo: (obj: Txt, imp: Num) =>
         `You paid {jugador}'s release clause${fromEn(obj)}${forEn(imp)}.`,
       clausulazoAMi: (imp: Num) =>

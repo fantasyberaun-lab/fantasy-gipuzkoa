@@ -8,6 +8,7 @@
 
 import { useSyncExternalStore } from "react";
 import { gameConfig } from "@/lib/gameConfig";
+import { HORAS_TANDA_MADRID } from "@/lib/mercadoCountdown";
 
 export interface ReglasJuego {
   maxTitulares: number;
@@ -17,6 +18,8 @@ export interface ReglasJuego {
   multiplicadorSubida: number;
   blindajePorcentaje: number;
   capitanMultiplicador: number;
+  // Horas (Madrid) a las que se resuelve el mercado de la liga (0100).
+  horasMercado: number[];
 }
 
 export const REGLAS_JUEGO_POR_DEFECTO: ReglasJuego = {
@@ -27,6 +30,7 @@ export const REGLAS_JUEGO_POR_DEFECTO: ReglasJuego = {
   multiplicadorSubida: gameConfig.subidaClausula.multiplicador,
   blindajePorcentaje: gameConfig.blindaje.porcentaje,
   capitanMultiplicador: gameConfig.capitan.multiplicador,
+  horasMercado: HORAS_TANDA_MADRID,
 };
 
 let actuales: ReglasJuego = REGLAS_JUEGO_POR_DEFECTO;

@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useIdioma, useT } from "@/components/IdiomaProvider";
 import type { Textos } from "@/lib/i18n/textos";
+import { torneoCorto } from "@/lib/torneos";
+import { jornadaVisible } from "@/lib/jornadas";
 import {
   fetchAlineacionesSemanas,
   type AlineacionSemana,
@@ -31,7 +33,7 @@ function textoResultado(j: JugadorSemana, tm: Textos["managers"]): string {
 // cada uno en la ronda que jugó, con todos los torneos del fin de semana juntos.
 export default function AlineacionesJornadas({ equipoId }: { equipoId: string }) {
   const tm = useT().managers;
-  const { locale } = useIdioma();
+  const { locale, idioma } = useIdioma();
   const [semanas, setSemanas] = useState<AlineacionSemana[]>([]);
   const [cargando, setCargando] = useState(true);
   const [seleccion, setSeleccion] = useState<number | null>(null);
@@ -39,7 +41,11 @@ export default function AlineacionesJornadas({ equipoId }: { equipoId: string })
   useEffect(() => {
     (async () => {
       setCargando(true);
-      const lista = await fetchAlineacionesSemanas(createClient(), equipoId);
+      // Los fines de semana que aún no han empezado (antes del sábado a las
+      // 16:00) no se enseñan, aunque la jornada ya esté creada.
+      const lista = (await fetchAlineacionesSemanas(createClient(), equipoId)).filter((a) =>
+        jornadaVisible(a.fecha)
+      );
       setSemanas(lista);
       // Por defecto, la última.
       setSeleccion(lista.length > 0 ? lista.length - 1 : null);
@@ -115,7 +121,7 @@ export default function AlineacionesJornadas({ equipoId }: { equipoId: string })
                   </p>
                   {!actual.pendiente && j.torneo && (
                     <p className="text-[11px] text-neutral-400">
-                      {j.torneo}
+                      {torneoCorto(j.torneo, idioma)}
                       {j.jornada !== null && tm.ronda(j.jornada)}
                     </p>
                   )}

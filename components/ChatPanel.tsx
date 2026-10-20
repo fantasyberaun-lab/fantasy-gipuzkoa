@@ -625,11 +625,13 @@ export default function ChatPanel() {
       )}
 
       <div className="relative flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900">
-        {/* Mensajes */}
+        {/* Mensajes. Sin overscroll-contain a propósito: al llegar al final de la
+            lista, seguir deslizando mueve la página y así se baja hasta la caja de
+            escribir sin tener que tocar fuera de los mensajes (móvil). */}
         <div
           ref={listaRef}
           onScroll={alDesplazar}
-          className="h-[52dvh] min-h-[18rem] overflow-y-auto overscroll-contain px-3 py-3 sm:h-[26rem]"
+          className="h-[52dvh] min-h-[18rem] overflow-y-auto px-3 py-3 sm:h-[26rem]"
         >
           {fase === "cargando" && <p className="py-8 text-center text-sm text-neutral-500">{tc.cargando}</p>}
           {fase === "error" && (

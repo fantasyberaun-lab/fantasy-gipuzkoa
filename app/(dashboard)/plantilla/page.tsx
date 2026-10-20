@@ -230,6 +230,10 @@ export default function PlantillaPage() {
     toggleCapitan,
     blindarJugador,
     venderJugador,
+    ponerALaVenta,
+    quitarDeLaVenta,
+    aceptarOfertaMaquina,
+    rechazarOfertaMaquina,
     subirClausula,
     ofertasRecibidas,
     esLigaPublica,
@@ -295,6 +299,10 @@ export default function PlantillaPage() {
         onBlindar={() => blindarJugador(slot.jugador.id)}
         onVender={() => venderJugador(slot.jugador.id, slot.jugador.valorMercado)}
         onSubirClausula={(importe) => subirClausula(slot.jugador.id, importe)}
+        onPonerALaVenta={() => ponerALaVenta(slot.jugador.id)}
+        onQuitarDeLaVenta={() => quitarDeLaVenta(slot.jugador.id)}
+        onAceptarOferta={() => aceptarOfertaMaquina(slot.jugador.id)}
+        onRechazarOferta={() => rechazarOfertaMaquina(slot.jugador.id)}
       />
     );
   };
