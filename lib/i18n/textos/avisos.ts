@@ -42,7 +42,9 @@ export default definirTextos(
       venta: "Venta",
       actualizacion_elo: "Actualización de Elo",
       pago_jornada: "Ingreso",
+      otro: "Aviso",
     },
+    avisoGenerico: "Novedad en tu liga.",
     // Etiquetas de los comunicados
     etiquetas: {
       importante: "Importante",
@@ -105,7 +107,9 @@ export default definirTextos(
         venta: "Salmenta",
         actualizacion_elo: "Elo eguneratzea",
         pago_jornada: "Diru-sarrera",
+        otro: "Oharra",
       },
+      avisoGenerico: "Albistea zure ligan.",
       etiquetas: {
         importante: "Garrantzitsua",
         actualizacion: "Eguneratzea",
@@ -170,7 +174,9 @@ export default definirTextos(
         venta: "Sale",
         actualizacion_elo: "Elo update",
         pago_jornada: "Earnings",
+        otro: "Notice",
       },
+      avisoGenerico: "News in your league.",
       etiquetas: {
         importante: "Important",
         actualizacion: "Update",

@@ -13,6 +13,7 @@ import AvatarPerfil from "@/components/AvatarPerfil";
 import RachaDiaria from "@/components/RachaDiaria";
 import TutorialNiveles from "@/components/TutorialNiveles";
 import NivelChip from "@/components/NivelChip";
+import MinijuegosChip from "@/components/MinijuegosChip";
 import { useT } from "@/components/IdiomaProvider";
 
 // Contenido de la cabecera morada: escudo, nombre del equipo, liga y saldo.
@@ -88,6 +89,7 @@ export default function EquipoHeader() {
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0 sm:flex-nowrap">
           <NivelChip />
           <RachaDiaria />
+          <MinijuegosChip />
           <TutorialNiveles />
           <div className="ml-auto shrink-0 rounded-xl bg-white/10 px-4 py-2 ring-1 ring-white/15 sm:ml-0">
             <p className="text-xs font-medium text-white/70">{t.ajustes.saldo}</p>
