@@ -9,6 +9,10 @@ import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import ProximoRivalLinea from "@/components/ProximoRival";
 import AvatarPerfil from "@/components/AvatarPerfil";
 import InsigniaNivel from "@/components/InsigniaNivel";
+import InsigniaEstadoClausula, { estadoClausula } from "@/components/InsigniaEstadoClausula";
+import { clausulazosCerrados } from "@/lib/mercadoCountdown";
+import { fetchEquipoAdminLiga } from "@/lib/supabase/adminLigaQueries";
+import { jornadaVisible } from "@/lib/jornadas";
 import { fetchNivelesLiga, type NivelPublico } from "@/lib/supabase/nivelesQueries";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -23,7 +27,7 @@ import {
 const CLAVE_ESTADO = "clasificacion:estado-al-volver";
 
 interface EstadoGuardado {
-  jornada: string;
+  jornada: string | null;
   busqueda: string;
   visibles: number;
   equipoAbierto: string | null;
@@ -41,6 +45,7 @@ const TAMANO_PAGINA = 50;
 interface JornadaOpcion {
   semana: string; // el sábado, "YYYY-MM-DD"
   numero: number;
+  enJuego: boolean; // ya ha empezado y todavía no se ha cerrado
 }
 
 // "YYYY-MM-DD" como fecha local (con new Date("YYYY-MM-DD") sería UTC y
@@ -69,6 +74,8 @@ export default function ClasificacionPage() {
   // Nº de managers de la liga (lo cuenta la base de datos en mis_ligas()).
   const totalManagers =
     misLigas.find((l) => l.ligaId === equipo.leagueId)?.miembros ?? clasificacion.length;
+  // Quien creó la liga privada la administra (0100).
+  const soyAdmin = misLigas.find((l) => l.ligaId === equipo.leagueId)?.soyAdmin ?? false;
 
   // Nivel e icono de cada manager de la liga, por id de equipo (0088).
   const [niveles, setNiveles] = useState<Record<string, NivelPublico>>({});
@@ -83,8 +90,26 @@ export default function ClasificacionPage() {
     };
   }, [equipo.leagueId]);
 
+  // Equipo del administrador de la liga (quien la creó, 0100), para marcarlo.
+  // Se vuelve a pedir si cambia la clasificación (p. ej. si el cargo pasa a otro).
+  const [equipoAdminId, setEquipoAdminId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!equipo.leagueId || esLigaPublica) {
+      setEquipoAdminId(null);
+      return;
+    }
+    let vigente = true;
+    fetchEquipoAdminLiga(createClient(), equipo.leagueId).then((id) => {
+      if (vigente) setEquipoAdminId(id);
+    });
+    return () => {
+      vigente = false;
+    };
+  }, [equipo.leagueId, esLigaPublica, clasificacion]);
+
   // Desplegable: "" = puntos totales, o el sábado de una jornada (fin de semana).
-  const [jornadaSel, setJornadaSel] = useState<string>("");
+  // null = sin elegir: la jornada en juego si la hay y, si no, puntos totales.
+  const [jornadaSel, setJornadaSel] = useState<string | null>(null);
   // A qué jornada (fin de semana) pertenece cada ronda, por id de ronda.
   const [finde, setFinde] = useState<Record<string, JornadaFinde>>({});
   const [busqueda, setBusqueda] = useState("");
@@ -100,7 +125,7 @@ export default function ClasificacionPage() {
   const [equipoAbierto, setEquipoAbierto] = useState<string | null>(null);
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [montoOferta, setMontoOferta] = useState("");
-  const [mensaje, setMensaje] = useState<string | null>(null);
+  const [mensaje, setMensaje] = useState<{ ok: boolean; texto: string } | null>(null);
   const [enviando, setEnviando] = useState(false);
 
   const estadoRef = useRef<EstadoGuardado | null>(null);
@@ -141,7 +166,7 @@ export default function ClasificacionPage() {
       return;
     }
     if (!guardado) return;
-    setJornadaSel(guardado.jornada ?? "");
+    setJornadaSel(guardado.jornada ?? null);
     setBusqueda(guardado.busqueda);
     setVisibles(guardado.visibles);
     setEquipoAbierto(guardado.equipoAbierto);
@@ -173,21 +198,31 @@ export default function ClasificacionPage() {
   }, [clasificacion]);
 
   // Jornadas con puntos en el historial de algún equipo de la liga, por orden.
+  // Las que aún no han empezado (antes del sábado a las 16:00) no salen.
   const jornadasDisponibles = useMemo(() => {
     const porSemana = new Map<string, JornadaOpcion>();
     for (const entry of clasificacion) {
       for (const h of entry.historialPuntos) {
         const j = h.id ? finde[h.id] : undefined;
-        if (j && !porSemana.has(j.semana)) {
-          porSemana.set(j.semana, { semana: j.semana, numero: j.numero });
+        if (j && !porSemana.has(j.semana) && jornadaVisible(j.semana)) {
+          porSemana.set(j.semana, { semana: j.semana, numero: j.numero, enJuego: false });
         }
       }
+    }
+    // En juego: ya ha empezado y alguna de sus rondas sigue sin cerrar.
+    for (const j of Object.values(finde)) {
+      const opcion = porSemana.get(j.semana);
+      if (opcion && j.cerradaEn === null) opcion.enJuego = true;
     }
     return [...porSemana.values()].sort((a, b) => a.semana.localeCompare(b.semana));
   }, [clasificacion, finde]);
 
+  // Sin elegir nada, desde el sábado a las 16:00 hasta que se cierra la
+  // jornada se ve la de la jornada; cuando se cierra, vuelve a puntos totales.
+  const jornadaEnJuego = [...jornadasDisponibles].reverse().find((j) => j.enJuego) ?? null;
+  const semanaElegida = jornadaSel ?? jornadaEnJuego?.semana ?? "";
   // Si la jornada guardada ya no existe (o aún no han llegado las jornadas), puntos totales.
-  const jornadaActual = jornadasDisponibles.find((j) => j.semana === jornadaSel) ?? null;
+  const jornadaActual = jornadasDisponibles.find((j) => j.semana === semanaElegida) ?? null;
 
   const formatoFecha = new Intl.DateTimeFormat(locale, { day: "numeric", month: "long" });
   const fechaJornada = (j: JornadaOpcion) => formatoFecha.format(fechaLocal(j.semana));
@@ -267,31 +302,34 @@ export default function ClasificacionPage() {
   const plantillaAbierta = equipoAbierto
     ? jugadoresLiga.filter((j) => j.propietario === equipoAbierto)
     : [];
+  // Lo mismo que comprueba pagar_clausula en la base de datos, para avisar
+  // antes de que alguien venda a un jugador suyo para hacer sitio y luego se
+  // encuentre con que el que quería está blindado.
+  const clausulazosCerradosAhora = clausulazosCerrados();
+  const numProtegidos = plantillaAbierta.filter((j) => estadoClausula(j) !== "clausulable").length;
 
   const enviarOferta = async (jugadorId: string) => {
     const importe = Number(montoOferta);
     setEnviando(true);
     const resultado = await hacerOferta(jugadorId, importe);
     setEnviando(false);
-    setMensaje(resultado.ok ? c.ofertaEnviada : resultado.mensaje);
+    setMensaje({ ok: resultado.ok, texto: resultado.ok ? c.ofertaEnviada : resultado.mensaje });
   };
 
   const quitarOferta = async (ofertaId: string) => {
     setEnviando(true);
     const resultado = await cancelarOferta(ofertaId);
     setEnviando(false);
-    setMensaje(
-      resultado.ok
-        ? c.ofertaCancelada
-        : resultado.mensaje
-    );
+    setMensaje({ ok: resultado.ok, texto: resultado.ok ? c.ofertaCancelada : resultado.mensaje });
   };
 
   const ejecutarClausula = async (jugadorId: string) => {
     setEnviando(true);
     const resultado = await pagarClausula(jugadorId);
     setEnviando(false);
-    setMensaje(resultado.ok ? c.clausulaPagada : resultado.mensaje);
+    setMensaje({ ok: resultado.ok, texto: resultado.ok ? c.clausulaPagada : resultado.mensaje });
+    // Si ha salido bien, el jugador desaparece de esta plantilla: se cierra su fila.
+    if (resultado.ok) setSeleccionadoId(null);
   };
 
   return (
@@ -299,6 +337,11 @@ export default function ClasificacionPage() {
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold">{c.titulo}</h2>
+          {soyAdmin && (
+            <Link href="/liga/admin" className="text-xs font-medium text-accent underline underline-offset-2">
+              {t.adminLiga.botonAbrir}
+            </Link>
+          )}
           {esLigaPublica && (
             <p className="text-xs text-neutral-500">
               {c.managersPublica(totalManagers)}
@@ -316,6 +359,7 @@ export default function ClasificacionPage() {
             {jornadasDisponibles.map((j) => (
               <option key={j.semana} value={j.semana}>
                 {c.jornadaFecha(j.numero, fechaJornada(j))}
+                {j.enJuego ? ` · ${c.enJuego}` : ""}
               </option>
             ))}
           </select>
@@ -392,6 +436,14 @@ export default function ClasificacionPage() {
                   {niveles[entry.equipoId] && (
                     <InsigniaNivel nivel={niveles[entry.equipoId].nivel} className="ml-1.5 align-middle" />
                   )}
+                  {entry.equipoId === equipoAdminId && (
+                    <span
+                      title={t.adminLiga.etiquetaAdminTitle}
+                      className="ml-1.5 inline-block rounded-full bg-accent px-1.5 py-0.5 align-middle text-[10px] font-semibold uppercase leading-none tracking-wide text-white"
+                    >
+                      {t.adminLiga.etiquetaAdmin}
+                    </span>
+                  )}
                 </>
               ) : (
                 entry.nombreEquipo
@@ -413,11 +465,19 @@ export default function ClasificacionPage() {
             </span>
             </div>
             <div className="flex shrink-0 items-center gap-3 pl-2">
-              <span className="whitespace-nowrap font-medium">
-                {c.pts(puntosParaOrden(entry))}{" "}
-                <span className="text-neutral-500">
-                  {etiquetaOrden}
+              <span className="flex flex-col items-end">
+                <span className="whitespace-nowrap font-medium">
+                  {c.pts(puntosParaOrden(entry))}{" "}
+                  <span className="text-neutral-500">
+                    {etiquetaOrden}
+                  </span>
                 </span>
+                {/* Los puntos de sanción ya van descontados del total (0100). */}
+                {!jornadaActual && (entry.puntosSancion ?? 0) > 0 && (
+                  <span className="whitespace-nowrap text-[11px] text-negative">
+                    {c.sancion(entry.puntosSancion ?? 0)}
+                  </span>
+                )}
               </span>
               {!entry.esMiEquipo && !esLigaPublica && (
                 <button
@@ -499,7 +559,7 @@ export default function ClasificacionPage() {
                         {jugador.club} · {c.categoriaCorta(jugador.categoria)} · Elo {jugador.elo} ·{" "}
                         {c.pts(jugador.puntosTotales)}
                       </p>
-                      <ProximoRivalLinea rivales={jugador.proximosRivales} className="mt-0.5" />
+                      <ProximoRivalLinea rivales={jugador.proximosRivales} className="mt-0.5" torneoResumido />
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       <span className="text-sm font-medium">{jugador.valorMercado} M</span>
@@ -531,24 +591,49 @@ export default function ClasificacionPage() {
           <div className="relative w-full max-w-sm rounded-t-2xl bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-xl dark:bg-neutral-900 sm:rounded-2xl sm:pb-5">
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-neutral-300 dark:bg-neutral-700 sm:hidden" />
 
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-base font-semibold">{equipoAbierto}</p>
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-base font-semibold">{equipoAbierto}</p>
+                <p className="text-xs text-neutral-500">
+                  {c.numJugadores(plantillaAbierta.length)} · {c.tuSaldo(redondear2(equipo.saldo))}
+                </p>
+              </div>
               <button
                 onClick={cerrarPanel}
-                className="text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300"
+                className="shrink-0 text-sm text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300"
               >
                 {c.cerrar}
               </button>
             </div>
 
-            <div className="flex max-h-[65vh] flex-col gap-2 overflow-y-auto">
+            {clausulazosCerradosAhora ? (
+              <p className="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                {t.mercado.clausulazosCerrados}
+              </p>
+            ) : (
+              numProtegidos > 0 && (
+                <p className="mb-3 rounded-lg bg-violet-50 px-3 py-2 text-xs text-violet-800 dark:bg-violet-900/30 dark:text-violet-300">
+                  {c.protegidos(numProtegidos)}
+                </p>
+              )
+            )}
+
+            <div className="flex max-h-[60vh] flex-col gap-2 overflow-y-auto">
               {plantillaAbierta.map((jugador) => {
                 const estaSeleccionado = seleccionadoId === jugador.id;
+                const estado = estadoClausula(jugador);
+                const faltan = redondear2(jugador.clausula - equipo.saldo);
+                const clausulaBloqueada =
+                  estado !== "clausulable" || clausulazosCerradosAhora || faltan > 0;
 
                 return (
                   <div
                     key={jugador.id}
-                    className="rounded-lg border border-neutral-200 dark:border-neutral-800"
+                    className={`rounded-lg border ${
+                      estaSeleccionado
+                        ? "border-neutral-400 dark:border-neutral-600"
+                        : "border-neutral-200 dark:border-neutral-800"
+                    }`}
                   >
                     <div
                       role="button"
@@ -560,31 +645,59 @@ export default function ClasificacionPage() {
                           toggleJugador(jugador.id);
                         }
                       }}
-                      className="flex w-full cursor-pointer items-center justify-between px-3 py-2 text-left"
+                      className="flex w-full cursor-pointer items-center gap-3 px-3 py-2 text-left"
                     >
-                      <div>
-                        <p className="text-sm font-medium">
+                      <div className="min-w-0 flex-1">
+                        <p className="flex items-center gap-1.5 text-sm font-medium">
                           <Link
                             href={`/jugadores/${jugador.id}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               guardarEstado();
                             }}
-                            className="hover:underline"
+                            className="truncate hover:underline"
                           >
                             {jugador.nombre}
                           </Link>
+                          <InsigniaEstadoClausula
+                            estado={estado}
+                            texto={estado === "clausulable" ? undefined : t.jugadores[estado]}
+                            title={t.jugadores[`${estado}Titulo` as const]}
+                            className="text-[10px]"
+                          />
                         </p>
                         <p className="text-xs text-neutral-500">
                           {jugador.club} · {c.categoriaCorta(jugador.categoria)} · Elo {jugador.elo}
                         </p>
-                        <ProximoRivalLinea rivales={jugador.proximosRivales} className="mt-0.5" />
+                        <ProximoRivalLinea rivales={jugador.proximosRivales} className="mt-0.5" torneoResumido />
                       </div>
-                      <span className="text-sm font-medium">{jugador.valorMercado} M</span>
+                      <div className="flex shrink-0 flex-col items-end">
+                        <span className="text-sm font-medium">{jugador.valorMercado} M</span>
+                        <span
+                          className={`text-[11px] ${
+                            estado === "clausulable"
+                              ? "text-neutral-500"
+                              : "text-neutral-400 line-through"
+                          }`}
+                        >
+                          {c.clausulaCorta(jugador.clausula)}
+                        </span>
+                      </div>
                     </div>
 
                     {estaSeleccionado && (
                       <div className="flex flex-col gap-2 border-t border-neutral-200 p-3 dark:border-neutral-800">
+                        {estado === "blindado" && (
+                          <p className="rounded-lg bg-violet-50 px-3 py-2 text-xs text-violet-800 dark:bg-violet-900/30 dark:text-violet-300">
+                            {t.jugadores.notaBlindado}
+                          </p>
+                        )}
+                        {estado === "candado" && (
+                          <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                            {t.jugadores.notaCandado}
+                          </p>
+                        )}
+
                         <div>
                           <label className="text-xs font-medium text-neutral-500">
                             {c.importeOferta}
@@ -607,9 +720,16 @@ export default function ClasificacionPage() {
                             {c.hacerOferta}
                           </button>
                           <button
-                            disabled={enviando}
+                            disabled={enviando || clausulaBloqueada}
                             onClick={() => ejecutarClausula(jugador.id)}
-                            className="flex-1 rounded-lg bg-neutral-900 py-2 text-sm font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
+                            title={
+                              estado !== "clausulable"
+                                ? t.jugadores[`${estado}Titulo` as const]
+                                : clausulazosCerradosAhora
+                                  ? t.mercado.clausulazosCerrados
+                                  : undefined
+                            }
+                            className="flex-1 rounded-lg bg-neutral-900 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white dark:text-neutral-900"
                           >
                             {c.pagarClausula(jugador.clausula)}
                           </button>
@@ -628,8 +748,8 @@ export default function ClasificacionPage() {
                           ) : null;
                         })()}
 
-                        {mensaje && (
-                          <p className="text-xs text-neutral-500">{mensaje}</p>
+                        {estado === "clausulable" && !clausulazosCerradosAhora && faltan > 0 && (
+                          <p className="text-xs text-neutral-500">{c.teFaltan(faltan)}</p>
                         )}
                       </div>
                     )}
@@ -638,9 +758,15 @@ export default function ClasificacionPage() {
               })}
             </div>
 
-            <p className="mt-3 text-xs text-neutral-400">
-              {c.tuSaldo(redondear2(equipo.saldo))}
-            </p>
+            {/* Fuera de la lista: tras un clausulazo el jugador sale de esta
+                plantilla y el mensaje se perdería con su fila. */}
+            {mensaje && (
+              <p
+                className={`mt-3 text-xs ${mensaje.ok ? "text-positive" : "text-negative"}`}
+              >
+                {mensaje.texto}
+              </p>
+            )}
           </div>
         </div>
       )}

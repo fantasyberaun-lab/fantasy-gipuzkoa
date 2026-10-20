@@ -19,6 +19,7 @@ import {
 import { fetchReglasLiga } from "@/lib/supabase/configQueries";
 import {
   fijarReglasJuego,
+  reglasJuegoActuales,
   registrarCargaReglas,
   REGLAS_JUEGO_POR_DEFECTO,
   type ReglasJuego,
@@ -59,6 +60,10 @@ import {
   unirseLigaDB,
   unirseLigaPublicaDB,
   venderJugadorDB,
+  ponerALaVentaDB,
+  quitarDeLaVentaDB,
+  aceptarOfertaMaquinaDB,
+  rechazarOfertaMaquinaDB,
 } from "@/lib/supabase/queries";
 import type {
   ClasificacionEntry,
@@ -151,6 +156,11 @@ interface GameState {
   toggleCapitan: (id: string) => Promise<ResultadoAccion>;
   blindarJugador: (jugadorId: string) => Promise<ResultadoAccion>;
   venderJugador: (id: string, valorMercado: number) => Promise<ResultadoAccion>;
+  // Ligas privadas (0101): se vende a la máquina, que hace su oferta en cada tanda.
+  ponerALaVenta: (id: string) => Promise<ResultadoAccion>;
+  quitarDeLaVenta: (id: string) => Promise<ResultadoAccion>;
+  aceptarOfertaMaquina: (id: string) => Promise<ResultadoAccion>;
+  rechazarOfertaMaquina: (id: string) => Promise<ResultadoAccion>;
   pagarClausula: (jugadorId: string) => Promise<ResultadoAccion>;
   subirClausula: (jugadorId: string, importe: number) => Promise<ResultadoAccion>;
   hacerOferta: (jugadorId: string, importe: number) => Promise<ResultadoAccion>;
@@ -507,7 +517,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // El mercado se resuelve a las 8:00, 17:00 y 23:00 (Madrid). Sin este efecto,
+  // El mercado se resuelve a las horas de la liga (8:00, 17:00 y 23:00 por
+  // defecto, ver 0100). Sin este efecto,
   // quien tuviera la app abierta seguiría viendo la tanda anterior (con jugadores
   // que acaban de ser fichados) hasta recargar la página. Se recarga todo:
   //   - 60 s después de cada tanda (margen para que termine de resolverse),
@@ -523,7 +534,12 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       const desdeCarga = ahora - ultimaCargaRef.current;
       // ¿Ha habido una tanda desde la última carga (y ya pasó el margen)?
       const tandaPasada =
-        proximaTandaMercado(new Date(ultimaCargaRef.current - MARGEN_MS)).getTime() + MARGEN_MS <= ahora;
+        proximaTandaMercado(
+          new Date(ultimaCargaRef.current - MARGEN_MS),
+          reglasJuegoActuales().horasMercado
+        ).getTime() +
+          MARGEN_MS <=
+        ahora;
       const demasiadoViejo = alVolver && desdeCarga > MAX_SIN_CARGAR_MS;
 
       if (!tandaPasada && !demasiadoViejo) return;
@@ -700,6 +716,18 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   async function blindarJugador(jugadorId: string): Promise<ResultadoAccion> {
     if (!equipo.leagueId) return { ok: false, mensaje: t.juego.sinEquipo };
     const resultado = await blindarJugadorDB(supabase, jugadorId, equipo.leagueId);
+    if (resultado.ok) await recargarJuego();
+    return resultado;
+  }
+
+  // Poner/quitar de la venta y aceptar/rechazar la oferta de la máquina: todas
+  // cambian la plantilla o el saldo, así que se recarga el juego si sale bien.
+  async function accionVentaMaquina(
+    accion: (s: typeof supabase, playerId: string, leagueId: string) => Promise<ResultadoAccion>,
+    playerId: string
+  ): Promise<ResultadoAccion> {
+    if (!equipo.leagueId) return { ok: false, mensaje: t.juego.sinEquipo };
+    const resultado = await accion(supabase, playerId, equipo.leagueId);
     if (resultado.ok) await recargarJuego();
     return resultado;
   }
@@ -914,6 +942,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         toggleCapitan,
         blindarJugador,
         venderJugador,
+        ponerALaVenta: (id) => accionVentaMaquina(ponerALaVentaDB, id),
+        quitarDeLaVenta: (id) => accionVentaMaquina(quitarDeLaVentaDB, id),
+        aceptarOfertaMaquina: (id) => accionVentaMaquina(aceptarOfertaMaquinaDB, id),
+        rechazarOfertaMaquina: (id) => accionVentaMaquina(rechazarOfertaMaquinaDB, id),
         pagarClausula,
         subirClausula,
         hacerOferta,

@@ -53,6 +53,7 @@ export async function fetchMisLigasOError(supabase: Supabase): Promise<LigaResum
     equipoId: l.equipo_id,
     nombreEquipo: l.nombre_equipo,
     saldo: Number(l.saldo),
+    soyAdmin: Boolean(l.soy_admin),
   }));
 }
 
@@ -345,7 +346,7 @@ export async function fetchMiPlantilla(
 
   // Resultados, descansos (puntúan 1 punto) e inscripciones (límite de
   // titulares por torneo): no dependen entre sí, van en paralelo.
-  const [{ data: resultados }, { data: descansos }, { data: inscripciones }] = await Promise.all([
+  const [{ data: resultados }, { data: descansos }, { data: inscripciones }, { data: ventas }] = await Promise.all([
     supabase
       .from("results")
       .select(
@@ -360,7 +361,16 @@ export async function fetchMiPlantilla(
       .from("tournament_players")
       .select("player_id, tournaments (id, nombre)")
       .in("player_id", playerIds),
+    // Jugadores puestos a la venta y oferta de la máquina (ligas privadas, 0101).
+    // Sin la migración la tabla no existe: data llega null y no hay ninguno en venta.
+    supabase.from("ventas_maquina").select("player_id, oferta").eq("fantasy_team_id", equipoId),
   ]);
+  const ventaPorJugador = new Map<string, number | null>(
+    ((ventas ?? []) as { player_id: string; oferta: number | string | null }[]).map((v) => [
+      v.player_id,
+      v.oferta === null ? null : Number(v.oferta),
+    ])
+  );
 
   const resultadosAscendentes = (resultados ?? []).slice().sort((a: any, b: any) => {
     // Por orden de creación de la jornada: el número solo es único dentro
@@ -430,6 +440,8 @@ export async function fetchMiPlantilla(
         torneos: ((inscripciones ?? []) as any[])
           .filter((i) => i.player_id === s.players.id && i.tournaments)
           .map((i) => ({ id: i.tournaments.id as string, nombre: i.tournaments.nombre as string })),
+        enVenta: ventaPorJugador.has(s.players.id),
+        ofertaMaquina: ventaPorJugador.get(s.players.id) ?? null,
       };
     });
 }
@@ -718,6 +730,14 @@ export async function fetchNotificaciones(
               correccion: Boolean(n.datos.correccion),
             }
           : null,
+      datosAdmin:
+        (n.tipo === "sancion" || n.tipo === "advertencia" || n.tipo === "expulsion") && n.datos
+          ? {
+              subtipo: n.tipo === "advertencia" ? "advertencia" : (n.datos.subtipo ?? null),
+              motivo: String(n.datos.motivo ?? ""),
+              nombreEquipo: n.datos.nombre_equipo ?? null,
+            }
+          : null,
     })),
   };
 }
@@ -818,6 +838,31 @@ export async function venderJugadorDB(
   if (error) return { ok: false, mensaje: error.message };
   return data as ResultadoAccion;
 }
+
+// Ligas privadas (0101): vender es poner a la venta y aceptar la oferta de la
+// máquina, que llega en cada tanda del mercado.
+async function rpcVentaMaquina(
+  supabase: Supabase,
+  funcion: "poner_a_la_venta" | "quitar_de_la_venta" | "aceptar_oferta_maquina" | "rechazar_oferta_maquina",
+  playerId: string,
+  leagueId: string
+): Promise<ResultadoAccion> {
+  const { data, error } = await supabase.rpc(funcion, {
+    p_player_id: playerId,
+    p_league_id: leagueId,
+  });
+  if (error) return { ok: false, mensaje: error.message };
+  return data as ResultadoAccion;
+}
+
+export const ponerALaVentaDB = (supabase: Supabase, playerId: string, leagueId: string) =>
+  rpcVentaMaquina(supabase, "poner_a_la_venta", playerId, leagueId);
+export const quitarDeLaVentaDB = (supabase: Supabase, playerId: string, leagueId: string) =>
+  rpcVentaMaquina(supabase, "quitar_de_la_venta", playerId, leagueId);
+export const aceptarOfertaMaquinaDB = (supabase: Supabase, playerId: string, leagueId: string) =>
+  rpcVentaMaquina(supabase, "aceptar_oferta_maquina", playerId, leagueId);
+export const rechazarOfertaMaquinaDB = (supabase: Supabase, playerId: string, leagueId: string) =>
+  rpcVentaMaquina(supabase, "rechazar_oferta_maquina", playerId, leagueId);
 
 export async function pagarClausulaDB(
   supabase: Supabase,
@@ -1014,6 +1059,7 @@ export async function fetchClasificacion(
     puntos: e.puntos_totales,
     esMiEquipo: miEquipoId ? e.equipo_id === miEquipoId : false,
     historialPuntos: (e.historial_puntos ?? []) as PuntosJornada[],
+    puntosSancion: Number(e.puntos_sancion ?? 0),
   }));
 }
 

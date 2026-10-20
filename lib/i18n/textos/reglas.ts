@@ -1,5 +1,12 @@
 import { definirTextos } from "../definir";
 
+// "8:00, 17:00 y 23:00" (o "8:00etan, 17:00etan eta 23:00etan").
+function listaHoras(horas: number[], y: string, sufijo = ""): string {
+  const textos = horas.map((h) => `${h}:00${sufijo}`);
+  if (textos.length <= 1) return textos.join("");
+  return `${textos.slice(0, -1).join(", ")}${y}${textos[textos.length - 1]}`;
+}
+
 // Ventana "Cómo funciona el juego". Lo que va entre **dobles asteriscos**
 // se pinta en negrita.
 export default definirTextos(
@@ -31,7 +38,10 @@ export default definirTextos(
     // Mercado
     mercadoTitulo: "Mercado y pujas (ligas privadas)",
     mercado:
-      "El mercado se renueva a las 8:00, 17:00 y 23:00 (hora de España); el contador de la pantalla Mercado te dice cuánto falta. Al resolverse, el jugador es para quien haya hecho la puja más alta, que paga lo que pujó. Si hay empate, gana quien pujó antes.",
+      (horas: number[]) =>
+        `El mercado de tu liga se renueva a las ${listaHoras(horas, " y ")} (hora de España; lo elige el administrador de la liga); el contador de la pantalla Mercado te dice cuánto falta. Al resolverse, el jugador es para quien haya hecho la puja más alta, que paga lo que pujó. Si hay empate, gana quien pujó antes.`,
+    ventaMaquina:
+      "**Vender.** En las ligas privadas los jugadores no se venden al momento: los pones a la venta y, en cada actualización del mercado, la máquina te hace una oferta de alrededor de su valor (entre un 10 % menos y un 10 % más, casi siempre cerca). Tú la aceptas o la rechazas; si la rechazas, en la siguiente te hace otra. Mientras, el jugador sigue en tu equipo y puntuando.",
     pujasOcultas:
       "**Pujas ocultas.** Durante las 2 últimas horas antes de que se actualice el mercado dejan de verse las pujas de los demás: solo ves cuánta gente ha pujado por cada jugador, no el precio ni quién. Tu propia puja sí la ves. En el Mercado hay un contador que te dice cuánto falta para que se oculten.",
     // Capitán
@@ -85,7 +95,10 @@ export default definirTextos(
         `**Titular automatikoa.** ${n} titular baino gutxiago badituzu, fitxatzen dituzun jokalariak zuzenean titular sartzen dira (txapelketako muga gainditzen ez bada). Nahi duzunean pasa ditzakezu ordezko.`,
       mercadoTitulo: "Merkatua eta poxak (liga pribatuak)",
       mercado:
-        "Merkatua 8:00etan, 17:00etan eta 23:00etan berritzen da (Espainiako ordua); Merkatua pantailako kontagailuak esaten dizu zenbat falta den. Ebaztean, jokalaria poxa handiena egin duenarentzat da, eta poxatutakoa ordaintzen du. Berdinketa badago, lehenago poxatu duenak irabazten du.",
+        (horas: number[]) =>
+          `Zure ligako merkatua ${listaHoras(horas, " eta ", "etan")} berritzen da (Espainiako ordua; ligako administratzaileak aukeratzen du); Merkatua pantailako kontagailuak esaten dizu zenbat falta den. Ebaztean, jokalaria poxa handiena egin duenarentzat da, eta poxatutakoa ordaintzen du. Berdinketa badago, lehenago poxatu duenak irabazten du.`,
+      ventaMaquina:
+        "**Saldu.** Liga pribatuetan jokalariak ez dira berehala saltzen: salgai jartzen dituzu eta, merkatuaren eguneraketa bakoitzean, makinak bere balioaren inguruko eskaintza egiten dizu (% 10 gutxiago eta % 10 gehiago artean, ia beti hurbil). Zuk onartu edo baztertzen duzu; baztertzen baduzu, hurrengoan beste bat egiten dizu. Bitartean, jokalariak zure taldean jarraitzen du eta puntuatzen.",
       pujasOcultas:
         "**Poxa ezkutuak.** Merkatua eguneratu aurreko azken 2 orduetan besteen poxak ez dira ikusten: jokalari bakoitzagatik zenbat lagunek poxatu duten bakarrik ikusten duzu, ez prezioa ezta nork ere. Zure poxa bai, ikusten duzu. Merkatuan kontagailu batek esaten dizu zenbat falta den ezkutatzeko.",
       capitanTitulo: "Kapitaina",
@@ -135,7 +148,10 @@ export default definirTextos(
         `**Automatic starter.** If you have fewer than ${n} starters, players you sign go straight into the starting line-up (as long as the per-tournament limit isn't exceeded). You can move them to the bench whenever you like.`,
       mercadoTitulo: "Market and bids (private leagues)",
       mercado:
-        "The market refreshes at 8:00, 17:00 and 23:00 (Spanish time); the countdown on the Market screen tells you how long is left. When it's resolved, the player goes to whoever made the highest bid, who pays what they bid. In a tie, the earliest bid wins.",
+        (horas: number[]) =>
+          `Your league's market refreshes at ${listaHoras(horas, " and ")} (Spanish time; the league admin chooses); the countdown on the Market screen tells you how long is left. When it's resolved, the player goes to whoever made the highest bid, who pays what they bid. In a tie, the earliest bid wins.`,
+      ventaMaquina:
+        "**Selling.** In private leagues players aren't sold instantly: you put them up for sale and, at each market update, the machine makes you an offer around their value (between 10 % less and 10 % more, usually close). You accept or reject it; if you reject it, you get another one next time. Meanwhile, the player stays in your team and keeps scoring.",
       pujasOcultas:
         "**Hidden bids.** During the last 2 hours before the market refreshes, other people's bids are hidden: you only see how many people have bid for each player, not the price or who. You can still see your own bid. The Market has a countdown telling you how long until bids are hidden.",
       capitanTitulo: "Captain",

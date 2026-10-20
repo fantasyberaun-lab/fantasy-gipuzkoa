@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { redondear2 } from "@/lib/saldo";
 import { useGameState } from "@/components/GameStateProvider";
@@ -132,6 +133,17 @@ export default function CambiarLigaModal({ onCerrar }: { onCerrar: () => void })
                   </button>
                   {liga.tipo !== "publica" && <CopiarCodigoButton codigo={liga.codigo} />}
                   </div>
+                  {/* Solo en la liga activa: el panel trabaja sobre la liga que estás viendo. */}
+                  {liga.soyAdmin && liga.ligaId === equipo.leagueId && (
+                    <Link
+                      href="/liga/admin"
+                      onClick={onCerrar}
+                      className="flex items-center justify-between gap-2 rounded-md bg-accent/10 px-2.5 py-1.5 text-xs font-semibold text-accent hover:bg-accent/15"
+                    >
+                      <span>{t.adminLiga.botonAbrir}</span>
+                      <span className="font-normal text-accent/80">{t.adminLiga.botonAbrirDetalle}</span>
+                    </Link>
+                  )}
                   <button
                     onClick={() => setLigaASalir(liga)}
                     className="flex items-center gap-1 self-end rounded-md px-1.5 py-1 text-xs font-medium text-negative hover:bg-negative/10"

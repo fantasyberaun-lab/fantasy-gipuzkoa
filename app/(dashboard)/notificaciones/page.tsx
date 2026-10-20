@@ -39,6 +39,23 @@ const ETIQUETA: Record<Notificacion["tipo"], { clases: string }> = {
   pago_jornada: {
     clases: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
   },
+  // Administrador de la liga (0100).
+  sancion: {
+    clases: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
+  },
+  advertencia: {
+    clases: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+  },
+  expulsion: {
+    clases: "bg-neutral-800 text-white dark:bg-neutral-200 dark:text-neutral-900",
+  },
+  nuevo_admin: {
+    clases: "bg-accent/15 text-accent",
+  },
+  // Oferta de la máquina (ligas privadas, 0101).
+  oferta_maquina: {
+    clases: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
+  },
 };
 
 // Una actualización de Elo se mantiene fijada arriba durante este tiempo.
@@ -225,6 +242,34 @@ export default function NotificacionesPage() {
     }
 
     if (n.tipo !== "clausulazo") return a.avisoGenerico;
+    if (n.tipo === "oferta_maquina") {
+      return rellenar(a.ofertaMaquina, {
+        ...valores,
+        importe: <span className="font-semibold">{imp ?? 0} M</span>,
+      });
+    }
+
+    // Administrador de la liga (0100). El motivo va como hueco aparte para que lo
+    // que escribió no se interprete como otro hueco.
+    if (n.tipo === "sancion" || n.tipo === "advertencia" || n.tipo === "expulsion" || n.tipo === "nuevo_admin") {
+      const aMi = n.objetivoId === equipo.id;
+      const huecos = {
+        objetivo: (
+          <span className="font-medium">
+            {n.tipo === "expulsion" ? n.datosAdmin?.nombreEquipo ?? "" : n.objetivoNombre ?? ""}
+          </span>
+        ),
+        motivo: <span className="italic">«{n.datosAdmin?.motivo ?? ""}»</span>,
+      };
+      const cantidad = n.importe ?? 0;
+      if (n.tipo === "nuevo_admin") return rellenar(aMi ? a.nuevoAdminAMi : a.nuevoAdmin, huecos);
+      if (n.tipo === "expulsion") return rellenar(a.expulsion, huecos);
+      if (n.tipo === "advertencia") return rellenar(aMi ? a.advertenciaAMi : a.advertencia, huecos);
+      if (n.datosAdmin?.subtipo === "millones") {
+        return rellenar(aMi ? a.sancionMillonesAMi(cantidad) : a.sancionMillones(cantidad), huecos);
+      }
+      return rellenar(aMi ? a.sancionPuntosAMi(cantidad) : a.sancionPuntos(cantidad), huecos);
+    }
 
     // clausulazo
     if (yo) return rellenar(a.clausulazoYo(n.objetivoNombre ?? null, imp), valores);

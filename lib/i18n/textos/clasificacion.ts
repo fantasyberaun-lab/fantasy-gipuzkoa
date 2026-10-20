@@ -9,6 +9,7 @@ export default definirTextos(
     jornadaAria: "Jornada",
     puntosTotales: "Puntos totales",
     jornadaFecha: (n: number, fecha: string) => `Jornada ${n} · ${fecha}`,
+    enJuego: "en juego",
     enJornada: (n: number) => `en la jornada ${n}`,
     esteAno: "este año",
     tuPosicion: "Tu posición:",
@@ -38,6 +39,15 @@ export default definirTextos(
     ofertaEnviada: "Oferta enviada.",
     ofertaCancelada: "Oferta cancelada. Tu saldo no se ha visto afectado.",
     clausulaPagada: "Cláusula pagada — el jugador ya es tuyo.",
+    // Plantilla de un rival (liga privada)
+    numJugadores: (n: number) => `${n} ${n === 1 ? "jugador" : "jugadores"}`,
+    clausulaCorta: (m: number) => `Cláusula ${m} M`,
+    protegidos: (n: number) =>
+      n === 1
+        ? "1 jugador está blindado o con candado: no se le puede hacer un clausulazo ahora."
+        : `${n} jugadores están blindados o con candado: no se les puede hacer un clausulazo ahora.`,
+    teFaltan: (m: number) => `Te faltan ${m} M para pagar la cláusula.`,
+    sancion: (n: number) => `incluye −${n} de sanción`,
   },
   {
     eu: {
@@ -47,6 +57,7 @@ export default definirTextos(
       jornadaAria: "Jardunaldia",
       puntosTotales: "Puntuak guztira",
       jornadaFecha: (n: number, fecha: string) => `${n}. jardunaldia · ${fecha}`,
+      enJuego: "jokoan",
       enJornada: (n: number) => `${n}. jardunaldian`,
       esteAno: "aurten",
       tuPosicion: "Zure postua:",
@@ -76,6 +87,14 @@ export default definirTextos(
       ofertaEnviada: "Eskaintza bidali da.",
       ofertaCancelada: "Eskaintza bertan behera utzi da. Zure saldoak ez du aldaketarik izan.",
       clausulaPagada: "Klausula ordainduta — jokalaria zurea da orain.",
+      numJugadores: (n: number) => `${n} jokalari`,
+      clausulaCorta: (m: number) => `Klausula ${m} M`,
+      protegidos: (n: number) =>
+        n === 1
+          ? "Jokalari bat blindatuta edo giltzarrapoarekin dago: ezin zaio orain klausulazorik egin."
+          : `${n} jokalari blindatuta edo giltzarrapoarekin daude: ezin zaie orain klausulazorik egin.`,
+      teFaltan: (m: number) => `${m} M falta zaizkizu klausula ordaintzeko.`,
+      sancion: (n: number) => `−${n} zigorra barne`,
     },
     en: {
       cargando: "Loading standings…",
@@ -85,6 +104,7 @@ export default definirTextos(
       jornadaAria: "Matchday",
       puntosTotales: "Total points",
       jornadaFecha: (n: number, fecha: string) => `Matchday ${n} · ${fecha}`,
+      enJuego: "in progress",
       enJornada: (n: number) => `on matchday ${n}`,
       esteAno: "this year",
       tuPosicion: "Your position:",
@@ -114,6 +134,14 @@ export default definirTextos(
       ofertaEnviada: "Offer sent.",
       ofertaCancelada: "Offer cancelled. Your balance hasn't been affected.",
       clausulaPagada: "Clause paid — the player is now yours.",
+      numJugadores: (n: number) => `${n} ${n === 1 ? "player" : "players"}`,
+      clausulaCorta: (m: number) => `Clause ${m} M`,
+      protegidos: (n: number) =>
+        n === 1
+          ? "1 player is shielded or locked: no clause buyout possible right now."
+          : `${n} players are shielded or locked: no clause buyout possible right now.`,
+      teFaltan: (m: number) => `You need ${m} M more to pay the clause.`,
+      sancion: (n: number) => `includes −${n} penalty`,
     },
   }
 );

@@ -13,6 +13,7 @@ const RUTAS_PROTEGIDAS = [
   "/chat",
   "/managers",
   "/minijuegos",
+  "/liga",
 ];
 const RUTAS_SOLO_SIN_SESION = ["/login", "/registro", "/recuperar"];
 const RUTAS_SOLO_ROOT = ["/admin"];
