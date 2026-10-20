@@ -19,6 +19,7 @@ import {
 import { fetchReglasLiga } from "@/lib/supabase/configQueries";
 import {
   fijarReglasJuego,
+  reglasJuegoActuales,
   registrarCargaReglas,
   REGLAS_JUEGO_POR_DEFECTO,
   type ReglasJuego,
@@ -507,7 +508,8 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // El mercado se resuelve a las 8:00, 17:00 y 23:00 (Madrid). Sin este efecto,
+  // El mercado se resuelve a las horas de la liga (8:00, 17:00 y 23:00 por
+  // defecto, ver 0099). Sin este efecto,
   // quien tuviera la app abierta seguiría viendo la tanda anterior (con jugadores
   // que acaban de ser fichados) hasta recargar la página. Se recarga todo:
   //   - 60 s después de cada tanda (margen para que termine de resolverse),
@@ -523,7 +525,12 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       const desdeCarga = ahora - ultimaCargaRef.current;
       // ¿Ha habido una tanda desde la última carga (y ya pasó el margen)?
       const tandaPasada =
-        proximaTandaMercado(new Date(ultimaCargaRef.current - MARGEN_MS)).getTime() + MARGEN_MS <= ahora;
+        proximaTandaMercado(
+          new Date(ultimaCargaRef.current - MARGEN_MS),
+          reglasJuegoActuales().horasMercado
+        ).getTime() +
+          MARGEN_MS <=
+        ahora;
       const demasiadoViejo = alVolver && desdeCarga > MAX_SIN_CARGAR_MS;
 
       if (!tandaPasada && !demasiadoViejo) return;

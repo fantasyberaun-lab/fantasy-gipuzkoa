@@ -193,5 +193,9 @@ export async function fetchReglasLiga(supabase: Supabase, ligaId: string): Promi
     multiplicadorSubida: num(r.multiplicadorSubida, d.multiplicadorSubida),
     blindajePorcentaje: num(r.blindajePorcentaje, d.blindajePorcentaje),
     capitanMultiplicador: num(r.capitanMultiplicador, d.capitanMultiplicador),
+    horasMercado:
+      Array.isArray(r.horasMercado) && r.horasMercado.length > 0
+        ? r.horasMercado.map(Number).filter((h) => Number.isInteger(h) && h >= 0 && h < 24)
+        : d.horasMercado,
   };
 }

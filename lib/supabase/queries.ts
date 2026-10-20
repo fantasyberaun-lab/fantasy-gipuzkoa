@@ -53,6 +53,7 @@ export async function fetchMisLigasOError(supabase: Supabase): Promise<LigaResum
     equipoId: l.equipo_id,
     nombreEquipo: l.nombre_equipo,
     saldo: Number(l.saldo),
+    soyAdmin: Boolean(l.soy_admin),
   }));
 }
 
@@ -718,6 +719,14 @@ export async function fetchNotificaciones(
               correccion: Boolean(n.datos.correccion),
             }
           : null,
+      datosAdmin:
+        (n.tipo === "sancion" || n.tipo === "advertencia" || n.tipo === "expulsion") && n.datos
+          ? {
+              subtipo: n.tipo === "advertencia" ? "advertencia" : (n.datos.subtipo ?? null),
+              motivo: String(n.datos.motivo ?? ""),
+              nombreEquipo: n.datos.nombre_equipo ?? null,
+            }
+          : null,
     })),
   };
 }
@@ -1014,6 +1023,7 @@ export async function fetchClasificacion(
     puntos: e.puntos_totales,
     esMiEquipo: miEquipoId ? e.equipo_id === miEquipoId : false,
     historialPuntos: (e.historial_puntos ?? []) as PuntosJornada[],
+    puntosSancion: Number(e.puntos_sancion ?? 0),
   }));
 }
 

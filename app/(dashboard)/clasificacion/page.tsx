@@ -11,6 +11,7 @@ import AvatarPerfil from "@/components/AvatarPerfil";
 import InsigniaNivel from "@/components/InsigniaNivel";
 import InsigniaEstadoClausula, { estadoClausula } from "@/components/InsigniaEstadoClausula";
 import { clausulazosCerrados } from "@/lib/mercadoCountdown";
+import { fetchEquipoAdminLiga } from "@/lib/supabase/adminLigaQueries";
 import { jornadaVisible } from "@/lib/jornadas";
 import { fetchNivelesLiga, type NivelPublico } from "@/lib/supabase/nivelesQueries";
 import { createClient } from "@/lib/supabase/client";
@@ -73,6 +74,8 @@ export default function ClasificacionPage() {
   // Nº de managers de la liga (lo cuenta la base de datos en mis_ligas()).
   const totalManagers =
     misLigas.find((l) => l.ligaId === equipo.leagueId)?.miembros ?? clasificacion.length;
+  // Quien creó la liga privada la administra (0099).
+  const soyAdmin = misLigas.find((l) => l.ligaId === equipo.leagueId)?.soyAdmin ?? false;
 
   // Nivel e icono de cada manager de la liga, por id de equipo (0088).
   const [niveles, setNiveles] = useState<Record<string, NivelPublico>>({});
@@ -86,6 +89,23 @@ export default function ClasificacionPage() {
       vigente = false;
     };
   }, [equipo.leagueId]);
+
+  // Equipo del administrador de la liga (quien la creó, 0099), para marcarlo.
+  // Se vuelve a pedir si cambia la clasificación (p. ej. si el cargo pasa a otro).
+  const [equipoAdminId, setEquipoAdminId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!equipo.leagueId || esLigaPublica) {
+      setEquipoAdminId(null);
+      return;
+    }
+    let vigente = true;
+    fetchEquipoAdminLiga(createClient(), equipo.leagueId).then((id) => {
+      if (vigente) setEquipoAdminId(id);
+    });
+    return () => {
+      vigente = false;
+    };
+  }, [equipo.leagueId, esLigaPublica, clasificacion]);
 
   // Desplegable: "" = puntos totales, o el sábado de una jornada (fin de semana).
   // null = sin elegir: la jornada en juego si la hay y, si no, puntos totales.
@@ -317,6 +337,11 @@ export default function ClasificacionPage() {
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold">{c.titulo}</h2>
+          {soyAdmin && (
+            <Link href="/liga/admin" className="text-xs font-medium text-accent underline underline-offset-2">
+              {t.adminLiga.botonAbrir}
+            </Link>
+          )}
           {esLigaPublica && (
             <p className="text-xs text-neutral-500">
               {c.managersPublica(totalManagers)}
@@ -411,6 +436,14 @@ export default function ClasificacionPage() {
                   {niveles[entry.equipoId] && (
                     <InsigniaNivel nivel={niveles[entry.equipoId].nivel} className="ml-1.5 align-middle" />
                   )}
+                  {entry.equipoId === equipoAdminId && (
+                    <span
+                      title={t.adminLiga.etiquetaAdminTitle}
+                      className="ml-1.5 inline-block rounded-full bg-accent px-1.5 py-0.5 align-middle text-[10px] font-semibold uppercase leading-none tracking-wide text-white"
+                    >
+                      {t.adminLiga.etiquetaAdmin}
+                    </span>
+                  )}
                 </>
               ) : (
                 entry.nombreEquipo
@@ -432,11 +465,19 @@ export default function ClasificacionPage() {
             </span>
             </div>
             <div className="flex shrink-0 items-center gap-3 pl-2">
-              <span className="whitespace-nowrap font-medium">
-                {c.pts(puntosParaOrden(entry))}{" "}
-                <span className="text-neutral-500">
-                  {etiquetaOrden}
+              <span className="flex flex-col items-end">
+                <span className="whitespace-nowrap font-medium">
+                  {c.pts(puntosParaOrden(entry))}{" "}
+                  <span className="text-neutral-500">
+                    {etiquetaOrden}
+                  </span>
                 </span>
+                {/* Los puntos de sanción ya van descontados del total (0099). */}
+                {!jornadaActual && (entry.puntosSancion ?? 0) > 0 && (
+                  <span className="whitespace-nowrap text-[11px] text-negative">
+                    {c.sancion(entry.puntosSancion ?? 0)}
+                  </span>
+                )}
               </span>
               {!entry.esMiEquipo && !esLigaPublica && (
                 <button

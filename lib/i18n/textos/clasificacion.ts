@@ -47,6 +47,7 @@ export default definirTextos(
         ? "1 jugador está blindado o con candado: no se le puede hacer un clausulazo ahora."
         : `${n} jugadores están blindados o con candado: no se les puede hacer un clausulazo ahora.`,
     teFaltan: (m: number) => `Te faltan ${m} M para pagar la cláusula.`,
+    sancion: (n: number) => `incluye −${n} de sanción`,
   },
   {
     eu: {
@@ -93,6 +94,7 @@ export default definirTextos(
           ? "Jokalari bat blindatuta edo giltzarrapoarekin dago: ezin zaio orain klausulazorik egin."
           : `${n} jokalari blindatuta edo giltzarrapoarekin daude: ezin zaie orain klausulazorik egin.`,
       teFaltan: (m: number) => `${m} M falta zaizkizu klausula ordaintzeko.`,
+      sancion: (n: number) => `−${n} zigorra barne`,
     },
     en: {
       cargando: "Loading standings…",
@@ -139,6 +141,7 @@ export default definirTextos(
           ? "1 player is shielded or locked: no clause buyout possible right now."
           : `${n} players are shielded or locked: no clause buyout possible right now.`,
       teFaltan: (m: number) => `You need ${m} M more to pay the clause.`,
+      sancion: (n: number) => `includes −${n} penalty`,
     },
   }
 );

@@ -47,7 +47,7 @@ lib/
   importador/    lectores de Info64 y Chess-Results, emparejado de jugadores
   legal/         datos del responsable y versiones de los textos legales
 scripts/         fide-elo.mjs (Elo FIDE), actualizar-elo.sh (manual), test-importador.ts
-supabase/migrations/   0001 … 0097, la lógica de negocio vive aquí
+supabase/migrations/   0001 … 0099, la lógica de negocio vive aquí
 middleware.ts    refresca la sesión de Supabase en cada petición
 ```
 
@@ -99,6 +99,7 @@ uno, cambia el otro y dilo en la respuesta:
 | Tamaño de plantilla | `plantilla.tamanoPlantilla` | variable `plantilla_tamano` (0096; `validar_composicion_plantilla`) |
 | Valor de la plantilla inicial (400 M) | — | variable `plantilla_inicial_valor_max` (0097; `asignar_plantilla_inicial`) |
 | Puntos por diferencia de Elo | `puntuacionPorDiferenciaElo` | variable `puntos_por_diferencia_elo` (0096; `calcular_puntos_resultado`) |
+| Horas de tanda del mercado (1, 2 o 3 al día) | `horasTandaMercado()` en `lib/mercadoCountdown.ts` | variable `mercado_tandas_dia` (0099; `horas_mercado()`, `pujas_ocultas(liga)`; la cambia también el administrador de la liga) |
 
 Todas esas filas se editan desde Admin > Variables (global o por liga, según la variable) y la base de
 datos las lee de la tabla: el valor de `gameConfig.ts` solo es el de respaldo, y el frontend usa el de

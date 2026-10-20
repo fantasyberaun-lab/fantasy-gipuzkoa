@@ -83,6 +83,8 @@ export interface ClasificacionEntry {
   puntos: number;
   esMiEquipo?: boolean;
   historialPuntos: PuntosJornada[];
+  // Puntos quitados por el administrador de la liga (0099); ya descontados de "puntos".
+  puntosSancion?: number;
 }
 
 export interface EquipoManager {
@@ -156,7 +158,21 @@ export type TipoNotificacion =
   | "oferta_rechazada"
   | "venta"
   | "actualizacion_elo"
-  | "pago_jornada";
+  | "pago_jornada"
+  // Acciones del administrador de una liga privada (0099).
+  | "sancion"
+  | "advertencia"
+  | "expulsion"
+  | "nuevo_admin";
+
+// Sanción, advertencia o expulsión (0099). "importe" de la notificación son los
+// puntos o millones quitados.
+export interface DatosAdminLiga {
+  subtipo: "puntos" | "millones" | "advertencia" | null;
+  motivo: string;
+  // Solo en una expulsión: el equipo ya no existe.
+  nombreEquipo: string | null;
+}
 
 // Millones ingresados al cerrar una jornada (0068). "importe" de la
 // notificación es lo ingresado; en una corrección puede ser negativo.
@@ -196,6 +212,8 @@ export interface Notificacion {
   datosElo?: DatosActualizacionElo | null;
   // Solo en tipo "pago_jornada".
   datosPago?: DatosPagoJornada | null;
+  // Solo en sancion, advertencia y expulsion.
+  datosAdmin?: DatosAdminLiga | null;
 }
 
 // "privada": liga de amigos (máx. 9, plantilla inicial, mercado por tandas,
@@ -216,6 +234,8 @@ export interface LigaResumen {
   equipoId: string;
   nombreEquipo: string;
   saldo: number;
+  // Eres el administrador de esta liga (la creaste; solo ligas privadas, 0099).
+  soyAdmin: boolean;
 }
 
 // Perfil de un manager, visto a través de su equipo en una liga.
