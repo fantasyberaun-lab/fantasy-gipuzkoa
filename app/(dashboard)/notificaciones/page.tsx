@@ -8,6 +8,12 @@ import { useIdioma } from "@/components/IdiomaProvider";
 import { ordenarComunicados } from "@/lib/comunicados";
 import type { Notificacion } from "@/lib/types";
 
+// Un tipo desconocido (nuevo en la base de datos y aún sin estilo) nunca debe
+// romper la página: cae en este estilo neutro.
+const ETIQUETA_DEFECTO = {
+  clases: "bg-neutral-200 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-300",
+};
+
 const ETIQUETA: Record<Notificacion["tipo"], { clases: string }> = {
   oferta_recibida: {
     clases: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
@@ -235,6 +241,7 @@ export default function NotificacionesPage() {
       });
     }
 
+    if (n.tipo !== "clausulazo") return a.avisoGenerico;
     if (n.tipo === "oferta_maquina") {
       return rellenar(a.ofertaMaquina, {
         ...valores,
@@ -362,7 +369,8 @@ export default function NotificacionesPage() {
     if (n.tipo === "actualizacion_elo") {
       return <TarjetaElo key={n.id} n={n} nueva={nueva} />;
     }
-    const etiqueta = ETIQUETA[n.tipo];
+    const etiqueta = ETIQUETA[n.tipo] ?? ETIQUETA_DEFECTO;
+    const nombreTipo = (a.tipos as Record<string, string | undefined>)[n.tipo] ?? a.tipos.otro;
     return (
       <li
         key={n.id}
@@ -373,7 +381,7 @@ export default function NotificacionesPage() {
         <span
           className={`mt-0.5 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${etiqueta.clases}`}
         >
-          {a.tipos[n.tipo]}
+          {nombreTipo}
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm">{texto(n)}</p>

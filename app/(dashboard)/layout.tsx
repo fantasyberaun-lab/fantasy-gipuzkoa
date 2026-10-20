@@ -6,6 +6,7 @@ import LegalGate from "@/components/legal/LegalGate";
 import ActividadTracker from "@/components/ActividadTracker";
 import { ChatProvider } from "@/components/ChatProvider";
 import EnlacesLegales from "@/components/legal/EnlacesLegales";
+import BotonMinijuegos from "@/components/BotonMinijuegos";
 
 export default function DashboardLayout({
   children,
@@ -28,6 +29,7 @@ export default function DashboardLayout({
           <EquipoAcciones />
 
           <TabNav />
+          <BotonMinijuegos />
 
           <main className="mt-6">{children}</main>
 
