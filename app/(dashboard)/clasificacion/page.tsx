@@ -74,7 +74,7 @@ export default function ClasificacionPage() {
   // Nº de managers de la liga (lo cuenta la base de datos en mis_ligas()).
   const totalManagers =
     misLigas.find((l) => l.ligaId === equipo.leagueId)?.miembros ?? clasificacion.length;
-  // Quien creó la liga privada la administra (0099).
+  // Quien creó la liga privada la administra (0100).
   const soyAdmin = misLigas.find((l) => l.ligaId === equipo.leagueId)?.soyAdmin ?? false;
 
   // Nivel e icono de cada manager de la liga, por id de equipo (0088).
@@ -90,7 +90,7 @@ export default function ClasificacionPage() {
     };
   }, [equipo.leagueId]);
 
-  // Equipo del administrador de la liga (quien la creó, 0099), para marcarlo.
+  // Equipo del administrador de la liga (quien la creó, 0100), para marcarlo.
   // Se vuelve a pedir si cambia la clasificación (p. ej. si el cargo pasa a otro).
   const [equipoAdminId, setEquipoAdminId] = useState<string | null>(null);
   useEffect(() => {
@@ -472,7 +472,7 @@ export default function ClasificacionPage() {
                     {etiquetaOrden}
                   </span>
                 </span>
-                {/* Los puntos de sanción ya van descontados del total (0099). */}
+                {/* Los puntos de sanción ya van descontados del total (0100). */}
                 {!jornadaActual && (entry.puntosSancion ?? 0) > 0 && (
                   <span className="whitespace-nowrap text-[11px] text-negative">
                     {c.sancion(entry.puntosSancion ?? 0)}

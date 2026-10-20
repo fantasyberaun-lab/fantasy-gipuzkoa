@@ -72,7 +72,7 @@ function MercadoConPujas() {
   // Se comprueba cada segundo, pero la página solo se repinta cuando cambia
   // (React ignora un setState con el mismo valor). Las cuentas atrás, que sí
   // cambian cada segundo, viven en <CuentaAtras> para no repintar la lista.
-  // Horario del mercado de esta liga (lo elige su administrador, 0099).
+  // Horario del mercado de esta liga (lo elige su administrador, 0100).
   const { horasMercado } = useReglasJuego();
   const [ocultas, setOcultas] = useState(() => pujasOcultas(new Date(), horasMercado));
 

@@ -156,7 +156,7 @@ interface GameState {
   toggleCapitan: (id: string) => Promise<ResultadoAccion>;
   blindarJugador: (jugadorId: string) => Promise<ResultadoAccion>;
   venderJugador: (id: string, valorMercado: number) => Promise<ResultadoAccion>;
-  // Ligas privadas (0100): se vende a la máquina, que hace su oferta en cada tanda.
+  // Ligas privadas (0101): se vende a la máquina, que hace su oferta en cada tanda.
   ponerALaVenta: (id: string) => Promise<ResultadoAccion>;
   quitarDeLaVenta: (id: string) => Promise<ResultadoAccion>;
   aceptarOfertaMaquina: (id: string) => Promise<ResultadoAccion>;
@@ -518,7 +518,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // El mercado se resuelve a las horas de la liga (8:00, 17:00 y 23:00 por
-  // defecto, ver 0099). Sin este efecto,
+  // defecto, ver 0100). Sin este efecto,
   // quien tuviera la app abierta seguiría viendo la tanda anterior (con jugadores
   // que acaban de ser fichados) hasta recargar la página. Se recarga todo:
   //   - 60 s después de cada tanda (margen para que termine de resolverse),

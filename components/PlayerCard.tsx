@@ -43,7 +43,7 @@ type Props = PlantillaSlot & {
   // Liga pública: venta instantánea al valor de mercado.
   onVender: () => void;
   onSubirClausula: (importe: number) => Promise<{ ok: boolean; mensaje?: string }>;
-  // Ligas privadas (0100): se vende a la máquina, que hace su oferta en cada tanda.
+  // Ligas privadas (0101): se vende a la máquina, que hace su oferta en cada tanda.
   onPonerALaVenta?: () => Promise<{ ok: boolean; mensaje?: string }>;
   onQuitarDeLaVenta?: () => Promise<{ ok: boolean; mensaje?: string }>;
   onAceptarOferta?: () => Promise<{ ok: boolean; mensaje?: string }>;

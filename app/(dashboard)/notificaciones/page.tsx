@@ -33,7 +33,7 @@ const ETIQUETA: Record<Notificacion["tipo"], { clases: string }> = {
   pago_jornada: {
     clases: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
   },
-  // Administrador de la liga (0099).
+  // Administrador de la liga (0100).
   sancion: {
     clases: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
   },
@@ -46,7 +46,7 @@ const ETIQUETA: Record<Notificacion["tipo"], { clases: string }> = {
   nuevo_admin: {
     clases: "bg-accent/15 text-accent",
   },
-  // Oferta de la máquina (ligas privadas, 0100).
+  // Oferta de la máquina (ligas privadas, 0101).
   oferta_maquina: {
     clases: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
   },
@@ -242,7 +242,7 @@ export default function NotificacionesPage() {
       });
     }
 
-    // Administrador de la liga (0099). El motivo va como hueco aparte para que lo
+    // Administrador de la liga (0100). El motivo va como hueco aparte para que lo
     // que escribió no se interprete como otro hueco.
     if (n.tipo === "sancion" || n.tipo === "advertencia" || n.tipo === "expulsion" || n.tipo === "nuevo_admin") {
       const aMi = n.objetivoId === equipo.id;

@@ -18,7 +18,7 @@ export interface ReglasJuego {
   multiplicadorSubida: number;
   blindajePorcentaje: number;
   capitanMultiplicador: number;
-  // Horas (Madrid) a las que se resuelve el mercado de la liga (0099).
+  // Horas (Madrid) a las que se resuelve el mercado de la liga (0100).
   horasMercado: number[];
 }
 

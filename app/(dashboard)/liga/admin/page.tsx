@@ -17,7 +17,7 @@ import {
 } from "@/lib/supabase/adminLigaQueries";
 import { horasTandaMercado, tandaCercana } from "@/lib/mercadoCountdown";
 
-// Panel del administrador de una liga privada (0099). Solo lo ve quien creó la
+// Panel del administrador de una liga privada (0100). Solo lo ve quien creó la
 // liga; la base de datos vuelve a comprobarlo en cada acción.
 
 type Accion = TipoSancion | "expulsar";

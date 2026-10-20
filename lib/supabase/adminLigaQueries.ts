@@ -1,4 +1,4 @@
-// Panel del administrador de una liga privada (0099): sanciones, advertencias,
+// Panel del administrador de una liga privada (0100): sanciones, advertencias,
 // expulsiones y cuántas veces al día se resuelve el mercado. Todo lo comprueba y
 // lo aplica la base de datos (admin_liga_*); aquí solo se llama y se traduce.
 import type { createClient } from "@/lib/supabase/client";
@@ -40,14 +40,14 @@ function resultadoRpc(data: unknown, error: { message: string } | null): Resulta
   return { ok: false, mensaje: r?.mensaje ?? "No se ha podido hacer." };
 }
 
-// null si no eres el administrador (o la migración 0099 no está aplicada).
+// null si no eres el administrador (o la migración 0100 no está aplicada).
 export async function fetchPanelAdminLiga(
   supabase: Supabase,
   ligaId: string
 ): Promise<PanelAdminLiga | null> {
   const { data, error } = await supabase.rpc("admin_liga_panel", { p_league_id: ligaId });
   if (error || !data) return null;
-  // Viene como jsonb ya construido por la base de datos (ver 0099).
+  // Viene como jsonb ya construido por la base de datos (ver 0100).
   const d = data as {
     tandas?: number;
     sanciones?: Record<string, unknown>[];

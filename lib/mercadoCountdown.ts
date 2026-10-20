@@ -1,5 +1,5 @@
 // Calcula cuándo se resuelve la próxima tanda del mercado. Cada liga privada
-// tiene su horario (lo elige su administrador, 0099): 1 tanda a las 23:00, 2 a
+// tiene su horario (lo elige su administrador, 0100): 1 tanda a las 23:00, 2 a
 // las 8:00 y 23:00, o 3 a las 8:00, 17:00 y 23:00 (hora de España,
 // Europe/Madrid). Cambian de hora UTC con el horario de verano, así que se
 // calcula en hora de Madrid y no con horas UTC fijas. Las horas de la liga
@@ -7,7 +7,7 @@
 export const HORAS_TANDA_MADRID = [8, 17, 23];
 
 // Horas de tanda según cuántas veces al día se resuelve el mercado.
-// Mantener igual que horas_mercado() en 0099_administrador_liga_privada.sql.
+// Mantener igual que horas_mercado() en 0100_administrador_liga_privada.sql.
 export function horasTandaMercado(tandas: number): number[] {
   if (tandas === 1) return [23];
   if (tandas === 2) return [8, 23];
@@ -16,7 +16,7 @@ export function horasTandaMercado(tandas: number): number[] {
 
 // Las pujas se ocultan estas horas antes de cada tanda (solo ves cuánta gente
 // ha pujado, no los importes). Mantener igual que pujas_ocultas(liga) en
-// 0099_administrador_liga_privada.sql.
+// 0100_administrador_liga_privada.sql.
 export const HORAS_OCULTAS = 2;
 
 const formatoHoraMadrid = new Intl.DateTimeFormat("en-GB", {
@@ -53,7 +53,7 @@ export function pujasOcultas(ahora: Date = new Date(), horas: number[] = HORAS_T
 
 // Si estamos en las HORAS_OCULTAS horas antes de una tanda de `horas`, devuelve
 // esa hora (si no, null). Mantener igual que tanda_cercana() en
-// 0099_administrador_liga_privada.sql: ahí no se deja cambiar el horario.
+// 0100_administrador_liga_privada.sql: ahí no se deja cambiar el horario.
 export function tandaCercana(ahora: Date, horas: number[]): number | null {
   const hora = horaEnMadrid(ahora.getTime());
   return horas.find((h) => hora === (h + 22) % 24 || hora === (h + 23) % 24) ?? null;

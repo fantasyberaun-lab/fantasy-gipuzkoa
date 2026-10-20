@@ -1,4 +1,4 @@
--- 0100: En las ligas privadas los jugadores se venden a la máquina.
+-- 0101: En las ligas privadas los jugadores se venden a la máquina.
 --
 -- Hasta ahora, vender en una liga privada era instantáneo: el jugador salía de la
 -- plantilla y cobrabas su valor de mercado (vender_jugador). Ahora:
@@ -6,9 +6,11 @@
 --   1) Pones el jugador a la venta (poner_a_la_venta). Sigue en tu equipo y
 --      puntuando; lo puedes quitar de la venta cuando quieras.
 --   2) En cada tanda del mercado de tu liga (las horas que elige el administrador,
---      0099), la máquina te hace una oferta: su valor de mercado ± hasta un 10 %.
---      El porcentaje es la media de tres números al azar, así que casi siempre
---      sale cerca del valor (desviación de ~3 %) y muy pocas veces llega a ±10 %.
+--      0100), la máquina te hace una oferta: su valor de mercado ± hasta un 10 %.
+--      El porcentaje es la media de cinco números al azar, así que casi siempre
+--      sale cerca del valor (más de la mitad entre −2 % y +2 %) y los extremos
+--      salen muy poco: así no compensa poner a la venta a todo el equipo
+--      esperando una oferta alta, porque el jugador sigue puntuando mientras.
 --      Te llega una notificación que solo ves tú.
 --   3) La aceptas (cobras la oferta y el jugador sale de tu plantilla) o la
 --      rechazas. Si la rechazas o no contestas, en la siguiente tanda te hace otra.
@@ -16,13 +18,13 @@
 -- La liga pública NO cambia: allí vender sigue siendo instantáneo.
 --
 -- Impacto en datos: ninguno. Tabla nueva vacía; vender_jugador() solo deja de
--- aceptar ligas privadas; procesar_mercado_liga() es la de 0099 con una línea más
+-- aceptar ligas privadas; procesar_mercado_liga() es la de 0100 con una línea más
 -- al final (generar las ofertas).
 --
 -- Aplicar a mano en el SQL Editor (mientras falte en el repo 0098_minijuegos,
 -- `supabase db push` no funciona) y registrarla después:
 --   insert into supabase_migrations.schema_migrations (version, name)
---   values ('0100', 'venta_a_la_maquina');
+--   values ('0101', 'venta_a_la_maquina');
 
 
 -- 1) Jugadores puestos a la venta ---------------------------------------------------
@@ -53,7 +55,7 @@ create policy "cada manager ve sus ventas a la maquina" on public.ventas_maquina
 
 
 -- 2) Notificación nueva: oferta_maquina ------------------------------------------------
--- La lista de 0099 + oferta_maquina (privada: solo la ve el dueño del jugador).
+-- La lista de 0100 + oferta_maquina (privada: solo la ve el dueño del jugador).
 alter table public.notificaciones drop constraint if exists notificaciones_tipo_check;
 alter table public.notificaciones add constraint notificaciones_tipo_check check (
   tipo in (
@@ -66,15 +68,16 @@ alter table public.notificaciones add constraint notificaciones_tipo_check check
 
 
 -- 3) Cuánto ofrece la máquina ----------------------------------------------------------
--- Factor entre 0,90 y 1,10. La media de tres random() tiene forma de campana,
--- así que lo normal es quedarse cerca de 1. Mantener igual que el texto de
--- t.ficha.ponerALaVentaTexto (lib/i18n/textos/ficha.ts).
+-- Factor entre 0,90 y 1,10. La media de cinco random() tiene forma de campana
+-- (desviación ~2,6 %): ~55 % de las ofertas caen entre 0,98 y 1,02, ~75 % entre
+-- 0,97 y 1,03, y más allá de ±5 % sale ~5 de cada 100 (simulado con un millón).
+-- Mantener igual que el texto de t.ficha.ponerALaVentaTexto (lib/i18n/textos/ficha.ts).
 create or replace function public.factor_oferta_maquina()
 returns numeric
 language sql
 volatile
 as $$
-  select (1 + 0.10 * (((random() + random() + random()) / 3) * 2 - 1))::numeric;
+  select (1 + 0.10 * ((select avg(random()) from generate_series(1, 5)) * 2 - 1))::numeric;
 $$;
 
 revoke all on function public.factor_oferta_maquina() from public, anon, authenticated;
@@ -113,7 +116,7 @@ $$;
 revoke all on function public.generar_ofertas_maquina(uuid) from public, anon, authenticated;
 grant execute on function public.generar_ofertas_maquina(uuid) to service_role;
 
--- procesar_mercado_liga: la de 0099 + las ofertas de la máquina al final.
+-- procesar_mercado_liga: la de 0100 + las ofertas de la máquina al final.
 create or replace function public.procesar_mercado_liga(p_league_id uuid)
 returns void
 language plpgsql
@@ -174,7 +177,7 @@ begin
 
   perform public.abrir_tanda_mercado(p_league_id);
 
-  -- 0100: la máquina hace sus ofertas por los jugadores puestos a la venta.
+  -- 0101: la máquina hace sus ofertas por los jugadores puestos a la venta.
   perform public.generar_ofertas_maquina(p_league_id);
 end;
 $$;

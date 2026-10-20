@@ -36,7 +36,7 @@ export default definirTextos(
     recibiras: (valor: number) =>
       `Recibirás ${valor} M en tu saldo. Esta acción no se puede deshacer.`,
     siVender: "Sí, vender",
-    // Ligas privadas: venta a la máquina (0100)
+    // Ligas privadas: venta a la máquina (0101)
     ponerALaVenta: "Poner a la venta",
     ponerALaVentaA: (nombre: string) => `Poner a la venta a ${nombre}`,
     ponerALaVentaTexto: (hora: string) =>

@@ -81,7 +81,7 @@ export default definirTextos(
       `Corrección de tus ingresos en ${dondeEs(jornada)}: {importe} (ahora cuentas ${puntos} puntos).`,
     pagoIngreso: (jornada: Num, puntos: number) =>
       `Has ingresado {importe} por tus ${puntos} puntos en ${dondeEs(jornada)}.`,
-    // Administrador de la liga (0099). {objetivo} es el equipo; {motivo}, lo que escribió.
+    // Administrador de la liga (0100). {objetivo} es el equipo; {motivo}, lo que escribió.
     sancionPuntos: (n: number) => `El administrador ha sancionado a {objetivo} con −${n} puntos. Motivo: {motivo}`,
     sancionPuntosAMi: (n: number) => `El administrador te ha sancionado con −${n} puntos. Motivo: {motivo}`,
     sancionMillones: (n: number) => `El administrador ha sancionado a {objetivo} con −${n} M. Motivo: {motivo}`,

@@ -1,6 +1,6 @@
 import { definirTextos } from "../definir";
 
-// Panel del administrador de una liga privada (0099) y el botón que lleva a él.
+// Panel del administrador de una liga privada (0100) y el botón que lleva a él.
 export default definirTextos(
   {
     titulo: "Administrar liga",

@@ -361,7 +361,7 @@ export async function fetchMiPlantilla(
       .from("tournament_players")
       .select("player_id, tournaments (id, nombre)")
       .in("player_id", playerIds),
-    // Jugadores puestos a la venta y oferta de la máquina (ligas privadas, 0100).
+    // Jugadores puestos a la venta y oferta de la máquina (ligas privadas, 0101).
     // Sin la migración la tabla no existe: data llega null y no hay ninguno en venta.
     supabase.from("ventas_maquina").select("player_id, oferta").eq("fantasy_team_id", equipoId),
   ]);
@@ -839,7 +839,7 @@ export async function venderJugadorDB(
   return data as ResultadoAccion;
 }
 
-// Ligas privadas (0100): vender es poner a la venta y aceptar la oferta de la
+// Ligas privadas (0101): vender es poner a la venta y aceptar la oferta de la
 // máquina, que llega en cada tanda del mercado.
 async function rpcVentaMaquina(
   supabase: Supabase,

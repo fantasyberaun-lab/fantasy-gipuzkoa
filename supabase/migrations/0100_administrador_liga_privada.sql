@@ -1,8 +1,9 @@
--- 0099: Administrador de las ligas privadas.
+-- 0100: Administrador de las ligas privadas.
 --
--- (Iba a ser la 0098, pero ese número ya lo usa 0098_minijuegos, aplicada en
--- producción y que no está en este repo: con el mismo número, `supabase db push`
--- la daba por aplicada y no la ejecutaba.)
+-- (Se creó como 0098 y luego como 0099, pero esos números ya los usan
+-- 0098_minijuegos y 0099_minijuegos_resto, aplicadas en producción desde otro
+-- repo. Con el mismo número, `supabase db push` la daba por aplicada. Ya está
+-- aplicada a mano en producción; se registró como 0100.)
 --
 -- Quien crea una liga privada (leagues.creado_por) pasa a ser su administrador y
 -- puede, desde la app:

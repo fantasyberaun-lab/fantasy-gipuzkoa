@@ -64,7 +64,7 @@ export interface PlantillaSlot {
   torneos?: { id: string; nombre: string }[];
   // Próximo rival (uno por torneo en el que tenga partida pendiente).
   proximosRivales?: ProximoRival[];
-  // Ligas privadas (0100): puesto a la venta y, si ya ha llegado, la oferta de
+  // Ligas privadas (0101): puesto a la venta y, si ya ha llegado, la oferta de
   // la máquina (null mientras espera la próxima tanda o si la rechazaste).
   enVenta?: boolean;
   ofertaMaquina?: number | null;
@@ -87,7 +87,7 @@ export interface ClasificacionEntry {
   puntos: number;
   esMiEquipo?: boolean;
   historialPuntos: PuntosJornada[];
-  // Puntos quitados por el administrador de la liga (0099); ya descontados de "puntos".
+  // Puntos quitados por el administrador de la liga (0100); ya descontados de "puntos".
   puntosSancion?: number;
 }
 
@@ -163,15 +163,15 @@ export type TipoNotificacion =
   | "venta"
   | "actualizacion_elo"
   | "pago_jornada"
-  // Acciones del administrador de una liga privada (0099).
+  // Acciones del administrador de una liga privada (0100).
   | "sancion"
   | "advertencia"
   | "expulsion"
   | "nuevo_admin"
-  // Oferta de la máquina por un jugador puesto a la venta (ligas privadas, 0100).
+  // Oferta de la máquina por un jugador puesto a la venta (ligas privadas, 0101).
   | "oferta_maquina";
 
-// Sanción, advertencia o expulsión (0099). "importe" de la notificación son los
+// Sanción, advertencia o expulsión (0100). "importe" de la notificación son los
 // puntos o millones quitados.
 export interface DatosAdminLiga {
   subtipo: "puntos" | "millones" | "advertencia" | null;
@@ -240,7 +240,7 @@ export interface LigaResumen {
   equipoId: string;
   nombreEquipo: string;
   saldo: number;
-  // Eres el administrador de esta liga (la creaste; solo ligas privadas, 0099).
+  // Eres el administrador de esta liga (la creaste; solo ligas privadas, 0100).
   soyAdmin: boolean;
 }
 
