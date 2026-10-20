@@ -64,6 +64,10 @@ export interface PlantillaSlot {
   torneos?: { id: string; nombre: string }[];
   // Próximo rival (uno por torneo en el que tenga partida pendiente).
   proximosRivales?: ProximoRival[];
+  // Ligas privadas (0100): puesto a la venta y, si ya ha llegado, la oferta de
+  // la máquina (null mientras espera la próxima tanda o si la rechazaste).
+  enVenta?: boolean;
+  ofertaMaquina?: number | null;
 }
 
 export interface MercadoListing {
@@ -163,7 +167,9 @@ export type TipoNotificacion =
   | "sancion"
   | "advertencia"
   | "expulsion"
-  | "nuevo_admin";
+  | "nuevo_admin"
+  // Oferta de la máquina por un jugador puesto a la venta (ligas privadas, 0100).
+  | "oferta_maquina";
 
 // Sanción, advertencia o expulsión (0099). "importe" de la notificación son los
 // puntos o millones quitados.

@@ -36,6 +36,23 @@ export default definirTextos(
     recibiras: (valor: number) =>
       `Recibirás ${valor} M en tu saldo. Esta acción no se puede deshacer.`,
     siVender: "Sí, vender",
+    // Ligas privadas: venta a la máquina (0100)
+    ponerALaVenta: "Poner a la venta",
+    ponerALaVentaA: (nombre: string) => `Poner a la venta a ${nombre}`,
+    ponerALaVentaTexto: (hora: string) =>
+      `En la próxima actualización del mercado (${hora}) la máquina te hará una oferta de entre un 10 % menos y un 10 % más de su valor. Tú decides si la aceptas. Mientras, sigue en tu equipo y puntuando.`,
+    siPonerALaVenta: "Sí, ponerlo a la venta",
+    enVenta: "En venta",
+    esperandoOferta: (hora: string) =>
+      `En venta: a las ${hora} la máquina te hará una oferta de entre un 10 % menos y un 10 % más de su valor.`,
+    ofertaMaquina: (oferta: number) => `Oferta de la máquina: ${oferta} M`,
+    ofertaMaquinaCorta: (oferta: number) => `Oferta: ${oferta} M`,
+    diferenciaValor: (pct: number) => `${pct > 0 ? "+" : ""}${pct} % sobre su valor`,
+    aceptarOferta: (oferta: number) => `Aceptar ${oferta} M`,
+    rechazarOferta: "Rechazar",
+    rechazadaTexto: "Si la rechazas, en la próxima actualización te hará otra.",
+    quitarDeLaVenta: "Quitar de la venta",
+    errorVenta: "No se ha podido hacer. Inténtalo de nuevo.",
     blindarA: (nombre: string) => `Blindar a ${nombre}`,
     pagarasBlindaje: (precio: number, porcentaje: number) =>
       `Pagarás ${precio} M (${porcentaje} % de su valor). Nadie podrá hacerle un clausulazo hasta que empiece la próxima jornada.`,
@@ -93,6 +110,22 @@ export default definirTextos(
       recibiras: (valor: number) =>
         `${valor} M jasoko dituzu zure saldoan. Ekintza hau ezin da desegin.`,
       siVender: "Bai, saldu",
+      ponerALaVenta: "Salgai jarri",
+      ponerALaVentaA: (nombre: string) => `Salgai jarri: ${nombre}`,
+      ponerALaVentaTexto: (hora: string) =>
+        `Merkatuaren hurrengo eguneraketan (${hora}) makinak bere balioa baino % 10 gutxiago eta % 10 gehiago arteko eskaintza egingo dizu. Zuk erabakitzen duzu onartzen duzun. Bitartean, zure taldean jarraitzen du eta puntuatzen.`,
+      siPonerALaVenta: "Bai, salgai jarri",
+      enVenta: "Salgai",
+      esperandoOferta: (hora: string) =>
+        `Salgai: ${hora}etan makinak bere balioa baino % 10 gutxiago eta % 10 gehiago arteko eskaintza egingo dizu.`,
+      ofertaMaquina: (oferta: number) => `Makinaren eskaintza: ${oferta} M`,
+      ofertaMaquinaCorta: (oferta: number) => `Eskaintza: ${oferta} M`,
+      diferenciaValor: (pct: number) => `${pct > 0 ? "+" : ""}% ${pct} bere balioaren gainean`,
+      aceptarOferta: (oferta: number) => `Onartu ${oferta} M`,
+      rechazarOferta: "Baztertu",
+      rechazadaTexto: "Baztertzen baduzu, hurrengo eguneraketan beste bat egingo dizu.",
+      quitarDeLaVenta: "Salgaitik kendu",
+      errorVenta: "Ezin izan da egin. Saiatu berriro.",
       blindarA: (nombre: string) => `Blindatu: ${nombre}`,
       pagarasBlindaje: (precio: number, porcentaje: number) =>
         `${precio} M ordainduko dituzu (bere balioaren % ${porcentaje}). Inork ezin izango dio klausulazorik egin hurrengo jardunaldia hasi arte.`,
@@ -148,6 +181,22 @@ export default definirTextos(
       recibiras: (valor: number) =>
         `You'll receive ${valor} M in your balance. This can't be undone.`,
       siVender: "Yes, sell",
+      ponerALaVenta: "Put up for sale",
+      ponerALaVentaA: (nombre: string) => `Put ${nombre} up for sale`,
+      ponerALaVentaTexto: (hora: string) =>
+        `At the next market update (${hora}) the machine will make you an offer of between 10 % less and 10 % more than their value. You decide whether to accept it. Meanwhile, they stay in your team and keep scoring.`,
+      siPonerALaVenta: "Yes, put up for sale",
+      enVenta: "For sale",
+      esperandoOferta: (hora: string) =>
+        `For sale: at ${hora} the machine will make you an offer of between 10 % less and 10 % more than their value.`,
+      ofertaMaquina: (oferta: number) => `Machine offer: ${oferta} M`,
+      ofertaMaquinaCorta: (oferta: number) => `Offer: ${oferta} M`,
+      diferenciaValor: (pct: number) => `${pct > 0 ? "+" : ""}${pct} % on their value`,
+      aceptarOferta: (oferta: number) => `Accept ${oferta} M`,
+      rechazarOferta: "Reject",
+      rechazadaTexto: "If you reject it, you'll get another one at the next update.",
+      quitarDeLaVenta: "Take off sale",
+      errorVenta: "That couldn't be done. Try again.",
       blindarA: (nombre: string) => `Shield ${nombre}`,
       pagarasBlindaje: (precio: number, porcentaje: number) =>
         `You'll pay ${precio} M (${porcentaje}% of the player's value). Nobody can buy out the clause until the next matchday starts.`,

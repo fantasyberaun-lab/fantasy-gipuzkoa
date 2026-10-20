@@ -9,6 +9,7 @@ import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import ProximoRivalLinea from "@/components/ProximoRival";
 import { useIdioma } from "@/components/IdiomaProvider";
 import InsigniaEstadoClausula, { estadoClausula } from "@/components/InsigniaEstadoClausula";
+import { proximaTandaMercado } from "@/lib/mercadoCountdown";
 
 function iniciales(nombre: string) {
   return nombre
@@ -39,8 +40,14 @@ type Props = PlantillaSlot & {
   onToggleTitular: () => void;
   onToggleCapitan: () => Promise<{ ok: boolean; mensaje?: string }>;
   onBlindar: () => Promise<{ ok: boolean; mensaje?: string }>;
+  // Liga pública: venta instantánea al valor de mercado.
   onVender: () => void;
   onSubirClausula: (importe: number) => Promise<{ ok: boolean; mensaje?: string }>;
+  // Ligas privadas (0100): se vende a la máquina, que hace su oferta en cada tanda.
+  onPonerALaVenta?: () => Promise<{ ok: boolean; mensaje?: string }>;
+  onQuitarDeLaVenta?: () => Promise<{ ok: boolean; mensaje?: string }>;
+  onAceptarOferta?: () => Promise<{ ok: boolean; mensaje?: string }>;
+  onRechazarOferta?: () => Promise<{ ok: boolean; mensaje?: string }>;
 };
 
 // Fila compacta de un jugador de la plantilla. Al tocarla se abre una hoja
@@ -66,6 +73,12 @@ export default function PlayerCard({
   onBlindar,
   onVender,
   onSubirClausula,
+  enVenta = false,
+  ofertaMaquina = null,
+  onPonerALaVenta,
+  onQuitarDeLaVenta,
+  onAceptarOferta,
+  onRechazarOferta,
 }: Props) {
   const { t, idioma } = useIdioma();
   // Mismo orden que la etiqueta de torneos (primero Segunda, luego Cadete…).
@@ -83,7 +96,32 @@ export default function PlayerCard({
   const [enviandoBlindaje, setEnviandoBlindaje] = useState(false);
   const [errorBlindaje, setErrorBlindaje] = useState<string | null>(null);
   const [errorCapitan, setErrorCapitan] = useState<string | null>(null);
+  const [enviandoVenta, setEnviandoVenta] = useState(false);
+  const [errorVenta, setErrorVenta] = useState<string | null>(null);
   const reglasJ = useReglasJuego();
+
+  // Ligas privadas: hora de la próxima tanda, que es cuando llega la oferta de la máquina.
+  const proximaTanda = proximaTandaMercado(new Date(), reglasJ.horasMercado).toLocaleTimeString(
+    "es-ES",
+    { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" }
+  );
+  const diferenciaOferta =
+    ofertaMaquina !== null && jugador.valorMercado > 0
+      ? Math.round(((ofertaMaquina - jugador.valorMercado) / jugador.valorMercado) * 100)
+      : 0;
+
+  // Poner/quitar de la venta, aceptar o rechazar: si falla, el aviso sale en la hoja.
+  const accionVenta = async (accion?: () => Promise<{ ok: boolean; mensaje?: string }>) => {
+    if (!accion) return;
+    setEnviandoVenta(true);
+    setErrorVenta(null);
+    const resultado = await accion();
+    setEnviandoVenta(false);
+    if (!resultado.ok) {
+      setErrorVenta(resultado.mensaje ?? t.ficha.errorVenta);
+      setMostrarAcciones(true);
+    }
+  };
 
   const precioBlindaje = Math.ceil(jugador.valorMercado * reglasJ.blindajePorcentaje);
 
@@ -108,7 +146,8 @@ export default function PlayerCard({
 
   const confirmarVenta = () => {
     setMostrarConfirmacion(false);
-    onVender();
+    if (ligaPublica) onVender();
+    else accionVenta(onPonerALaVenta);
   };
 
   const cambiarTitular = () => {
@@ -196,6 +235,19 @@ export default function PlayerCard({
               <span>· {t.ficha.pts(puntosJornada)}</span>
               <span>· {jugador.valorMercado} M</span>
             </p>
+            {!ligaPublica && enVenta && (
+              <p>
+                <span
+                  className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                    ofertaMaquina !== null
+                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
+                      : "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"
+                  }`}
+                >
+                  {ofertaMaquina !== null ? t.ficha.ofertaMaquinaCorta(ofertaMaquina) : t.ficha.enVenta}
+                </span>
+              </p>
+            )}
             {proximosRivales && proximosRivales.length > 0 && (
               <div className="pt-1">
                 <p className="text-[11px] text-neutral-400">{t.graficas.proxRival}</p>
@@ -401,12 +453,58 @@ export default function PlayerCard({
                 </>
               )}
 
-              <button
-                onClick={() => abrirModal(() => setMostrarConfirmacion(true))}
-                className="w-full rounded-lg border border-neutral-300 bg-white py-2.5 text-sm font-medium text-neutral-700 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300"
-              >
-                {t.ficha.vender}
-              </button>
+              {ligaPublica || !enVenta ? (
+                <button
+                  onClick={() => abrirModal(() => setMostrarConfirmacion(true))}
+                  disabled={enviandoVenta}
+                  className="w-full rounded-lg border border-neutral-300 bg-white py-2.5 text-sm font-medium text-neutral-700 disabled:opacity-40 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300"
+                >
+                  {ligaPublica ? t.ficha.vender : t.ficha.ponerALaVenta}
+                </button>
+              ) : (
+                // En venta (liga privada): oferta de la máquina o a la espera de la próxima tanda.
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3 dark:border-emerald-900 dark:bg-emerald-950/30">
+                  {ofertaMaquina !== null ? (
+                    <>
+                      <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">
+                        {t.ficha.ofertaMaquina(ofertaMaquina)}
+                      </p>
+                      <p className="text-xs text-emerald-800/80 dark:text-emerald-300/80">
+                        {t.ficha.diferenciaValor(diferenciaOferta)}
+                      </p>
+                      <div className="mt-2 flex gap-2">
+                        <button
+                          onClick={() => accionVenta(onRechazarOferta)}
+                          disabled={enviandoVenta}
+                          className="flex-1 rounded-lg border border-neutral-300 bg-white py-2 text-sm font-medium disabled:opacity-40 dark:border-neutral-700 dark:bg-neutral-900"
+                        >
+                          {t.ficha.rechazarOferta}
+                        </button>
+                        <button
+                          onClick={() => accionVenta(onAceptarOferta)}
+                          disabled={enviandoVenta}
+                          className="flex-1 rounded-lg bg-emerald-600 py-2 text-sm font-semibold text-white disabled:opacity-40"
+                        >
+                          {t.ficha.aceptarOferta(ofertaMaquina)}
+                        </button>
+                      </div>
+                      <p className="mt-1.5 text-[11px] text-neutral-500">{t.ficha.rechazadaTexto}</p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-emerald-900 dark:text-emerald-200">
+                      {t.ficha.esperandoOferta(proximaTanda)}
+                    </p>
+                  )}
+                  <button
+                    onClick={() => accionVenta(onQuitarDeLaVenta)}
+                    disabled={enviandoVenta}
+                    className="mt-2 text-xs font-medium text-neutral-600 underline underline-offset-2 disabled:opacity-40 dark:text-neutral-300"
+                  >
+                    {t.ficha.quitarDeLaVenta}
+                  </button>
+                </div>
+              )}
+              {errorVenta && <p className="text-xs text-negative">{errorVenta}</p>}
             </div>
 
             <div className="mt-3 flex items-center justify-between">
@@ -451,9 +549,13 @@ export default function PlayerCard({
           <div className="relative w-full max-w-sm rounded-t-2xl bg-white p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-xl dark:bg-neutral-900 sm:rounded-2xl sm:pb-5">
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-neutral-300 dark:bg-neutral-700 sm:hidden" />
 
-            <p className="text-base font-semibold">{t.ficha.venderA(jugador.nombre)}</p>
+            <p className="text-base font-semibold">
+              {ligaPublica ? t.ficha.venderA(jugador.nombre) : t.ficha.ponerALaVentaA(jugador.nombre)}
+            </p>
             <p className="mt-1 text-sm text-neutral-500">
-              {t.ficha.recibiras(jugador.valorMercado)}
+              {ligaPublica
+                ? t.ficha.recibiras(jugador.valorMercado)
+                : t.ficha.ponerALaVentaTexto(proximaTanda)}
             </p>
 
             <div className="mt-5 flex gap-2">
@@ -467,7 +569,7 @@ export default function PlayerCard({
                 onClick={confirmarVenta}
                 className="flex-1 rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white dark:bg-white dark:text-neutral-900"
               >
-                {t.ficha.siVender}
+                {ligaPublica ? t.ficha.siVender : t.ficha.siPonerALaVenta}
               </button>
             </div>
           </div>

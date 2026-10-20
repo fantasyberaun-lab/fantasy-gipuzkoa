@@ -135,6 +135,7 @@ export default function InfoReglasButton({ onDark = false }: { onDark?: boolean 
               <Seccion titulo={r.mercadoTitulo}>
                 <p>{r.mercado(reglasJ.horasMercado)}</p>
                 <p>{negritas(r.pujasOcultas)}</p>
+                <p>{negritas(r.ventaMaquina)}</p>
               </Seccion>
 
               <Seccion titulo={r.capitanTitulo}>

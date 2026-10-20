@@ -60,6 +60,10 @@ import {
   unirseLigaDB,
   unirseLigaPublicaDB,
   venderJugadorDB,
+  ponerALaVentaDB,
+  quitarDeLaVentaDB,
+  aceptarOfertaMaquinaDB,
+  rechazarOfertaMaquinaDB,
 } from "@/lib/supabase/queries";
 import type {
   ClasificacionEntry,
@@ -152,6 +156,11 @@ interface GameState {
   toggleCapitan: (id: string) => Promise<ResultadoAccion>;
   blindarJugador: (jugadorId: string) => Promise<ResultadoAccion>;
   venderJugador: (id: string, valorMercado: number) => Promise<ResultadoAccion>;
+  // Ligas privadas (0100): se vende a la máquina, que hace su oferta en cada tanda.
+  ponerALaVenta: (id: string) => Promise<ResultadoAccion>;
+  quitarDeLaVenta: (id: string) => Promise<ResultadoAccion>;
+  aceptarOfertaMaquina: (id: string) => Promise<ResultadoAccion>;
+  rechazarOfertaMaquina: (id: string) => Promise<ResultadoAccion>;
   pagarClausula: (jugadorId: string) => Promise<ResultadoAccion>;
   subirClausula: (jugadorId: string, importe: number) => Promise<ResultadoAccion>;
   hacerOferta: (jugadorId: string, importe: number) => Promise<ResultadoAccion>;
@@ -711,6 +720,18 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     return resultado;
   }
 
+  // Poner/quitar de la venta y aceptar/rechazar la oferta de la máquina: todas
+  // cambian la plantilla o el saldo, así que se recarga el juego si sale bien.
+  async function accionVentaMaquina(
+    accion: (s: typeof supabase, playerId: string, leagueId: string) => Promise<ResultadoAccion>,
+    playerId: string
+  ): Promise<ResultadoAccion> {
+    if (!equipo.leagueId) return { ok: false, mensaje: t.juego.sinEquipo };
+    const resultado = await accion(supabase, playerId, equipo.leagueId);
+    if (resultado.ok) await recargarJuego();
+    return resultado;
+  }
+
   async function venderJugador(
     id: string,
     valorMercado: number
@@ -921,6 +942,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         toggleCapitan,
         blindarJugador,
         venderJugador,
+        ponerALaVenta: (id) => accionVentaMaquina(ponerALaVentaDB, id),
+        quitarDeLaVenta: (id) => accionVentaMaquina(quitarDeLaVentaDB, id),
+        aceptarOfertaMaquina: (id) => accionVentaMaquina(aceptarOfertaMaquinaDB, id),
+        rechazarOfertaMaquina: (id) => accionVentaMaquina(rechazarOfertaMaquinaDB, id),
         pagarClausula,
         subirClausula,
         hacerOferta,

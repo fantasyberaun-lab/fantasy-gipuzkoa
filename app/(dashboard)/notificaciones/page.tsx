@@ -46,6 +46,10 @@ const ETIQUETA: Record<Notificacion["tipo"], { clases: string }> = {
   nuevo_admin: {
     clases: "bg-accent/15 text-accent",
   },
+  // Oferta de la máquina (ligas privadas, 0100).
+  oferta_maquina: {
+    clases: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
+  },
 };
 
 // Una actualización de Elo se mantiene fijada arriba durante este tiempo.
@@ -228,6 +232,13 @@ export default function NotificacionesPage() {
       }
       return rellenar(a.pagoIngreso(jornada, d?.puntos ?? 0), {
         importe: <span className="font-semibold">{importe} M</span>,
+      });
+    }
+
+    if (n.tipo === "oferta_maquina") {
+      return rellenar(a.ofertaMaquina, {
+        ...valores,
+        importe: <span className="font-semibold">{imp ?? 0} M</span>,
       });
     }
 

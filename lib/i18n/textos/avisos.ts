@@ -46,6 +46,7 @@ export default definirTextos(
       advertencia: "Advertencia",
       expulsion: "Expulsión",
       nuevo_admin: "Administrador",
+      oferta_maquina: "Oferta",
     },
     // Etiquetas de los comunicados
     etiquetas: {
@@ -89,6 +90,7 @@ export default definirTextos(
     advertenciaAMi: "El administrador te ha enviado una advertencia. Motivo: {motivo}",
     expulsion: "El administrador ha expulsado a {objetivo} de la liga. Motivo: {motivo}",
     nuevoAdmin: "{objetivo} es ahora el administrador de la liga.",
+    ofertaMaquina: "La máquina te ofrece {importe} por {jugador}. Acéptala o recházala en tu Plantilla.",
     nuevoAdminAMi:
       "Ahora eres el administrador de la liga: puedes gestionarla desde Clasificación → Administrar liga.",
     clausulazoYo: (obj: Txt, imp: Num) =>
@@ -124,6 +126,7 @@ export default definirTextos(
         advertencia: "Abisua",
         expulsion: "Kanporaketa",
         nuevo_admin: "Administratzailea",
+        oferta_maquina: "Eskaintza",
       },
       etiquetas: {
         importante: "Garrantzitsua",
@@ -168,6 +171,7 @@ export default definirTextos(
       advertenciaAMi: "Administratzaileak abisu bat bidali dizu. Arrazoia: {motivo}",
       expulsion: "Administratzaileak {objetivo} ligatik kanporatu du. Arrazoia: {motivo}",
       nuevoAdmin: "{objetivo} da orain ligako administratzailea.",
+      ofertaMaquina: "Makinak {importe} eskaintzen dizkizu {jugador} jokalariagatik. Onartu edo baztertu zure Plantillan.",
       nuevoAdminAMi:
         "Orain zu zara ligako administratzailea: Sailkapena → Liga kudeatu atalean kudea dezakezu.",
       clausulazoYo: (obj: Txt, imp: Num) =>
@@ -203,6 +207,7 @@ export default definirTextos(
         advertencia: "Warning",
         expulsion: "Expulsion",
         nuevo_admin: "Admin",
+        oferta_maquina: "Offer",
       },
       etiquetas: {
         importante: "Important",
@@ -242,6 +247,7 @@ export default definirTextos(
       advertenciaAMi: "The admin has sent you a warning. Reason: {motivo}",
       expulsion: "The admin has expelled {objetivo} from the league. Reason: {motivo}",
       nuevoAdmin: "{objetivo} is now the league admin.",
+      ofertaMaquina: "The machine offers you {importe} for {jugador}. Accept or reject it in your Squad.",
       nuevoAdminAMi: "You're now the league admin: you can manage it from Standings → Manage league.",
       clausulazoYo: (obj: Txt, imp: Num) =>
         `You paid {jugador}'s release clause${fromEn(obj)}${forEn(imp)}.`,
