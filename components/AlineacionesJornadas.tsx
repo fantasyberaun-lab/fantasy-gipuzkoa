@@ -101,6 +101,15 @@ export default function AlineacionesJornadas({ equipoId }: { equipoId: string })
             )}
           </div>
 
+          {actual.saldoNegativo && (
+            <p
+              role="alert"
+              className="border-b border-red-200 bg-red-50 px-4 py-2.5 text-xs font-medium text-red-800 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300"
+            >
+              {tm.saldoNegativoJornada}
+            </p>
+          )}
+
           <ul className="divide-y divide-neutral-200 dark:divide-neutral-800">
             {actual.jugadores.map((j) => (
               <li key={j.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
@@ -129,8 +138,13 @@ export default function AlineacionesJornadas({ equipoId }: { equipoId: string })
                 {!actual.pendiente && (
                   <div className="text-right">
                     <p className="text-sm font-semibold">{tm.pts(j.puntos)}</p>
-                    {j.capitan && j.torneo && (
-                      <p className="text-[11px] text-neutral-400">{j.base} × 2</p>
+                    {actual.saldoNegativo && j.torneo && j.base > 0 ? (
+                      <p className="text-[11px] text-neutral-400">
+                        {tm.habriaSumado(j.capitan ? j.base * 2 : j.base)}
+                      </p>
+                    ) : (
+                      j.capitan &&
+                      j.torneo && <p className="text-[11px] text-neutral-400">{j.base} × 2</p>
                     )}
                   </div>
                 )}

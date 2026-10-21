@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useGameState } from "@/components/GameStateProvider";
@@ -13,9 +13,12 @@ import AvatarPerfil from "@/components/AvatarPerfil";
 import RachaDiaria from "@/components/RachaDiaria";
 import TutorialNiveles from "@/components/TutorialNiveles";
 import NivelChip from "@/components/NivelChip";
-import MinijuegosChip from "@/components/MinijuegosChip";
 import { useT } from "@/components/IdiomaProvider";
 import { sonar } from "@/lib/sonido";
+import { createClient } from "@/lib/supabase/client";
+import { EVENTO_XP } from "@/components/RachaDiaria";
+import { EVENTO_MISIONES, fetchEstadoMisiones } from "@/lib/supabase/misionesQueries";
+import { EVENTO_MINIJUEGOS, fetchEstadoMinijuegos, type EstadoMinijuegos } from "@/lib/supabase/minijuegosQueries";
 
 // Contenido de la cabecera morada: escudo, nombre del equipo, liga y saldo.
 export default function EquipoHeader() {
@@ -90,7 +93,6 @@ export default function EquipoHeader() {
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0 sm:flex-nowrap">
           <NivelChip />
           <RachaDiaria />
-          <MinijuegosChip />
           <TutorialNiveles />
           <div className="ml-auto shrink-0 rounded-xl bg-white/10 px-4 py-2 ring-1 ring-white/15 sm:ml-0">
             <p className="text-xs font-medium text-white/70">{t.ajustes.saldo}</p>
@@ -176,8 +178,101 @@ function ContenidoTarjeta({
   );
 }
 
-// Fila de acciones justo debajo de la cabecera: dos tarjetas, "Mi perfil" y
-// "Cambiar o crear liga". Lo de la cuenta (cerrar sesión, eliminarla,
+// Aviso amarillo de "hay algo por hacer" en la esquina de una tarjeta.
+function PuntoAviso() {
+  return (
+    <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-gold ring-2 ring-white dark:ring-neutral-900" aria-hidden="true" />
+  );
+}
+
+// Tarjeta de misiones: punto amarillo si hay alguna lista para reclamar (0102).
+function TarjetaMisiones({ circulo }: { circulo: string }) {
+  const supabase = createClient();
+  const t = useT().misiones;
+  const [pendientes, setPendientes] = useState(0);
+
+  useEffect(() => {
+    let vivo = true;
+    async function cargar() {
+      const e = await fetchEstadoMisiones(supabase);
+      if (vivo && e) setPendientes(e.pendientes);
+    }
+    cargar();
+    // Cambia al reclamar una misión y al ganar XP (p. ej. se registra la racha de hoy).
+    window.addEventListener(EVENTO_MISIONES, cargar);
+    window.addEventListener(EVENTO_XP, cargar);
+    return () => {
+      vivo = false;
+      window.removeEventListener(EVENTO_MISIONES, cargar);
+      window.removeEventListener(EVENTO_XP, cargar);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <Link href="/misiones" onClick={() => sonar("pestana")} className={`${TARJETA} relative`}>
+      <ContenidoTarjeta
+        icono={
+          <span className={circulo} aria-hidden="true">
+            🎯
+          </span>
+        }
+        titulo={t.tarjeta}
+        detalle={pendientes > 0 ? t.tarjetaListas(pendientes) : t.tarjetaDetalle}
+      />
+      {pendientes > 0 && <PuntoAviso />}
+    </Link>
+  );
+}
+
+// Tarjeta de minijuegos (antes un chip en la cabecera): tu puesto en el ranking
+// general, con punto amarillo si quedan partidas del día. Se oculta si están desactivados.
+function TarjetaMinijuegos({ circulo }: { circulo: string }) {
+  const supabase = createClient();
+  const t = useT().minijuegos;
+  const [estado, setEstado] = useState<EstadoMinijuegos | null>(null);
+
+  useEffect(() => {
+    let vivo = true;
+    async function cargar() {
+      const e = await fetchEstadoMinijuegos(supabase);
+      if (vivo) setEstado(e);
+    }
+    cargar();
+    window.addEventListener(EVENTO_MINIJUEGOS, cargar);
+    return () => {
+      vivo = false;
+      window.removeEventListener(EVENTO_MINIJUEGOS, cargar);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (!estado || !estado.activo) return null;
+  const pendientes = estado.completados < estado.totalJuegos;
+
+  return (
+    <Link
+      href="/minijuegos"
+      aria-label={t.chipAria(estado.posGeneral)}
+      onClick={() => sonar("pestana")}
+      className={`${TARJETA} relative`}
+    >
+      <ContenidoTarjeta
+        icono={
+          <span className={circulo} aria-hidden="true">
+            🎮
+          </span>
+        }
+        titulo={t.titulo}
+        detalle={estado.posGeneral ? `#${estado.posGeneral}` : t.chipJugar}
+      />
+      {pendientes && <PuntoAviso />}
+    </Link>
+  );
+}
+
+// Fila de acciones justo debajo de la cabecera: "Mi perfil", "Cambiar o crear
+// liga", "Misiones" y "Minijuegos". Lo de la cuenta (cerrar sesión, eliminarla,
 // admin...) está en el menú de ajustes (MenuAjustes).
 export function EquipoAcciones() {
   const { equipo, cargando, avatar } = useGameState();
@@ -245,6 +340,13 @@ export function EquipoAcciones() {
           detalle={t.ajustes.cambiarLigaDetalle}
         />
       </button>
+
+      {!cargando && equipo.id && (
+        <>
+          <TarjetaMisiones circulo={circulo} />
+          <TarjetaMinijuegos circulo={circulo} />
+        </>
+      )}
 
       {mostrarModalLiga && (
         <CambiarLigaModal onCerrar={() => setMostrarModalLiga(false)} />

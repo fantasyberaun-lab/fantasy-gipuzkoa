@@ -25,7 +25,7 @@ export default definirTextos(
     ganarLogin: (xp: number) => `Entrar cada día: ${xp} XP`,
     ganarCofre: (xp: number) => `Abrir el cofre de racha: ${xp} XP`,
     ganarJornada: (xp: number) => `Puntos de jornada: ${xp} XP por punto`,
-    ganarPronto: "Próximamente: misiones y minijuegos",
+    ganarMision: "Completar misiones: más XP cuanto más difíciles",
     // Guía de estreno (TutorialNiveles)
     tutorial: {
       saltar: "Saltar",
@@ -66,7 +66,7 @@ export default definirTextos(
       ganarLogin: (xp: number) => `Egunero sartu: ${xp} XP`,
       ganarCofre: (xp: number) => `Boladaren kutxa ireki: ${xp} XP`,
       ganarJornada: (xp: number) => `Jardunaldiko puntuak: ${xp} XP puntuko`,
-      ganarPronto: "Laster: misioak eta minijokoak",
+      ganarMision: "Misioak osatu: zenbat eta zailagoak, orduan eta XP gehiago",
       tutorial: {
         saltar: "Saltatu",
         siguiente: "Hurrengoa",
@@ -105,7 +105,7 @@ export default definirTextos(
       ganarLogin: (xp: number) => `Log in every day: ${xp} XP`,
       ganarCofre: (xp: number) => `Open the streak chest: ${xp} XP`,
       ganarJornada: (xp: number) => `Matchday points: ${xp} XP per point`,
-      ganarPronto: "Coming soon: missions and minigames",
+      ganarMision: "Complete missions: the harder, the more XP",
       tutorial: {
         saltar: "Skip",
         siguiente: "Next",

@@ -47,7 +47,7 @@ lib/
   importador/    lectores de Info64 y Chess-Results, emparejado de jugadores
   legal/         datos del responsable y versiones de los textos legales
 scripts/         fide-elo.mjs (Elo FIDE), actualizar-elo.sh (manual), test-importador.ts
-supabase/migrations/   0001 … 0101, la lógica de negocio vive aquí
+supabase/migrations/   0001 … 0103, la lógica de negocio vive aquí (misiones: 0103, el catálogo de escalones y XP está en misiones_catalogo())
 middleware.ts    refresca la sesión de Supabase en cada petición
 ```
 

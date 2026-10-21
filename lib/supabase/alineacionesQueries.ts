@@ -20,6 +20,7 @@ export interface AlineacionSemana {
   fecha: string; // sábado de la foto, formato AAAA-MM-DD
   puntos: number; // total del equipo ese fin de semana
   pendiente: boolean; // foto del sábado a la espera de que se cree la jornada
+  saldoNegativo: boolean; // saldo < 0 al empezar la jornada: ese fin de semana puntúa 0 (0105)
   jugadores: JugadorSemana[];
 }
 
@@ -41,6 +42,7 @@ export async function fetchAlineacionesSemanas(
       fecha: String(f.fecha),
       puntos: Number(f.puntos_equipo ?? 0),
       pendiente: Boolean(f.pendiente),
+      saldoNegativo: Boolean(f.saldo_negativo),
       jugadores: ((f.jugadores ?? []) as any[]).map((j) => ({
         id: j.id as string,
         nombre: j.nombre as string,

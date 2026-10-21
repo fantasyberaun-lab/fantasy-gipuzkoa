@@ -27,6 +27,9 @@ export default definirTextos(
     finDeSemana: (fecha: string) => `Fin de semana del ${fecha}`,
     pendiente: "Plantilla del sábado a las 16:00 · todavía sin resultados",
     cerrada: "Plantilla del sábado a las 16:00 · todos los torneos juntos",
+    saldoNegativoJornada:
+      "El saldo estaba en negativo cuando empezó la jornada: este equipo puntúa 0 este fin de semana.",
+    habriaSumado: (n: number) => `habría sumado ${n} pts`,
     descanso: "Descansó",
     victoria: "Victoria",
     tablas: "Tablas",
@@ -61,6 +64,9 @@ export default definirTextos(
       finDeSemana: (fecha: string) => `Asteburua: ${fecha}`,
       pendiente: "Larunbateko 16:00etako plantilla · oraindik emaitzarik gabe",
       cerrada: "Larunbateko 16:00etako plantilla · txapelketa guztiak batera",
+      saldoNegativoJornada:
+        "Saldoa negatiboan zegoen jardunaldia hasi zenean: talde honek 0 puntu egiten ditu asteburu honetan.",
+      habriaSumado: (n: number) => `${n} puntu batuko zituen`,
       descanso: "Atsedena",
       victoria: "Garaipena",
       tablas: "Berdinketa",
@@ -94,6 +100,9 @@ export default definirTextos(
       finDeSemana: (fecha: string) => `Weekend of ${fecha}`,
       pendiente: "Squad as of Saturday 16:00 · no results yet",
       cerrada: "Squad as of Saturday 16:00 · all tournaments combined",
+      saldoNegativoJornada:
+        "The balance was negative when the round started: this team scores 0 this weekend.",
+      habriaSumado: (n: number) => `would have scored ${n} pts`,
       descanso: "Bye",
       victoria: "Win",
       tablas: "Draw",
