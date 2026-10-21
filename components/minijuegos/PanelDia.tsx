@@ -4,6 +4,9 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useIdioma, useT } from "@/components/IdiomaProvider";
 import { EVENTO_XP } from "@/components/RachaDiaria";
+import { createPortal } from "react-dom";
+import CofreAnimado from "@/components/CofreAnimado";
+import CofreGrande, { type ResultadoAbrir } from "@/components/CofreGrande";
 import { formatoMillones, JUEGOS } from "@/lib/minijuegos";
 import {
   abrirCofreMinijuegosDB,
@@ -59,25 +62,29 @@ export default function PanelDia({
 }) {
   const supabase = createClient();
   const t = useT().minijuegos;
+  const tRacha = useT().racha;
   const { locale } = useIdioma();
-  const [abriendo, setAbriendo] = useState(false);
+  const [mostrarCofre, setMostrarCofre] = useState(false);
   const [cofre, setCofre] = useState<Extract<ResultadoCofreMj, { ok: true }> | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const m = (n: number) => formatoMillones(n, locale);
 
-  async function abrir() {
-    if (abriendo) return;
-    setAbriendo(true);
-    setAviso(null);
+  // Cofre a pantalla completa: abre en el servidor y devuelve lo que enseñar.
+  async function abrirEnGrande(): Promise<ResultadoAbrir> {
     const r = await abrirCofreMinijuegosDB(supabase);
-    setAbriendo(false);
-    if (r.ok) {
-      setCofre(r);
-      window.dispatchEvent(new Event(EVENTO_XP));
-    } else {
-      setAviso(r.mensaje);
-    }
+    if (!r.ok) return { ok: false, mensaje: r.mensaje };
+    setCofre(r);
+    window.dispatchEvent(new Event(EVENTO_XP));
     onCambio();
+    return {
+      ok: true,
+      premio: (
+        <>
+          <p className="font-display text-4xl font-semibold text-gold">{textoPremio(r)}</p>
+          {r.xp > 0 && <p className="mt-1 text-base font-semibold text-gold-dark">{t.masXp(r.xp)}</p>}
+        </>
+      ),
+    };
   }
 
   async function reparar() {
@@ -151,18 +158,19 @@ export default function PanelDia({
                   : t.cofreBloqueado}
             </p>
           </div>
-          <span className="text-3xl" aria-hidden="true">
-            {estado.cofreAbierto ? "📭" : "🎁"}
-          </span>
+          <CofreAnimado
+            estado={estado.cofreAbierto ? "vacio" : "cerrado"}
+            tam={88}
+            className="shrink-0"
+          />
         </div>
         {estado.cofreDisponible && (
           <button
             type="button"
-            onClick={abrir}
-            disabled={abriendo}
-            className="mt-2 w-full rounded-lg bg-gold px-4 py-2 text-sm font-semibold text-brand-950 transition-colors hover:bg-gold-dark disabled:opacity-60"
+            onClick={() => setMostrarCofre(true)}
+            className="mt-2 w-full rounded-lg bg-gold px-4 py-2 text-sm font-semibold text-brand-950 transition-colors hover:bg-gold-dark"
           >
-            {abriendo ? t.abriendo : t.abrirCofre}
+            {t.abrirCofre}
           </button>
         )}
       </div>
@@ -198,29 +206,20 @@ export default function PanelDia({
         </p>
       )}
 
-      {cofre && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={t.cofreTitulo}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-        >
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center text-neutral-900 shadow-xl dark:bg-neutral-900 dark:text-neutral-100">
-            <p className="text-6xl" aria-hidden="true">
-              🎁
-            </p>
-            <p className="mt-3 font-display text-2xl font-semibold text-gold-dark">{textoPremio(cofre)}</p>
-            {cofre.xp > 0 && <p className="mt-1 text-sm text-neutral-500">{t.masXp(cofre.xp)}</p>}
-            <button
-              type="button"
-              onClick={() => setCofre(null)}
-              className="mt-5 w-full rounded-xl bg-accent px-4 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-accent-hover"
-            >
-              {t.cerrar}
-            </button>
-          </div>
-        </div>
-      )}
+      {mostrarCofre &&
+        createPortal(
+          <CofreGrande
+            titulo={t.cofreTitulo}
+            aria={t.cofreTitulo}
+            ayuda={tRacha.tocaCofre}
+            etiquetaAbrir={t.abrirCofre}
+            etiquetaContinuar={t.cerrar}
+            etiquetaCerrar={t.cerrar}
+            onAbrir={abrirEnGrande}
+            onCerrar={() => setMostrarCofre(false)}
+          />,
+          document.body
+        )}
     </section>
   );
 }

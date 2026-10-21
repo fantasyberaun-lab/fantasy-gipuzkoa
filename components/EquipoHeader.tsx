@@ -15,6 +15,7 @@ import TutorialNiveles from "@/components/TutorialNiveles";
 import NivelChip from "@/components/NivelChip";
 import MinijuegosChip from "@/components/MinijuegosChip";
 import { useT } from "@/components/IdiomaProvider";
+import { sonar } from "@/lib/sonido";
 
 // Contenido de la cabecera morada: escudo, nombre del equipo, liga y saldo.
 export default function EquipoHeader() {
@@ -190,7 +191,12 @@ export function EquipoAcciones() {
   return (
     <div className="mb-5 grid grid-cols-2 gap-2.5 sm:gap-3">
       {!cargando && equipo.id ? (
-        <Link href={`/managers/${equipo.id}`} className={TARJETA} data-tutorial="perfil">
+        <Link
+          href={`/managers/${equipo.id}`}
+          onClick={() => sonar("pestana")}
+          className={TARJETA}
+          data-tutorial="perfil"
+        >
           <ContenidoTarjeta
             icono={
               conAvatar ? (
@@ -222,7 +228,10 @@ export function EquipoAcciones() {
 
       <button
         type="button"
-        onClick={() => setMostrarModalLiga(true)}
+        onClick={() => {
+          sonar("pestana");
+          setMostrarModalLiga(true);
+        }}
         disabled={cargando}
         className={TARJETA}
       >

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/components/IdiomaProvider";
+import { sonar } from "@/lib/sonido";
 import { esJuego, JUEGOS } from "@/lib/minijuegos";
 import {
   EVENTO_MINIJUEGOS,
@@ -52,6 +53,7 @@ export default function MinijuegosApp() {
   }, [cargar]);
 
   function irA(tab: string) {
+    if (tab !== activa) sonar("pestana");
     router.replace(`/minijuegos?tab=${tab}`, { scroll: false });
   }
 

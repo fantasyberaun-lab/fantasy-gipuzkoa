@@ -27,6 +27,7 @@ import {
 import { motivoBloqueoTitular } from "@/lib/titulares";
 import { clausulazosCerrados, proximaTandaMercado } from "@/lib/mercadoCountdown";
 import { useT } from "@/components/IdiomaProvider";
+import { sonar } from "@/lib/sonido";
 import {
   aceptarOfertaDB,
   blindarJugadorDB,
@@ -741,7 +742,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     // el importe. `valorMercado` se conserva en la firma por los llamadores.
     void valorMercado;
     const resultado = await venderJugadorDB(supabase, id, equipo.leagueId);
-    if (resultado.ok) await recargarJuego();
+    if (resultado.ok) {
+      sonar("vender");
+      await recargarJuego();
+    }
     return resultado;
   }
 
@@ -757,7 +761,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
       return { ok: false, mensaje: t.mercado.clausulazosCerrados };
     }
     const resultado = await pagarClausulaDB(supabase, jugadorId, equipo.leagueId);
-    if (resultado.ok) await recargarJuego();
+    if (resultado.ok) {
+      sonar("fichar");
+      await recargarJuego();
+    }
     return resultado;
   }
 
@@ -801,7 +808,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
   async function aceptarOferta(ofertaId: string): Promise<ResultadoAccion> {
     const resultado = await aceptarOfertaDB(supabase, ofertaId);
-    if (resultado.ok) await recargarJuego();
+    if (resultado.ok) {
+      sonar("vender");
+      await recargarJuego();
+    }
     return resultado;
   }
 
@@ -814,7 +824,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   async function ficharJugador(jugadorId: string): Promise<ResultadoAccion> {
     if (!equipo.leagueId) return { ok: false, mensaje: t.juego.sinEquipo };
     const resultado = await ficharJugadorDB(supabase, jugadorId, equipo.leagueId);
-    if (resultado.ok) await recargarJuego();
+    if (resultado.ok) {
+      sonar("fichar");
+      await recargarJuego();
+    }
     return resultado;
   }
 
@@ -828,7 +841,10 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     }
     // El límite (saldo + deuda máxima - otras pujas) lo valida el servidor.
     const resultado = await pujarMercadoDB(supabase, listingId, importe, equipo.leagueId);
-    if (resultado.ok) await recargarPujasYMercado();
+    if (resultado.ok) {
+      sonar("clic");
+      await recargarPujasYMercado();
+    }
     return resultado;
   }
 
@@ -944,7 +960,11 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         venderJugador,
         ponerALaVenta: (id) => accionVentaMaquina(ponerALaVentaDB, id),
         quitarDeLaVenta: (id) => accionVentaMaquina(quitarDeLaVentaDB, id),
-        aceptarOfertaMaquina: (id) => accionVentaMaquina(aceptarOfertaMaquinaDB, id),
+        aceptarOfertaMaquina: async (id) => {
+          const resultado = await accionVentaMaquina(aceptarOfertaMaquinaDB, id);
+          if (resultado.ok) sonar("vender");
+          return resultado;
+        },
         rechazarOfertaMaquina: (id) => accionVentaMaquina(rechazarOfertaMaquinaDB, id),
         pagarClausula,
         subirClausula,

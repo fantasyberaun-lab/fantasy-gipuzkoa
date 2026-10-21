@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { createClient } from "@/lib/supabase/client";
 import { useGameState } from "@/components/GameStateProvider";
+import CofreGrande, { type ResultadoAbrir } from "@/components/CofreGrande";
 import { useT } from "@/components/IdiomaProvider";
 import { redondear2 } from "@/lib/saldo";
 import {
@@ -13,8 +14,6 @@ import {
   type EstadoRacha,
   type ResultadoCofre,
 } from "@/lib/supabase/rachaQueries";
-
-type Cofre = Extract<ResultadoCofre, { ok: true }>;
 
 // Aviso a otros componentes (pestaña de niveles) de que ha cambiado la XP.
 export const EVENTO_XP = "fantasy:xp";
@@ -35,8 +34,8 @@ function PuntosCiclo({ hechos, total }: { hechos: number; total: number }) {
   );
 }
 
-// Modal del cofre: primero cerrado; al tocarlo se abre de verdad (el premio se
-// sortea en el servidor) y enseña lo ganado.
+// Cofre a pantalla completa: primero cerrado; al tocarlo se abre de verdad (el
+// premio se sortea en el servidor) y enseña lo ganado.
 function ModalCofre({
   racha,
   onAbrir,
@@ -47,75 +46,35 @@ function ModalCofre({
   onCerrar: () => void;
 }) {
   const t = useT();
-  const [abriendo, setAbriendo] = useState(false);
-  const [cofre, setCofre] = useState<Cofre | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  async function abrir() {
-    if (abriendo || cofre) return;
-    setAbriendo(true);
-    setError(null);
+  async function abrir(): Promise<ResultadoAbrir> {
     const r = await onAbrir();
-    setAbriendo(false);
-    if (r.ok) setCofre(r);
-    else setError(r.mensaje);
+    if (!r.ok) return { ok: false, mensaje: r.mensaje };
+    return {
+      ok: true,
+      premio: (
+        <>
+          <p className="font-display text-5xl font-semibold text-gold">
+            +{redondear2(r.importeCofre)} M
+          </p>
+          <p className="mt-1 text-base font-semibold text-gold-dark">{t.racha.masXp(r.xp)}</p>
+          <p className="mt-2 text-sm text-white/70">{t.racha.ingresadoEquipos(r.equipos)}</p>
+        </>
+      ),
+    };
   }
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={t.racha.cofreAria}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-    >
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center text-neutral-900 shadow-xl dark:bg-neutral-900 dark:text-neutral-100">
-        <p className="text-sm font-medium text-neutral-500">
-          {t.racha.diasDeRachaExclamacion(cofre?.racha ?? racha)}
-        </p>
-        <button
-          onClick={abrir}
-          disabled={abriendo || cofre !== null}
-          className={`mx-auto mt-4 block text-7xl transition-transform duration-300 ${
-            cofre ? "scale-110" : "animate-bounce hover:scale-110"
-          }`}
-          aria-label={t.racha.abrirCofre}
-        >
-          {cofre ? "💰" : "🎁"}
-        </button>
-        {cofre ? (
-          <>
-            <p className="mt-4 font-display text-4xl font-semibold text-accent">
-              +{redondear2(cofre.importeCofre)} M
-            </p>
-            <p className="mt-1 text-sm font-semibold text-gold-dark">
-              {t.racha.masXp(cofre.xp)}
-            </p>
-            <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
-              {t.racha.ingresadoEquipos(cofre.equipos)}
-            </p>
-            <button
-              onClick={onCerrar}
-              className="mt-5 w-full rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover"
-            >
-              {t.racha.aFichar}
-            </button>
-          </>
-        ) : (
-          <>
-            <p className="mt-4 text-sm text-neutral-600 dark:text-neutral-400">{t.racha.tocaCofre}</p>
-            {error && <p className="mt-2 text-xs text-negative dark:text-red-400">{error}</p>}
-            {error && (
-              <button
-                onClick={onCerrar}
-                className="mt-4 w-full rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium dark:border-neutral-700"
-              >
-                {t.comun.cerrar}
-              </button>
-            )}
-          </>
-        )}
-      </div>
-    </div>
+    <CofreGrande
+      titulo={t.racha.diasDeRachaExclamacion(racha)}
+      aria={t.racha.cofreAria}
+      ayuda={t.racha.tocaCofre}
+      etiquetaAbrir={t.racha.abrirCofre}
+      etiquetaContinuar={t.racha.aFichar}
+      etiquetaCerrar={t.comun.cerrar}
+      onAbrir={abrir}
+      onCerrar={onCerrar}
+    />
   );
 }
 
