@@ -10,8 +10,10 @@ import { EliminarCuentaConfirmacion } from "@/components/EliminarCuentaButton";
 import SelectorIdioma from "@/components/SelectorIdioma";
 import BuzonSugerencias from "@/components/BuzonSugerencias";
 import Segmentado from "@/components/Segmentado";
+import AjusteSonido from "@/components/AjusteSonido";
 import { useT } from "@/components/IdiomaProvider";
 import { createClient } from "@/lib/supabase/client";
+import { sonar } from "@/lib/sonido";
 import { fetchPerfilManager } from "@/lib/supabase/queries";
 import { RESPONSABLE } from "@/lib/legal/config";
 import { REDES_CLUB } from "@/lib/redes";
@@ -186,6 +188,10 @@ function VistaConfiguracion({
           {t.ajustes.temaAutoAyuda}
         </p>
       </Apartado>
+
+      <Apartado titulo={t.ajustes.sonido}>
+        <AjusteSonido />
+      </Apartado>
     </div>
   );
 }
@@ -284,6 +290,12 @@ export default function MenuAjustes() {
     return () => document.removeEventListener("keydown", alTeclear);
   }, [abierto]);
 
+  // Cambio de apartado dentro del menú: mismo "blup" que las pestañas de la app.
+  function irA(v: Vista) {
+    sonar("pestana");
+    setVista(v);
+  }
+
   function cerrar() {
     setAbierto(false);
     setVista("inicio");
@@ -315,7 +327,7 @@ export default function MenuAjustes() {
             {vista !== "inicio" && (
               <button
                 type="button"
-                onClick={() => setVista("inicio")}
+                onClick={() => irA("inicio")}
                 aria-label={t.comun.volver}
                 className="-ml-1 flex h-8 w-8 items-center justify-center rounded-full text-white/80 hover:bg-white/10 hover:text-gold"
               >
@@ -341,31 +353,31 @@ export default function MenuAjustes() {
                 d={D_USUARIO}
                 titulo={t.ajustes.titulos.cuenta}
                 detalle={t.ajustes.miCuentaDetalle}
-                onClick={() => setVista("cuenta")}
+                onClick={() => irA("cuenta")}
               />
               <Fila
                 d={D_AJUSTES}
                 titulo={t.ajustes.titulos.configuracion}
                 detalle={t.ajustes.configuracionDetalle}
-                onClick={() => setVista("configuracion")}
+                onClick={() => irA("configuracion")}
               />
               <Fila
                 d={D_ESCUDO}
                 titulo={t.ajustes.titulos.legal}
                 detalle={t.ajustes.legalDetalle}
-                onClick={() => setVista("legal")}
+                onClick={() => irA("legal")}
               />
               <Fila
                 d={D_GLOBO}
                 titulo={t.ajustes.titulos.redes}
                 detalle={t.ajustes.redesDetalle}
-                onClick={() => setVista("redes")}
+                onClick={() => irA("redes")}
               />
               <Fila
                 d={D_BOMBILLA}
                 titulo={t.ajustes.titulos.sugerencias}
                 detalle={t.sugerencias.detalleMenu}
-                onClick={() => setVista("sugerencias")}
+                onClick={() => irA("sugerencias")}
               />
               {esRoot && (
                 <Fila
@@ -379,7 +391,7 @@ export default function MenuAjustes() {
 
               <button
                 type="button"
-                onClick={() => setVista("eliminar")}
+                onClick={() => irA("eliminar")}
                 className="mx-auto mt-3 text-xs text-negative underline underline-offset-2 hover:opacity-80"
               >
                 {t.ajustes.eliminarCuenta}

@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useIdioma } from "@/components/IdiomaProvider";
+import { sonar } from "@/lib/sonido";
 import {
   iniciarPartidaDB,
   responderPartidaDB,
@@ -100,6 +101,7 @@ export function usePartida(juego: JuegoId, { pausaTrasRespuesta, onCambio }: Opc
       }
       setUltima(r);
       setPuntos(r.puntos);
+      sonar(r.correcta ? "acierto" : "fallo");
       if (r.terminada) {
         setFinal(r.final);
         setPendiente(null);

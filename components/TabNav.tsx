@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { useGameState } from "@/components/GameStateProvider";
 import { useT } from "@/components/IdiomaProvider";
 import { useChat } from "@/components/ChatProvider";
+import { sonar } from "@/lib/sonido";
 
 // Iconos (trazo, 24x24) para la barra inferior del móvil.
 const icon = (d: string) => (
@@ -117,6 +118,7 @@ export default function TabNav() {
             <Link
               key={tab.href}
               href={tab.href}
+              onClick={() => !isActive && sonar("pestana")}
               className={`-mb-px flex items-center gap-1.5 whitespace-nowrap border-b-[3px] pb-3 text-[15px] font-semibold transition-colors ${
                 isActive
                   ? "border-gold text-accent"
@@ -143,6 +145,7 @@ export default function TabNav() {
               <li key={tab.href} className="min-w-0 flex-1">
                 <Link
                   href={tab.href}
+                  onClick={() => !isActive && sonar("pestana")}
                   aria-current={isActive ? "page" : undefined}
                   className={`relative flex flex-col items-center gap-0.5 px-0.5 pb-2 pt-2 text-[10px] font-medium transition-colors ${
                     isActive ? "text-gold" : "text-white/60"

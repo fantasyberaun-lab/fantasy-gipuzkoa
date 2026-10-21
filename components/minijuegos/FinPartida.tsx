@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useIdioma, useT } from "@/components/IdiomaProvider";
 import { formatoMillones } from "@/lib/minijuegos";
+import { sonar } from "@/lib/sonido";
 import type { FinalPartida } from "@/lib/supabase/minijuegosQueries";
 import RepasoPartida from "./RepasoPartida";
 import type { Ronda } from "./usePartida";
@@ -28,6 +29,12 @@ export default function FinPartida({
   const ranked = !!final?.ranked;
   const r = final?.recompensa ?? null;
   const [verRepaso, setVerRepaso] = useState(false);
+
+  // Un instante después del sonido de la última respuesta, para que no se pisen.
+  useEffect(() => {
+    const id = setTimeout(() => sonar(perfecta ? "perfecta" : "fin"), 450);
+    return () => clearTimeout(id);
+  }, [perfecta]);
 
   return (
     <div className="space-y-4 text-center">
