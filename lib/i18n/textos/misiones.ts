@@ -10,7 +10,7 @@ export default definirTextos(
     volver: "← Volver",
     tarjeta: "Misiones",
     tarjetaDetalle: "Gana XP y sube de nivel",
-    tarjetaListas: (n: number) => `${n} por reclamar`,
+    tarjetaListas: (n: number) => `${n} ${n === 1 ? "misión lista" : "misiones listas"}`,
     intro:
       "Cumple misiones para ganar XP. Al reclamar una se desbloquea la siguiente de su serie, más difícil y con más XP. Son largas: están pensadas para durar años.",
     cargando: "Cargando misiones…",
@@ -319,7 +319,7 @@ export default definirTextos(
       volver: "← Itzuli",
       tarjeta: "Misioak",
       tarjetaDetalle: "Irabazi XP eta igo maila",
-      tarjetaListas: (n: number) => `${n} jasotzeko`,
+      tarjetaListas: (n: number) => `${n} misio prest`,
       intro:
         "Bete misioak XP irabazteko. Bat jasotzean, bere seriako hurrengoa desblokeatzen da, zailagoa eta XP gehiagorekin. Luzeak dira: urteak irauteko pentsatuta daude.",
       cargando: "Misioak kargatzen…",
@@ -624,7 +624,7 @@ export default definirTextos(
       volver: "← Back",
       tarjeta: "Missions",
       tarjetaDetalle: "Earn XP and level up",
-      tarjetaListas: (n: number) => `${n} to claim`,
+      tarjetaListas: (n: number) => `${n} ${n === 1 ? "mission" : "missions"} ready`,
       intro:
         "Complete missions to earn XP. Claiming one unlocks the next in its series, harder and worth more XP. They're long: built to last for years.",
       cargando: "Loading missions…",
