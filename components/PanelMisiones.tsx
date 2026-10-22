@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useGameState } from "@/components/GameStateProvider";
 import { useIdioma, useT } from "@/components/IdiomaProvider";
@@ -34,14 +33,13 @@ const ICONO: Record<string, string> = {
   tt8: "🎡", puntosmj: "🎮", alinea120: "🌌", sinelo: "🕵️", sinelov: "🥷",
 };
 
-// Página /misiones: pestañas por ámbito (liga pública, ligas privadas, cuenta,
+// Pestaña "Misiones" de Mi perfil (/misiones redirige allí): pestañas por ámbito (liga pública, ligas privadas, cuenta,
 // minijuegos) y, dentro, una tarjeta por serie con su siguiente misión por reclamar.
-export default function PanelMisiones() {
+export default function PanelMisiones({ onVerNiveles }: { onVerNiveles?: () => void }) {
   const supabase = createClient();
   const t = useT().misiones;
   const { locale } = useIdioma();
   const { equipo } = useGameState();
-  const router = useRouter();
   const [estado, setEstado] = useState<EstadoMisiones | null>(null);
   const [error, setError] = useState(false);
   const [pestana, setPestana] = useState<AmbitoMision>("pub");
@@ -68,13 +66,6 @@ export default function PanelMisiones() {
     const id = setTimeout(() => setAviso(null), 3500);
     return () => clearTimeout(id);
   }, [aviso]);
-
-  // Vuelve a la pantalla de la que vienes; si se ha abierto directamente (sin historial),
-  // a la plantilla.
-  function volver() {
-    if (window.history.length > 1) router.back();
-    else router.push("/plantilla");
-  }
 
   async function reclamar(m: Mision) {
     if (reclamando) return;
@@ -117,14 +108,6 @@ export default function PanelMisiones() {
 
   return (
     <div className="flex flex-col gap-4">
-      <button
-        type="button"
-        onClick={volver}
-        className="self-start text-sm font-semibold text-accent hover:underline"
-      >
-        {t.volver}
-      </button>
-
       <div>
         <h2 className="font-display text-2xl font-semibold">{t.titulo}</h2>
         <p className="mt-1 text-sm text-neutral-500">{t.intro}</p>
@@ -261,7 +244,15 @@ export default function PanelMisiones() {
         </section>
       ))}
 
-      {equipo.id && (
+      {onVerNiveles ? (
+        <button
+          type="button"
+          onClick={onVerNiveles}
+          className="text-center text-sm font-semibold text-accent hover:underline"
+        >
+          {t.verNiveles}
+        </button>
+      ) : equipo.id && (
         <Link
           href={`/managers/${equipo.id}?tab=niveles`}
           className="text-center text-sm font-semibold text-accent hover:underline"

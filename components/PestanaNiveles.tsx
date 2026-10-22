@@ -11,11 +11,16 @@ import { AVATARES, nombreAvatar } from "@/lib/avatares";
 import { XP_COFRE, XP_LOGIN, XP_POR_PUNTO } from "@/lib/niveles";
 import { fetchEstadoNivel, type EstadoNivel } from "@/lib/supabase/nivelesQueries";
 import Image from "next/image";
-import Link from "next/link";
 
 // Pestaña "Niveles" del perfil propio: nivel y experiencia, el siguiente icono
 // por desbloquear y todos los iconos (elegibles o bloqueados). Ver 0086_niveles.sql.
-export default function PestanaNiveles({ nombreManager }: { nombreManager: string }) {
+export default function PestanaNiveles({
+  nombreManager,
+  onVerMisiones,
+}: {
+  nombreManager: string;
+  onVerMisiones?: () => void;
+}) {
   const supabase = createClient();
   const t = useT();
   const tn = t.niveles;
@@ -120,9 +125,13 @@ export default function PestanaNiveles({ nombreManager }: { nombreManager: strin
           <li>{tn.ganarCofre(XP_COFRE)}</li>
           <li>{tn.ganarJornada(XP_POR_PUNTO)}</li>
           <li>
-            <Link href="/misiones" className="text-accent underline-offset-2 hover:underline">
+            <button
+              type="button"
+              onClick={onVerMisiones}
+              className="text-left text-accent underline-offset-2 hover:underline"
+            >
               {tn.ganarMision}
-            </Link>
+            </button>
           </li>
         </ul>
       </div>

@@ -10,12 +10,14 @@ import HistorialValorChart from "@/components/HistorialValorChart";
 import AvatarPerfil from "@/components/AvatarPerfil";
 import InsigniaNivel from "@/components/InsigniaNivel";
 import PestanaNiveles from "@/components/PestanaNiveles";
+import PanelMisiones from "@/components/PanelMisiones";
 import { useGameState } from "@/components/GameStateProvider";
 import {
   fetchEvolucionValorPlantilla,
   fetchPerfilManager,
 } from "@/lib/supabase/queries";
 import { fetchNivelEquipo, type NivelPublico } from "@/lib/supabase/nivelesQueries";
+import { EVENTO_MISIONES, fetchEstadoMisiones } from "@/lib/supabase/misionesQueries";
 import type { PerfilManager, PuntoValorPlantilla } from "@/lib/types";
 import type { PuntoValor } from "@/lib/supabase/jugadoresQueries";
 
@@ -70,13 +72,30 @@ function PerfilManagerContenido() {
   const evolucion: PuntoValorPlantilla[] = datos?.[1] ?? [];
   // Si se llega desde el botón "Jornadas" de Clasificación (?tab=jornadas).
   const searchParams = useSearchParams();
-  const [pestana, setPestana] = useState<"resumen" | "jornadas" | "niveles">(
-    searchParams.get("tab") === "jornadas"
-      ? "jornadas"
-      : searchParams.get("tab") === "niveles"
-        ? "niveles"
-        : "resumen"
+  const tabInicial = searchParams.get("tab");
+  const [pestana, setPestana] = useState<"resumen" | "jornadas" | "niveles" | "misiones">(
+    tabInicial === "jornadas" || tabInicial === "niveles" || tabInicial === "misiones"
+      ? tabInicial
+      : "resumen"
   );
+  // Misiones listas para reclamar (punto amarillo en la pestaña). Solo en el perfil propio.
+  const [misionesListas, setMisionesListas] = useState(0);
+  const esMio = perfil?.esMio ?? false;
+  useEffect(() => {
+    if (!esMio) return;
+    let vigente = true;
+    async function cargarListas() {
+      const e = await fetchEstadoMisiones(supabase);
+      if (vigente && e) setMisionesListas(e.pendientes);
+    }
+    cargarListas();
+    window.addEventListener(EVENTO_MISIONES, cargarListas);
+    return () => {
+      vigente = false;
+      window.removeEventListener(EVENTO_MISIONES, cargarListas);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [esMio]);
 
 
   // La gráfica de valor sirve tal cual para la plantilla: un punto por día.
@@ -117,8 +136,11 @@ function PerfilManagerContenido() {
     ["resumen", tm.resumen],
     ["jornadas", tm.jornadas],
   ];
-  // Los niveles son solo del propio perfil.
-  if (perfil.esMio) pestanas.push(["niveles", t.niveles.pestana]);
+  // Niveles y misiones son solo del propio perfil.
+  if (perfil.esMio) {
+    pestanas.push(["niveles", t.niveles.pestana]);
+    pestanas.push(["misiones", t.misiones.titulo]);
+  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -165,6 +187,12 @@ function PerfilManagerContenido() {
             }`}
           >
             {etiqueta}
+            {clave === "misiones" && misionesListas > 0 && (
+              <span
+                className="ml-1.5 inline-block h-2 w-2 rounded-full bg-gold align-middle"
+                aria-hidden="true"
+              />
+            )}
           </button>
         ))}
       </div>
@@ -203,7 +231,16 @@ function PerfilManagerContenido() {
 
       {pestana === "jornadas" && <AlineacionesJornadas equipoId={id} />}
 
-      {pestana === "niveles" && perfil.esMio && <PestanaNiveles nombreManager={perfil.nombreManager} />}
+      {pestana === "niveles" && perfil.esMio && (
+        <PestanaNiveles
+          nombreManager={perfil.nombreManager}
+          onVerMisiones={() => setPestana("misiones")}
+        />
+      )}
+
+      {pestana === "misiones" && perfil.esMio && (
+        <PanelMisiones onVerNiveles={() => setPestana("niveles")} />
+      )}
     </div>
   );
 }
