@@ -242,7 +242,9 @@ export function EquipoAcciones() {
             }
             titulo={t.ajustes.miPerfil}
             detalle={
-              misionesListas > 0 ? t.misiones.listas(misionesListas) : t.ajustes.miPerfilDetalle
+              misionesListas > 0
+                ? t.misiones.tarjetaListas(misionesListas)
+                : t.ajustes.miPerfilDetalle
             }
             destacado={misionesListas > 0}
           />
