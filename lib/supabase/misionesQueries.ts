@@ -63,6 +63,18 @@ export async function fetchEstadoMisiones(supabase: Supabase): Promise<EstadoMis
   };
 }
 
+// Guía de estreno (ver 0108_tutorial_misiones.sql). Ante un error se da por vista
+// para no molestar con una guía que no se podría marcar.
+export async function fetchTutorialMisionesVisto(supabase: Supabase): Promise<boolean> {
+  const { data, error } = await supabase.rpc("tutorial_misiones_visto");
+  if (error) return true;
+  return data !== false;
+}
+
+export async function marcarTutorialMisionesDB(supabase: Supabase): Promise<void> {
+  await supabase.rpc("marcar_tutorial_misiones");
+}
+
 export async function reclamarMisionDB(
   supabase: Supabase,
   serie: string

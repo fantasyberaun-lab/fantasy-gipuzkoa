@@ -165,7 +165,7 @@ export default function PanelMisiones({ onVerNiveles }: { onVerNiveles?: () => v
           <ul className="flex flex-col gap-3">
             {visibles
               .filter((m) => m.grupo === g)
-              .map((m) => {
+              .map((m, idx) => {
                 const serie = textos[m.base];
                 const titulo = serie?.titulo ?? m.base;
                 const descripcion = serie ? serie.texto(m.objetivo, f(m.objetivo)) : "";
@@ -185,6 +185,7 @@ export default function PanelMisiones({ onVerNiveles }: { onVerNiveles?: () => v
                 return (
                   <li
                     key={m.serie}
+                    data-tutorial={g === grupos[0] && idx === 0 ? "misiones-serie" : undefined}
                     className={`rounded-xl border bg-white p-4 dark:bg-neutral-900 ${
                       m.lista
                         ? "border-gold ring-1 ring-gold/60"

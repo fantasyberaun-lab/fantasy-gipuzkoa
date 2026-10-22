@@ -299,6 +299,19 @@ export default definirTextos(
         texto: (_n: number, f: string) => `Suma ${f} puntos en total en los minijuegos.`,
       },
     },
+    // Guía de estreno (TutorialMisiones)
+    tutorial: {
+      saltar: "Saltar",
+      siguiente: "Siguiente",
+      entendido: "¡Entendido!",
+      pasoDe: (n: number, total: number) => `${n} de ${total}`,
+      perfilTitulo: "Estrenamos misiones",
+      perfilTexto:
+        "Cumple objetivos y gana XP para subir de nivel. Cuando una misión esté lista, tu tarjeta de Mi perfil se marcará en dorado y te llevará directo a ella.",
+      escalonTitulo: "Así funcionan",
+      escalonTexto:
+        "Cada misión tiene una barra de progreso. Al llenarla, pulsa «Reclamar» para cobrar su XP y se desbloquea la siguiente de la serie, más difícil y con más XP. Hay una pestaña por cada sitio donde juegas: liga pública, ligas privadas, minijuegos y una general para tu cuenta. Cada una lleva su propio progreso.",
+    },
   },
   {
     eu: {
@@ -591,6 +604,19 @@ export default definirTextos(
           titulo: "Minijokoen puntuak",
           texto: (_n: number, f: string) => `Batu ${f} puntu guztira minijokoetan.`,
         },
+      },
+      // Guía de estreno (TutorialMisiones)
+      tutorial: {
+        saltar: "Saltatu",
+        siguiente: "Hurrengoa",
+        entendido: "Ulertu dut!",
+        pasoDe: (n: number, total: number) => `${n} / ${total}`,
+        perfilTitulo: "Misioak iritsi dira",
+        perfilTexto:
+          "Bete helburuak eta irabazi XP maila igotzeko. Misio bat prest dagoenean, Nire profila txartela urrez markatuko da eta zuzenean eramango zaitu.",
+        escalonTitulo: "Horrela funtzionatzen dute",
+        escalonTexto:
+          "Misio bakoitzak aurrerapen-barra bat du. Betetzean, sakatu «Jaso» bere XP kobratzeko, eta saileko hurrengoa irekitzen da, zailagoa eta XP gehiagorekin. Fitxa bat dago jokatzen duzun leku bakoitzeko: liga publikoa, liga pribatuak, minijokoak eta zure kontuarentzako orokor bat. Bakoitzak bere aurrerapena darama.",
       },
     },
     en: {
@@ -886,6 +912,19 @@ export default definirTextos(
           titulo: "Minigame points",
           texto: (_n: number, f: string) => `Score ${f} points in total in the minigames.`,
         },
+      },
+      // Guía de estreno (TutorialMisiones)
+      tutorial: {
+        saltar: "Skip",
+        siguiente: "Next",
+        entendido: "Got it!",
+        pasoDe: (n: number, total: number) => `${n} of ${total}`,
+        perfilTitulo: "Missions are here",
+        perfilTexto:
+          "Complete goals and earn XP to level up. When a mission is ready, your My profile card turns gold and takes you straight to it.",
+        escalonTitulo: "How they work",
+        escalonTexto:
+          "Each mission has a progress bar. When it fills up, tap “Claim” to collect its XP and the next one in the series unlocks, harder and worth more XP. There is one tab for each place you play: public league, private leagues, minigames and a general one for your account. Each keeps its own progress.",
       },
     },
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useGameState } from "@/components/GameStateProvider";
@@ -12,10 +12,13 @@ import InfoReglasButton from "@/components/InfoReglasButton";
 import AvatarPerfil from "@/components/AvatarPerfil";
 import RachaDiaria from "@/components/RachaDiaria";
 import TutorialNiveles from "@/components/TutorialNiveles";
+import TutorialMisiones from "@/components/TutorialMisiones";
 import NivelChip from "@/components/NivelChip";
 import MinijuegosChip from "@/components/MinijuegosChip";
 import { useT } from "@/components/IdiomaProvider";
 import { sonar } from "@/lib/sonido";
+import { createClient } from "@/lib/supabase/client";
+import { EVENTO_MISIONES, fetchEstadoMisiones } from "@/lib/supabase/misionesQueries";
 
 // Contenido de la cabecera morada: escudo, nombre del equipo, liga y saldo.
 export default function EquipoHeader() {
@@ -92,6 +95,7 @@ export default function EquipoHeader() {
           <RachaDiaria />
           <MinijuegosChip />
           <TutorialNiveles />
+          <TutorialMisiones />
           <div className="ml-auto shrink-0 rounded-xl bg-white/10 px-4 py-2 ring-1 ring-white/15 sm:ml-0">
             <p className="text-xs font-medium text-white/70">{t.ajustes.saldo}</p>
             <p className="font-display text-2xl font-semibold leading-tight text-gold [&_span]:text-red-300">
@@ -154,10 +158,12 @@ function ContenidoTarjeta({
   icono,
   titulo,
   detalle,
+  destacado = false,
 }: {
   icono: React.ReactNode;
   titulo: string;
   detalle: string;
+  destacado?: boolean;
 }) {
   return (
     <>
@@ -166,7 +172,13 @@ function ContenidoTarjeta({
         <span className="block truncate text-sm font-semibold leading-tight text-neutral-900 dark:text-neutral-100 sm:text-[15px]">
           {titulo}
         </span>
-        <span className="mt-0.5 block truncate text-xs text-neutral-500">{detalle}</span>
+        <span
+          className={`mt-0.5 block truncate text-xs ${
+            destacado ? "font-semibold text-accent" : "text-neutral-500"
+          }`}
+        >
+          {detalle}
+        </span>
       </span>
       <Icono
         d={D_FLECHA}
@@ -184,6 +196,22 @@ export function EquipoAcciones() {
   const { equipo, cargando, avatar } = useGameState();
   const t = useT();
   const [mostrarModalLiga, setMostrarModalLiga] = useState(false);
+  // Misiones listas para reclamar: marca en la tarjeta "Mi perfil".
+  const [misionesListas, setMisionesListas] = useState(0);
+  useEffect(() => {
+    let vigente = true;
+    const supabase = createClient();
+    async function cargarListas() {
+      const e = await fetchEstadoMisiones(supabase);
+      if (vigente && e) setMisionesListas(e.pendientes);
+    }
+    cargarListas();
+    window.addEventListener(EVENTO_MISIONES, cargarListas);
+    return () => {
+      vigente = false;
+      window.removeEventListener(EVENTO_MISIONES, cargarListas);
+    };
+  }, [equipo.leagueId]);
   // Avatares en prueba: solo root, y solo si ha elegido uno (ver 0077).
   const conAvatar = !cargando && avatar !== null;
   const circulo =
@@ -193,9 +221,13 @@ export function EquipoAcciones() {
     <div className="mb-5 grid grid-cols-2 gap-2.5 sm:gap-3">
       {!cargando && equipo.id ? (
         <Link
-          href={`/managers/${equipo.id}`}
+          href={`/managers/${equipo.id}${misionesListas > 0 ? "?tab=misiones" : ""}`}
           onClick={() => sonar("pestana")}
-          className={TARJETA}
+          className={`${TARJETA} ${
+            misionesListas > 0
+              ? "!border-gold !bg-gold/10 dark:!border-gold/70 dark:!bg-gold/10"
+              : ""
+          }`}
           data-tutorial="perfil"
         >
           <ContenidoTarjeta
@@ -209,7 +241,10 @@ export function EquipoAcciones() {
               )
             }
             titulo={t.ajustes.miPerfil}
-            detalle={t.ajustes.miPerfilDetalle}
+            detalle={
+              misionesListas > 0 ? t.misiones.listas(misionesListas) : t.ajustes.miPerfilDetalle
+            }
+            destacado={misionesListas > 0}
           />
         </Link>
       ) : (
