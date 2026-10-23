@@ -48,7 +48,13 @@ type Props = PlantillaSlot & {
   onQuitarDeLaVenta?: () => Promise<{ ok: boolean; mensaje?: string }>;
   onAceptarOferta?: () => Promise<{ ok: boolean; mensaje?: string }>;
   onRechazarOferta?: () => Promise<{ ok: boolean; mensaje?: string }>;
+  // Ofertas directas de otros managers (ligas privadas): se deciden aquí, por oferta.
+  onAceptarOfertaManager?: (ofertaId: string) => Promise<{ ok: boolean; mensaje?: string }>;
+  onRechazarOfertaManager?: (ofertaId: string) => Promise<{ ok: boolean; mensaje?: string }>;
 };
+
+// Oferta por el jugador, venga de la máquina o de otro manager.
+type OfertaFicha = { clave: string; importe: number; ofertaId?: string; equipo?: string };
 
 // Fila compacta de un jugador de la plantilla. Al tocarla se abre una hoja
 // inferior con todas las acciones (capitán, blindar, cláusula, vender…).
@@ -79,6 +85,9 @@ export default function PlayerCard({
   onQuitarDeLaVenta,
   onAceptarOferta,
   onRechazarOferta,
+  ofertasManagers = [],
+  onAceptarOfertaManager,
+  onRechazarOfertaManager,
 }: Props) {
   const { t, idioma } = useIdioma();
   // Mismo orden que la etiqueta de torneos (primero Segunda, luego Cadete…).
@@ -109,6 +118,18 @@ export default function PlayerCard({
     ofertaMaquina !== null && jugador.valorMercado > 0
       ? Math.round(((ofertaMaquina - jugador.valorMercado) / jugador.valorMercado) * 100)
       : 0;
+
+  // Todas las ofertas por el jugador, de mayor a menor. En la fila solo sale la más alta.
+  const ofertas: OfertaFicha[] = [
+    ...(ofertaMaquina !== null ? [{ clave: "maquina", importe: ofertaMaquina }] : []),
+    ...ofertasManagers.map((o) => ({
+      clave: o.id,
+      importe: o.importe,
+      ofertaId: o.id,
+      equipo: o.equipoOferenteNombre,
+    })),
+  ].sort((a, b) => b.importe - a.importe);
+  const mejorOferta = ofertas[0]?.importe ?? null;
 
   // Poner/quitar de la venta, aceptar o rechazar: si falla, el aviso sale en la hoja.
   const accionVenta = async (accion?: () => Promise<{ ok: boolean; mensaje?: string }>) => {
@@ -235,16 +256,18 @@ export default function PlayerCard({
               <span>· {t.ficha.pts(puntosJornada)}</span>
               <span>· {jugador.valorMercado} M</span>
             </p>
-            {!ligaPublica && enVenta && (
+            {!ligaPublica && (enVenta || mejorOferta !== null) && (
               <p>
                 <span
                   className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                    ofertaMaquina !== null
+                    mejorOferta !== null
                       ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
                       : "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"
                   }`}
                 >
-                  {ofertaMaquina !== null ? t.ficha.ofertaMaquinaCorta(ofertaMaquina) : t.ficha.enVenta}
+                  {mejorOferta !== null
+                    ? `${t.ficha.ofertaMaquinaCorta(mejorOferta)}${ofertas.length > 1 ? ` (+${ofertas.length - 1})` : ""}`
+                    : t.ficha.enVenta}
                 </span>
               </p>
             )}
@@ -461,47 +484,81 @@ export default function PlayerCard({
                 >
                   {ligaPublica ? t.ficha.vender : t.ficha.ponerALaVenta}
                 </button>
-              ) : (
-                // En venta (liga privada): oferta de la máquina o a la espera de la próxima tanda.
+              ) : null}
+              {!ligaPublica && (enVenta || ofertas.length > 0) && (
+                // Ofertas por el jugador (máquina y managers, de mayor a menor) o espera de la próxima tanda.
                 <div className="rounded-lg border border-emerald-200 bg-emerald-50/60 p-3 dark:border-emerald-900 dark:bg-emerald-950/30">
-                  {ofertaMaquina !== null ? (
+                  {ofertas.length > 0 ? (
                     <>
-                      <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">
-                        {t.ficha.ofertaMaquina(ofertaMaquina)}
-                      </p>
-                      <p className="text-xs text-emerald-800/80 dark:text-emerald-300/80">
-                        {t.ficha.diferenciaValor(diferenciaOferta)}
-                      </p>
-                      <div className="mt-2 flex gap-2">
-                        <button
-                          onClick={() => accionVenta(onRechazarOferta)}
-                          disabled={enviandoVenta}
-                          className="flex-1 rounded-lg border border-neutral-300 bg-white py-2 text-sm font-medium disabled:opacity-40 dark:border-neutral-700 dark:bg-neutral-900"
-                        >
-                          {t.ficha.rechazarOferta}
-                        </button>
-                        <button
-                          onClick={() => accionVenta(onAceptarOferta)}
-                          disabled={enviandoVenta}
-                          className="flex-1 rounded-lg bg-emerald-600 py-2 text-sm font-semibold text-white disabled:opacity-40"
-                        >
-                          {t.ficha.aceptarOferta(ofertaMaquina)}
-                        </button>
+                      {ofertas.length > 1 && (
+                        <p className="mb-2 text-xs font-semibold text-emerald-900 dark:text-emerald-200">
+                          {t.ficha.ofertasPorJugador(ofertas.length)}
+                        </p>
+                      )}
+                      <div className="flex flex-col gap-3">
+                        {ofertas.map((o, i) => {
+                          const esMaquina = o.ofertaId === undefined;
+                          const aceptar = esMaquina
+                            ? onAceptarOferta
+                            : onAceptarOfertaManager && (() => onAceptarOfertaManager(o.ofertaId!));
+                          const rechazar = esMaquina
+                            ? onRechazarOferta
+                            : onRechazarOfertaManager && (() => onRechazarOfertaManager(o.ofertaId!));
+                          return (
+                            <div key={o.clave}>
+                              <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">
+                                {esMaquina
+                                  ? t.ficha.ofertaMaquina(o.importe)
+                                  : t.ficha.ofertaDeEquipo(o.equipo ?? "", o.importe)}
+                                {i === 0 && ofertas.length > 1 && (
+                                  <span className="ml-2 rounded-full bg-emerald-200 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-900 dark:bg-emerald-800 dark:text-emerald-100">
+                                    {t.ficha.ofertaMejor}
+                                  </span>
+                                )}
+                              </p>
+                              {esMaquina && (
+                                <p className="text-xs text-emerald-800/80 dark:text-emerald-300/80">
+                                  {t.ficha.diferenciaValor(diferenciaOferta)}
+                                </p>
+                              )}
+                              <div className="mt-2 flex gap-2">
+                                <button
+                                  onClick={() => accionVenta(rechazar)}
+                                  disabled={enviandoVenta}
+                                  className="flex-1 rounded-lg border border-neutral-300 bg-white py-2 text-sm font-medium disabled:opacity-40 dark:border-neutral-700 dark:bg-neutral-900"
+                                >
+                                  {t.ficha.rechazarOferta}
+                                </button>
+                                <button
+                                  onClick={() => accionVenta(aceptar)}
+                                  disabled={enviandoVenta}
+                                  className="flex-1 rounded-lg bg-emerald-600 py-2 text-sm font-semibold text-white disabled:opacity-40"
+                                >
+                                  {t.ficha.aceptarOferta(o.importe)}
+                                </button>
+                              </div>
+                              {esMaquina && (
+                                <p className="mt-1.5 text-[11px] text-neutral-500">{t.ficha.rechazadaTexto}</p>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                      <p className="mt-1.5 text-[11px] text-neutral-500">{t.ficha.rechazadaTexto}</p>
                     </>
                   ) : (
                     <p className="text-sm text-emerald-900 dark:text-emerald-200">
                       {t.ficha.esperandoOferta(proximaTanda)}
                     </p>
                   )}
-                  <button
-                    onClick={() => accionVenta(onQuitarDeLaVenta)}
-                    disabled={enviandoVenta}
-                    className="mt-2 text-xs font-medium text-neutral-600 underline underline-offset-2 disabled:opacity-40 dark:text-neutral-300"
-                  >
-                    {t.ficha.quitarDeLaVenta}
-                  </button>
+                  {enVenta && (
+                    <button
+                      onClick={() => accionVenta(onQuitarDeLaVenta)}
+                      disabled={enviandoVenta}
+                      className="mt-3 text-xs font-medium text-neutral-600 underline underline-offset-2 disabled:opacity-40 dark:text-neutral-300"
+                    >
+                      {t.ficha.quitarDeLaVenta}
+                    </button>
+                  )}
                 </div>
               )}
               {errorVenta && <p className="text-xs text-negative">{errorVenta}</p>}

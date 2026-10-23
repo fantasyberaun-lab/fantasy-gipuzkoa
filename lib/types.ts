@@ -68,6 +68,8 @@ export interface PlantillaSlot {
   // la máquina (null mientras espera la próxima tanda o si la rechazaste).
   enVenta?: boolean;
   ofertaMaquina?: number | null;
+  // Ofertas directas de otros managers por este jugador (se rellenan en la página).
+  ofertasManagers?: OfertaRecibida[];
 }
 
 export interface MercadoListing {

@@ -92,7 +92,7 @@ export default definirTextos(
     advertenciaAMi: "El administrador te ha enviado una advertencia. Motivo: {motivo}",
     expulsion: "El administrador ha expulsado a {objetivo} de la liga. Motivo: {motivo}",
     nuevoAdmin: "{objetivo} es ahora el administrador de la liga.",
-    ofertaMaquina: "La máquina te ofrece {importe} por {jugador}. Acéptala o recházala en tu Plantilla.",
+    ofertaMaquina: "La máquina ha hecho una oferta por los jugadores que tienes a la venta. Acéptalas o recházalas en tu Plantilla.",
     nuevoAdminAMi:
       "Ahora eres el administrador de la liga: puedes gestionarla desde Clasificación → Administrar liga.",
     clausulazoYo: (obj: Txt, imp: Num) =>
@@ -175,7 +175,7 @@ export default definirTextos(
       advertenciaAMi: "Administratzaileak abisu bat bidali dizu. Arrazoia: {motivo}",
       expulsion: "Administratzaileak {objetivo} ligatik kanporatu du. Arrazoia: {motivo}",
       nuevoAdmin: "{objetivo} da orain ligako administratzailea.",
-      ofertaMaquina: "Makinak {importe} eskaintzen dizkizu {jugador} jokalariagatik. Onartu edo baztertu zure Plantillan.",
+      ofertaMaquina: "Makinak eskaintza egin du salgai dituzun jokalarien gainean. Onartu edo baztertu itzazu zure Plantillan.",
       nuevoAdminAMi:
         "Orain zu zara ligako administratzailea: Sailkapena → Liga kudeatu atalean kudea dezakezu.",
       clausulazoYo: (obj: Txt, imp: Num) =>
@@ -253,7 +253,7 @@ export default definirTextos(
       advertenciaAMi: "The admin has sent you a warning. Reason: {motivo}",
       expulsion: "The admin has expelled {objetivo} from the league. Reason: {motivo}",
       nuevoAdmin: "{objetivo} is now the league admin.",
-      ofertaMaquina: "The machine offers you {importe} for {jugador}. Accept or reject it in your Squad.",
+      ofertaMaquina: "The machine has made an offer for the players you have for sale. Accept or reject them in your Squad.",
       nuevoAdminAMi: "You're now the league admin: you can manage it from Standings → Manage league.",
       clausulazoYo: (obj: Txt, imp: Num) =>
         `You paid {jugador}'s release clause${fromEn(obj)}${forEn(imp)}.`,

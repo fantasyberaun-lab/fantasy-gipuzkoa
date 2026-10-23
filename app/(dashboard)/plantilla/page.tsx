@@ -7,7 +7,6 @@ import { useGameState } from "@/components/GameStateProvider";
 import { resumenPlantilla } from "@/lib/plantillaStats";
 import { gameConfig } from "@/lib/gameConfig";
 import { motivoBloqueoTitular, titularesPorTorneo } from "@/lib/titulares";
-import type { OfertaRecibida } from "@/lib/types";
 
 
 function Cifra({
@@ -131,96 +130,6 @@ function ResumenDePlantilla({
   );
 }
 
-function OfertasRecibidas({ ofertas }: { ofertas: OfertaRecibida[] }) {
-  const { aceptarOferta, rechazarOferta } = useGameState();
-  const tp = useT().plantilla;
-  const [abierto, setAbierto] = useState(false);
-  const [enviandoId, setEnviandoId] = useState<string | null>(null);
-  const [errorPorOferta, setErrorPorOferta] = useState<Record<string, string>>({});
-
-  const onAceptar = async (id: string) => {
-    setEnviandoId(id);
-    setErrorPorOferta((prev) => ({ ...prev, [id]: "" }));
-    const resultado = await aceptarOferta(id);
-    setEnviandoId(null);
-    if (!resultado.ok) {
-      setErrorPorOferta((prev) => ({ ...prev, [id]: resultado.mensaje }));
-    }
-  };
-
-  const onRechazar = async (id: string) => {
-    setEnviandoId(id);
-    setErrorPorOferta((prev) => ({ ...prev, [id]: "" }));
-    const resultado = await rechazarOferta(id);
-    setEnviandoId(null);
-    if (!resultado.ok) {
-      setErrorPorOferta((prev) => ({ ...prev, [id]: resultado.mensaje }));
-    }
-  };
-
-  return (
-    <div className="mb-4 rounded-xl border border-neutral-200 dark:border-neutral-800">
-      <button
-        onClick={() => setAbierto((v) => !v)}
-        className="flex w-full items-center justify-between p-3 text-left"
-      >
-        <span className="flex items-center gap-2 text-sm font-semibold">
-          {tp.ofertasRecibidas}
-          {ofertas.length > 0 && (
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-              {ofertas.length}
-            </span>
-          )}
-        </span>
-        <span className="text-neutral-400">{abierto ? "▲" : "▼"}</span>
-      </button>
-
-      {abierto && (
-        <div className="flex flex-col gap-2 border-t border-neutral-200 p-3 dark:border-neutral-800">
-          {ofertas.length === 0 ? (
-            <p className="text-sm text-neutral-500">{tp.sinOfertas}</p>
-          ) : (
-            ofertas.map((oferta) => (
-              <div
-                key={oferta.id}
-                className="flex flex-col gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-900/50 dark:bg-amber-900/10 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <p>
-                  <span className="font-medium">{oferta.equipoOferenteNombre}</span>
-                  {tp.ofertaTrasEquipo}
-                  <span className="font-semibold">{oferta.importe} M</span>
-                  {tp.ofertaTrasImporte}
-                  <span className="font-medium">{oferta.jugadorNombre}</span>
-                  {tp.ofertaFin}
-                </p>
-                <div className="flex items-center gap-2">
-                  {errorPorOferta[oferta.id] && (
-                    <p className="text-xs text-negative">{errorPorOferta[oferta.id]}</p>
-                  )}
-                  <button
-                    onClick={() => onRechazar(oferta.id)}
-                    disabled={enviandoId === oferta.id}
-                    className="rounded-lg border border-neutral-300 px-3 py-1.5 text-xs font-medium disabled:opacity-40 dark:border-neutral-700"
-                  >
-                    {tp.rechazar}
-                  </button>
-                  <button
-                    onClick={() => onAceptar(oferta.id)}
-                    disabled={enviandoId === oferta.id}
-                    className="rounded-lg bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-40 dark:bg-white dark:text-neutral-900"
-                  >
-                    {tp.aceptar}
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function PlantillaPage() {
   const {
     squad,
@@ -236,6 +145,8 @@ export default function PlantillaPage() {
     rechazarOfertaMaquina,
     subirClausula,
     ofertasRecibidas,
+    aceptarOferta,
+    rechazarOferta,
     esLigaPublica,
     cargando,
     tieneEquipo,
@@ -303,6 +214,9 @@ export default function PlantillaPage() {
         onQuitarDeLaVenta={() => quitarDeLaVenta(slot.jugador.id)}
         onAceptarOferta={() => aceptarOfertaMaquina(slot.jugador.id)}
         onRechazarOferta={() => rechazarOfertaMaquina(slot.jugador.id)}
+        ofertasManagers={ofertasRecibidas.filter((o) => o.jugadorId === slot.jugador.id)}
+        onAceptarOfertaManager={aceptarOferta}
+        onRechazarOfertaManager={rechazarOferta}
       />
     );
   };
@@ -329,8 +243,6 @@ export default function PlantillaPage() {
 
   return (
     <div>
-      {!esLigaPublica && <OfertasRecibidas ofertas={ofertasRecibidas} />}
-
       {squad.length > 0 && (
         <ResumenDePlantilla
           squad={squad}

@@ -242,10 +242,8 @@ export default function NotificacionesPage() {
     }
 
     if (n.tipo === "oferta_maquina") {
-      return rellenar(a.ofertaMaquina, {
-        ...valores,
-        importe: <span className="font-semibold">{imp ?? 0} M</span>,
-      });
+      // Aviso general de la tanda: el detalle de cada oferta está en la ficha del jugador.
+      return a.ofertaMaquina;
     }
 
     // Administrador de la liga (0100). El motivo va como hueco aparte para que lo
