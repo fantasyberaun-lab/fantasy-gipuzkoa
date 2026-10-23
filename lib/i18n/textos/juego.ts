@@ -9,6 +9,8 @@ export default definirTextos(
     pagarMasQueSaldo: (saldo: number) => `No puedes pagar más de tu saldo futuro (${saldo} M).`,
     ofertarMasQueSaldo: (saldo: number) =>
       `No puedes ofertar más de tu saldo futuro (${saldo} M).`,
+    ofertaMinima: (valor: number) =>
+      `La oferta no puede ser inferior al valor de mercado del jugador (${valor} M).`,
   },
   {
     eu: {
@@ -19,6 +21,8 @@ export default definirTextos(
         `Ezin duzu etorkizuneko saldoa (${saldo} M) baino gehiago ordaindu.`,
       ofertarMasQueSaldo: (saldo: number) =>
         `Ezin duzu etorkizuneko saldoa (${saldo} M) baino gehiagoko eskaintzarik egin.`,
+      ofertaMinima: (valor: number) =>
+        `Eskaintzak ezin du jokalariaren merkatu-balioa (${valor} M) baino txikiagoa izan.`,
     },
     en: {
       sinEquipo: "You don't have a team yet.",
@@ -28,6 +32,8 @@ export default definirTextos(
         `You can't pay more than your future balance (${saldo} M).`,
       ofertarMasQueSaldo: (saldo: number) =>
         `You can't offer more than your future balance (${saldo} M).`,
+      ofertaMinima: (valor: number) =>
+        `The offer can't be lower than the player's market value (${valor} M).`,
     },
   }
 );

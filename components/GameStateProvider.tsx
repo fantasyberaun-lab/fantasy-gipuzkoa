@@ -801,6 +801,11 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
         mensaje: t.juego.ofertarMasQueSaldo(saldoFuturo),
       };
     }
+    // Aviso inmediato; la base de datos lo vuelve a comprobar (validar_oferta_minima, 0110).
+    const valor = jugadoresLiga.find((j) => j.id === jugadorId)?.valorMercado;
+    if (valor !== undefined && importe < valor) {
+      return { ok: false, mensaje: t.juego.ofertaMinima(valor) };
+    }
     const resultado = await hacerOfertaDB(supabase, equipo.id, jugadorId, importe);
     if (resultado.ok) await recargarMisOfertas();
     return resultado;
