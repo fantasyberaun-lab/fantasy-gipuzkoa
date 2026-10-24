@@ -470,11 +470,11 @@ export default function ClasificacionPage() {
             </div>
             <div className="flex shrink-0 items-center gap-3 pl-2">
               <span className="flex flex-col items-end">
-                <span className="whitespace-nowrap font-medium">
-                  {c.pts(puntosParaOrden(entry))}{" "}
-                  <span className="text-neutral-500">
-                    {etiquetaOrden}
-                  </span>
+                {/* La etiqueta ("en la jornada 3") va debajo de los puntos: en una sola línea
+                    ocupaba tanto en el móvil que dejaba el nombre del equipo sin sitio. */}
+                <span className="whitespace-nowrap font-medium">{c.pts(puntosParaOrden(entry))}</span>
+                <span className="whitespace-nowrap text-[11px] leading-tight text-neutral-500">
+                  {etiquetaOrden}
                 </span>
                 {/* Los puntos de sanción ya van descontados del total (0100). */}
                 {!jornadaActual && (entry.puntosSancion ?? 0) > 0 && (
