@@ -94,7 +94,7 @@ uno, cambia el otro y dilo en la respuesta:
 | Puntos por descanso | `puntosPorDescanso` | variable `puntos_descanso` (0092/0094; `puntos_descanso()` la lee) |
 | Multiplicador capitán | `capitan.multiplicador` | variable `capitan_multiplicador` (0096; `multiplicador_capitan()` la lee, global) |
 | Blindaje (% del valor) | `blindaje.porcentaje` | variable `blindaje_porcentaje` (0096; `porcentaje_blindaje()` la lee, global) |
-| Cláusula (% del valor) | `clausula.porcentaje` | variable `clausula_porcentaje` (0096; `pagar_clausula_privada`, `player_status`) |
+| Cláusula (% de lo pagado; sin pago, del valor) | `clausula.porcentaje` | variable `clausula_porcentaje` (0096/0111; `calcular_clausula()`, usada por `pagar_clausula_privada`, `player_status` y `fetchMiPlantilla`) |
 | Subida de cláusula | `subidaClausula.multiplicador` | variable `clausula_multiplicador_subida` (0096; `subir_clausula`) |
 | Tamaño de plantilla | `plantilla.tamanoPlantilla` | variable `plantilla_tamano` (0096; `validar_composicion_plantilla`) |
 | Valor de la plantilla inicial (400 M) | — | variable `plantilla_inicial_valor_max` (0097; `asignar_plantilla_inicial`) |

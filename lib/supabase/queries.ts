@@ -333,7 +333,7 @@ export async function fetchMiPlantilla(
   const { data: slots, error } = await supabase
     .from("squad_slots")
     .select(
-      "titular, capitan, clausula_extra, candado, blindado, players (id, nombre, club, categoria, elo, valor_mercado, activo)"
+      "titular, capitan, clausula_extra, precio_pago, candado, blindado, players (id, nombre, club, categoria, elo, valor_mercado, activo)"
     )
     .eq("fantasy_team_id", equipoId)
     .is("fecha_salida", null);
@@ -426,9 +426,14 @@ export async function fetchMiPlantilla(
         },
         puntosJornada: masReciente ? masReciente.puntos : 0,
         valorMercadoDelta: 0,
+        // Igual que calcular_clausula() (0111): lo pagado (o el valor si no hay pago) x porcentaje.
+        // toFixed evita que 10 x 1,1 = 11,000000000000002 suba un millón de más al redondear.
         clausula:
-          Math.ceil(Number(s.players.valor_mercado) * porcentajeClausula) +
-          Number(s.clausula_extra ?? 0),
+          Math.ceil(
+            Number(
+              (Number(s.precio_pago ?? s.players.valor_mercado) * porcentajeClausula).toFixed(6)
+            )
+          ) + Number(s.clausula_extra ?? 0),
         resultadosRecientes: resultadosJugador
           .slice(-4)
           .map((r: any) => r.resultado as ResultadoPartida),

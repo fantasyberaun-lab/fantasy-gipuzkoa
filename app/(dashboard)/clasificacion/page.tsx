@@ -253,7 +253,11 @@ export default function ClasificacionPage() {
   const miPosicion = conPosicion.find((x) => x.entry.esMiEquipo)?.posicion ?? null;
   const textoBusqueda = busqueda.trim().toLowerCase();
   const coincidencias = textoBusqueda
-    ? conPosicion.filter((x) => x.entry.nombreEquipo.toLowerCase().includes(textoBusqueda))
+    ? conPosicion.filter(
+        (x) =>
+          x.entry.nombreEquipo.toLowerCase().includes(textoBusqueda) ||
+          (x.entry.nombreManager ?? "").toLowerCase().includes(textoBusqueda),
+      )
     : conPosicion;
   const listaVisible = coincidencias.slice(0, visibles);
 

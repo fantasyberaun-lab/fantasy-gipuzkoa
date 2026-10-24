@@ -53,7 +53,7 @@ export default definirTextos(
     // Clausulazos
     clausulazosTitulo: "Clausulazos (ligas privadas)",
     clausula: (pct: number) =>
-      `Cada jugador tiene una cláusula: el ${pct} % de su valor de mercado, redondeada al millón superior. Si la pagas, el jugador pasa a tu plantilla sin que el dueño pueda negarse (siempre que tengas saldo suficiente).`,
+      `Cada jugador tiene una cláusula: el ${pct} % de lo que pagó su dueño por él (o de su valor de mercado si lo recibió gratis en la plantilla inicial), redondeada al millón superior. Si la pagas, el jugador pasa a tu plantilla sin que el dueño pueda negarse (siempre que tengas saldo suficiente).`,
     subirClausula: (mult: number) =>
       `**Subir la cláusula.** Puedes pagar una cantidad por uno de tus jugadores para protegerlo: cada M que pagas sube su cláusula ${mult} M. Ese extra se pierde si el jugador sale de tu plantilla.`,
     candado:
@@ -108,7 +108,7 @@ export default definirTextos(
         "Talde bakoitzak kapitain bakarra izan dezake, eta titularra izan behar du: ordezko pasatzen baduzu edo saltzen baduzu, kapitaintza galtzen du.",
       clausulazosTitulo: "Klausulazoak (liga pribatuak)",
       clausula: (pct: number) =>
-        `Jokalari bakoitzak askatze-klausula bat du: bere merkatu-balioaren % ${pct}, goranzko milioira biribilduta. Ordaintzen baduzu, jokalaria zure plantillara pasatzen da, jabeak ezetz esan ahal izan gabe (saldo nahikoa baduzu).`,
+        `Jokalari bakoitzak askatze-klausula bat du: jabeak haren truke ordaindutakoaren % ${pct} (edo hasierako plantillan doan jaso bazuen, merkatu-balioaren %${pct}), goranzko milioira biribilduta. Ordaintzen baduzu, jokalaria zure plantillara pasatzen da, jabeak ezetz esan ahal izan gabe (saldo nahikoa baduzu).`,
       subirClausula: (mult: number) =>
         `**Klausula igo.** Zure jokalarietako batengatik kopuru bat ordain dezakezu hura babesteko: ordaintzen duzun M bakoitzak ${mult} M igotzen du haren klausula. Gehigarri hori galdu egiten da jokalariak zure plantilla uzten badu.`,
       candado:
@@ -161,7 +161,7 @@ export default definirTextos(
         "Each team can only have one captain and they must be a starter: if you move them to the bench or sell them, they lose the captaincy.",
       clausulazosTitulo: "Clause buyouts (private leagues)",
       clausula: (pct: number) =>
-        `Every player has a release clause: ${pct} % of their market value, rounded up to the next million. If you pay it, the player joins your squad and the owner can't refuse (as long as you have enough balance).`,
+        `Every player has a release clause: ${pct} % of what their owner paid for them (or of their market value if they got them free in the starting squad), rounded up to the next million. If you pay it, the player joins your squad and the owner can't refuse (as long as you have enough balance).`,
       subirClausula: (mult: number) =>
         `**Raise the clause.** You can pay an amount for one of your players to protect them: each M you pay raises their clause by ${mult} M. That extra is lost if the player leaves your squad.`,
       candado:

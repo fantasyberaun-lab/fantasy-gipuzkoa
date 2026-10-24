@@ -37,7 +37,7 @@ export const gameConfig = {
   // Cláusula, subida, capitán y blindaje: valores por defecto y de respaldo. La base de datos
   // los lee de las variables del panel (0096) y el frontend usa reglas_liga().
   clausula: {
-    porcentaje: 1.5, // 150% del valor de mercado
+    porcentaje: 1.1, // 110% de lo que pagó el dueño (0111)
     redondeoAlMillonSuperior: true,
   },
   subidaClausula: {
