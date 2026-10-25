@@ -1,7 +1,9 @@
 {
-  "name": "Fantasy Xake Gipuzkoa - Beraun",
+  "name": "Beraun Fantasy",
   "short_name": "Beraun Fantasy",
   "description": "Fantasy de ajedrez basado en los Campeonatos de Gipuzkoa",
+  "lang": "es",
+  "categories": ["games", "sports"],
   "id": "/plantilla",
   "start_url": "/plantilla",
   "scope": "/",
