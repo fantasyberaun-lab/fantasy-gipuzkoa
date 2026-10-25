@@ -648,11 +648,21 @@ export async function fetchOfertasRecibidas(
   const playerIds = (misSlots ?? []).map((s: any) => s.player_id);
   if (playerIds.length === 0) return [];
 
+  // Un mismo jugador puede ser de varios managers en ligas distintas: solo cuentan
+  // las ofertas de equipos de MI liga.
+  const { data: miEquipo } = await supabase
+    .from("fantasy_teams")
+    .select("league_id")
+    .eq("id", equipoId)
+    .maybeSingle();
+  if (!miEquipo) return [];
+
   const { data, error } = await supabase
     .from("player_offers")
     .select(
-      "id, importe, created_at, player_id, equipo_oferente_id, players (nombre), fantasy_teams!equipo_oferente_id (nombre)"
+      "id, importe, created_at, player_id, equipo_oferente_id, players (nombre), fantasy_teams!equipo_oferente_id!inner (nombre, league_id)"
     )
+    .eq("fantasy_teams.league_id", miEquipo.league_id)
     .in("player_id", playerIds)
     .eq("estado", "pendiente")
     .order("created_at", { ascending: false });
