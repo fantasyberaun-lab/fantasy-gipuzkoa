@@ -1,5 +1,6 @@
 import {
   DIAS_CONSERVACION_CHAT,
+  DIAS_CONSERVACION_FORO,
   FECHA_CONDICIONES,
   MAX_DENUNCIAS_DIA_CHAT,
   MINUTOS_EDICION_CHAT,
@@ -109,21 +110,23 @@ export const SECCIONES_CONDICIONES: Seccion[] = [
     ],
   },
   {
-    titulo: "11. Chat y contenido que publicas",
+    titulo: "11. Chat, foros y contenido que publicas",
     bloques: [
-      p("El juego incluye un chat de texto. Cada liga privada tiene el suyo, que solo ven sus miembros, y la liga pública tiene uno que ven todos los usuarios registrados."),
+      p("El juego incluye un chat de texto y unos foros. Cada liga privada tiene los suyos, que solo ven sus miembros, y la liga pública tiene los suyos, que ven todos los usuarios registrados. En los foros cualquier miembro puede abrir un tema (con un título, una categoría y un primer mensaje, y opcionalmente una encuesta) y los demás responden. Cada liga pública puede tener además temas abiertos automáticamente por el sistema, como el de comentarios de cada jornada."),
       ul(
-        "En el chat solo se puede escribir texto y emojis. No se pueden enviar imágenes, archivos, enlaces ni mensajes privados.",
-        "Tú eres responsable de lo que escribes. Tus mensajes los verán otras personas, entre las que puede haber menores de edad.",
+        "En el chat y en los foros solo se puede escribir texto y emojis. No se pueden enviar imágenes, archivos, enlaces ni mensajes privados.",
+        "Tú eres responsable de lo que escribes. Tus mensajes, títulos de tema, opciones de encuesta y reacciones los verán otras personas, entre las que puede haber menores de edad.",
         "No está permitido escribir mensajes insultantes, acosadores, amenazantes, discriminatorios, violentos o de contenido sexual; hacer spam o publicidad; compartir datos personales tuyos o de otras personas (teléfonos, direcciones, correos, perfiles en redes); suplantar a otra persona; ni coordinarte con otros usuarios para falsear la competición.",
-        "No uses el chat para insultar, acosar ni difundir información sobre los jugadores de ajedrez que aparecen en el juego, ni para hacer comentarios sobre ellos que vayan más allá de lo deportivo y del propio juego. Esto es especialmente importante si son menores.",
-        "Puedes mencionar a otros usuarios con «@». En el chat público puedes silenciar las menciones desde el propio chat: si lo haces, nadie podrá mencionarte allí.",
-        "Los mensajes no son confidenciales. La organización puede leerlos para moderar el chat, atender denuncias y cumplir obligaciones legales."
+        "No uses el chat ni los foros para insultar, acosar ni difundir información sobre los jugadores de ajedrez que aparecen en el juego, ni para hacer comentarios sobre ellos que vayan más allá de lo deportivo y del propio juego. Esto es especialmente importante si son menores.",
+        "Puedes mencionar a otros usuarios con «@». En el chat público puedes silenciar las menciones desde el propio chat: si lo haces, nadie podrá mencionarte allí. Quien sea mencionado o reciba una respuesta en un tema recibe un aviso en la aplicación.",
+        "Puedes reaccionar a los mensajes con uno de los emojis disponibles (una reacción por persona y mensaje). Las reacciones son visibles para los demás participantes.",
+        "Las encuestas de un tema tienen voto secreto: se guarda qué has votado para evitar votos duplicados, pero la aplicación solo muestra los totales, nunca quién votó cada opción. Solo la organización puede acceder a ese dato, y únicamente si es imprescindible para atender una denuncia o una obligación legal.",
+        "Los mensajes no son confidenciales. La organización puede leerlos para moderar el chat y los foros, atender denuncias y cumplir obligaciones legales."
       ),
       p(`Puedes denunciar cualquier mensaje ajeno con el botón «Denunciar» o escribiendo a ${R.email}. Revisaremos las denuncias sin dilación indebida. Denunciar es para casos reales: no se puede denunciar el mismo mensaje más de una vez, hay un máximo de ${MAX_DENUNCIAS_DIA_CHAT} denuncias al día por persona, y el uso abusivo o malintencionado de las denuncias (por ejemplo, denunciar en masa o para molestar a alguien) se considera una infracción y puede dar lugar a las mismas medidas que cualquier otra.`),
-      p(`Si un mensaje incumple estas condiciones, podemos borrarlo, impedirte escribir en el chat durante un tiempo (en el chat de una liga privada, esto se decide a partir de una denuncia) o suspender tu acceso a él. Solo la organización puede aplicar estas medidas. Te lo comunicaremos indicando el motivo, salvo que la ley o la seguridad lo impidan. Puedes pedir que se revise la decisión escribiendo a ${R.email}.`),
-      p(`Los mensajes se borran automáticamente transcurridos ${DIAS_CONSERVACION_CHAT} días. Puedes borrar tus propios mensajes antes, y editarlos durante los ${MINUTOS_EDICION_CHAT} minutos siguientes a enviarlos: el mensaje editado debe cumplir las mismas normas y se muestra marcado como «editado». Si eliminas tu cuenta, tus mensajes se borran. Los mensajes denunciados pueden conservarse más tiempo, solo mientras se resuelve la denuncia y los plazos legales lo exijan.`),
-      p("Al escribir en el chat nos autorizas a mostrar tu mensaje a los demás participantes del chat mientras exista. No lo usaremos fuera de la aplicación ni para otro fin."),
+      p(`Si un mensaje incumple estas condiciones, podemos borrarlo, impedirte escribir en el chat y en los foros durante un tiempo (en una liga privada, esto se decide a partir de una denuncia) o suspender tu acceso a ellos. Las restricciones son comunes al chat y a los foros de cada liga. Quien abre un tema, y el administrador de una liga privada en su liga, pueden cerrarlo o fijarlo; el administrador de una liga privada también puede borrar mensajes de sus foros, pero solo la organización puede aplicar restricciones para escribir. Te lo comunicaremos indicando el motivo, salvo que la ley o la seguridad lo impidan. Puedes pedir que se revise la decisión escribiendo a ${R.email}.`),
+      p(`Los mensajes del chat se borran automáticamente transcurridos ${DIAS_CONSERVACION_CHAT} días, y los temas de los foros sin actividad, transcurridos ${DIAS_CONSERVACION_FORO} días (con todas sus respuestas, reacciones y votos; los temas fijados no se borran mientras sigan fijados). Puedes borrar tus propios mensajes antes, y editarlos durante los ${MINUTOS_EDICION_CHAT} minutos siguientes a enviarlos: el mensaje editado debe cumplir las mismas normas y se muestra marcado como «editado». Si eliminas tu cuenta, tus mensajes se borran. Los mensajes denunciados pueden conservarse más tiempo, solo mientras se resuelve la denuncia y los plazos legales lo exijan.`),
+      p("Al escribir en el chat o en un foro nos autorizas a mostrar tu mensaje a los demás participantes mientras exista. No lo usaremos fuera de la aplicación ni para otro fin."),
       p("La organización no revisa los mensajes antes de que aparezcan. Actuará con diligencia cuando tenga conocimiento de un contenido ilícito o contrario a estas condiciones."),
     ],
   },

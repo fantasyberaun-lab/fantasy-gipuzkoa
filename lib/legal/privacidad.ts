@@ -1,5 +1,6 @@
 import {
   DIAS_CONSERVACION_CHAT,
+  DIAS_CONSERVACION_FORO,
   FECHA_PRIVACIDAD,
   MESES_CONSERVACION_DENUNCIAS,
   MINUTOS_EDICION_CHAT,
@@ -105,7 +106,7 @@ export const SECCIONES_PRIVACIDAD: Seccion[] = [
       ul(
         "Los jugadores menores de 14 años solo se incluirán como jugadores seleccionables cuando sus padres, madres o tutores lo hayan autorizado expresamente.",
         "Cualquier jugador menor de edad, o sus representantes legales, podrá solicitar su exclusión del Fantasy en cualquier momento. La solicitud se atenderá sin necesidad de justificar motivos adicionales.",
-        "Respecto de ellos no se publicará ningún dato distinto de los indicados en el apartado 4, y la aplicación no ofrece comentarios ni valoraciones sobre jugadores concretos. El chat es una conversación entre usuarios; las Condiciones de Uso prohíben usarlo para insultar, acosar o difundir información sobre jugadores, y cualquier mensaje de ese tipo puede denunciarse y será eliminado."
+        "Respecto de ellos no se publicará ningún dato distinto de los indicados en el apartado 4, y la aplicación no ofrece comentarios ni valoraciones sobre jugadores concretos. El chat y los foros son conversaciones entre usuarios; las Condiciones de Uso prohíben usarlos para insultar, acosar o difundir información sobre jugadores, y cualquier mensaje de ese tipo puede denunciarse y será eliminado."
       ),
     ],
   },
@@ -124,8 +125,8 @@ export const SECCIONES_PRIVACIDAD: Seccion[] = [
         `**Datos deportivos de los jugadores:** interés legítimo del responsable (art. 6.1.f RGPD), consistente en desarrollar una actividad deportiva y recreativa vinculada al ajedrez utilizando información deportiva limitada. ${R.razonSocial} ha realizado y conserva por escrito la ponderación entre este interés y los derechos de los jugadores, prestando especial atención a los menores de edad; puede solicitarse información sobre ella en ${R.email}.`,
         "**Autorización de padres o tutores para incluir a jugadores menores de 14 años:** consentimiento (art. 6.1.a RGPD).",
         "**Cuentas de usuario y participación en el juego:** ejecución de las Condiciones de Uso aceptadas por el usuario (art. 6.1.b RGPD).",
-        "**Funcionamiento del chat:** ejecución de las Condiciones de Uso aceptadas por el usuario (art. 6.1.b RGPD).",
-        "**Moderación, atención de denuncias y seguridad del chat:** interés legítimo del responsable en mantener un entorno seguro, especialmente con menores (art. 6.1.f RGPD), y cumplimiento de obligaciones legales cuando proceda (art. 6.1.c RGPD).",
+        "**Funcionamiento del chat y de los foros:** ejecución de las Condiciones de Uso aceptadas por el usuario (art. 6.1.b RGPD).",
+        "**Moderación, atención de denuncias y seguridad del chat y de los foros:** interés legítimo del responsable en mantener un entorno seguro, especialmente con menores (art. 6.1.f RGPD), y cumplimiento de obligaciones legales cuando proceda (art. 6.1.c RGPD).",
         "**Seguridad de la aplicación y prevención del fraude:** interés legítimo (art. 6.1.f RGPD).",
         "**Envío de novedades del club o del Fantasy:** consentimiento (art. 6.1.a RGPD), que es opcional y puede retirarse en cualquier momento sin que ello afecte a la licitud del tratamiento anterior.",
         "**Atención de requerimientos legales:** cumplimiento de obligaciones legales (art. 6.1.c RGPD)."
@@ -143,6 +144,7 @@ export const SECCIONES_PRIVACIDAD: Seccion[] = [
     titulo: "9. Datos de los usuarios registrados",
     bloques: [
       p("Para crear una cuenta se solicitan exclusivamente los datos necesarios para gestionarla: alias, dirección de correo electrónico y contraseña. Durante el uso de la aplicación se tratan además los equipos creados, los jugadores seleccionados, las puntuaciones, las clasificaciones y los datos técnicos necesarios para garantizar la seguridad (como registros de acceso y dirección IP)."),
+      p(`Si usas los foros, se tratan los temas que abres (título, categoría y primer mensaje), las respuestas que escribes y citas, la fecha y la hora de envío, a quién mencionas, hasta dónde has leído cada tema, las reacciones que pones a mensajes del chat o de los foros, los temas que sigues y los avisos que generan las menciones y respuestas. Si participas en una encuesta, se guarda qué opción has votado para evitar votos duplicados: el voto es secreto, la aplicación solo muestra totales y no se enseña a otros usuarios quién votó qué. Los foros de una liga privada los ven los miembros de esa liga; los de la liga pública, todos los usuarios registrados; y el administrador puede verlos para moderar. Los temas sin actividad se borran a los ${DIAS_CONSERVACION_FORO} días con todas sus respuestas, reacciones y votos. Las restricciones para escribir son comunes al chat y a los foros.`),
       p(`Si usas el chat, se tratan los mensajes que escribes, la fecha y la hora de envío, a quién mencionas, el último mensaje que has leído en cada chat, tu preferencia de silenciar menciones y, si procede, las denuncias que hagas o recibas y las medidas de moderación aplicadas (borrado de mensajes, restricciones temporales para escribir y su motivo). Los mensajes del chat de una liga privada los ven los miembros de esa liga; los del chat público, todos los usuarios registrados; y el administrador puede verlos para moderar. En el chat se muestra tu alias, tu nivel y tu icono, nunca tu correo electrónico. No se almacena tu dirección IP con esta finalidad. Puedes editar tus mensajes durante ${MINUTOS_EDICION_CHAT} minutos tras enviarlos; el texto anterior no se conserva, salvo en una denuncia, que guarda el mensaje tal como estaba al denunciarlo.`),
       p("Los datos marcados como obligatorios en el formulario de registro son necesarios para participar; si no se facilitan, no será posible crear la cuenta."),
       p("La dirección de correo electrónico no se publica en las clasificaciones ni se muestra al resto de participantes. En las clasificaciones solo aparece el alias elegido por el usuario, por lo que se recomienda no utilizar como alias el nombre completo."),
@@ -169,7 +171,7 @@ export const SECCIONES_PRIVACIDAD: Seccion[] = [
     titulo: "11. Usuarios menores de edad",
     bloques: [
       p(`De acuerdo con el artículo 7 de la LOPDGDD, los mayores de 14 años pueden registrarse por sí mismos. Los menores de 14 años no pueden hacerlo: su participación requiere que el padre, la madre o el tutor la solicite en ${R.email} y preste su consentimiento, pudiendo el club adoptar medidas razonables para verificarlo.`),
-      p(`El chat está abierto a usuarios de 14 años o más (y a menores de 14 con autorización de su padre, madre o tutor). Recomendamos a los menores no compartir datos personales en el chat. Las familias pueden pedir que se borre un mensaje o que se limite el acceso de un menor al chat escribiendo a ${R.email}.`),
+      p(`El chat y los foros están abiertos a usuarios de 14 años o más (y a menores de 14 con autorización de su padre, madre o tutor). Recomendamos a los menores no compartir datos personales en el chat ni en los foros. Las familias pueden pedir que se borre un mensaje o que se limite el acceso de un menor al chat y a los foros escribiendo a ${R.email}.`),
       p("Si se detecta que se ha registrado un menor de 14 años sin dicha autorización, la cuenta se desactivará y sus datos se suprimirán."),
       p("No se solicitará a los usuarios menores información que no sea necesaria para participar. La condición de usuario menor de edad es distinta de la inclusión de un jugador en la categoría deportiva «Sub-20»."),
     ],
@@ -180,7 +182,7 @@ export const SECCIONES_PRIVACIDAD: Seccion[] = [
       ul(
         "**Datos deportivos de los jugadores:** mientras el jugador figure en el Fantasy. Los resultados y clasificaciones de temporadas finalizadas podrán conservarse como histórico deportivo. Si un jugador ejerce con éxito su derecho de oposición, sus datos se suprimirán o anonimizarán, también en el histórico.",
         `**Cuentas de usuario:** mientras la cuenta esté activa. Las cuentas sin actividad durante ${PLAZO_INACTIVIDAD} se suprimirán, previo aviso por correo electrónico.`,
-        `**Mensajes del chat:** se borran automáticamente a los ${DIAS_CONSERVACION_CHAT} días, o antes si el autor los borra, un moderador los elimina o se elimina la cuenta. **Denuncias y medidas de moderación:** hasta que se resuelva la denuncia y, después, durante ${MESES_CONSERVACION_DENUNCIAS} meses para poder atender posibles reclamaciones. Las copias de seguridad del proveedor pueden conservar mensajes ya borrados durante su ciclo de rotación, sin que se restauren salvo catástrofe.`,
+        `**Temas y respuestas de los foros, reacciones y votos:** se borran automáticamente a los ${DIAS_CONSERVACION_FORO} días sin actividad en el tema, o antes si el autor los borra, un moderador los elimina o se elimina la cuenta. **Mensajes del chat:** se borran automáticamente a los ${DIAS_CONSERVACION_CHAT} días, o antes si el autor los borra, un moderador los elimina o se elimina la cuenta. **Denuncias y medidas de moderación:** hasta que se resuelva la denuncia y, después, durante ${MESES_CONSERVACION_DENUNCIAS} meses para poder atender posibles reclamaciones. Las copias de seguridad del proveedor pueden conservar mensajes ya borrados durante su ciclo de rotación, sin que se restauren salvo catástrofe.`,
         "**Constancia de aceptaciones y consentimientos:** mientras la cuenta esté activa y, después, durante el plazo de prescripción de las posibles responsabilidades."
       ),
       p("Al término de estos plazos, los datos se suprimirán o anonimizarán o, cuando exista una obligación legal de conservación, quedarán bloqueados conforme al artículo 32 de la LOPDGDD."),
@@ -191,7 +193,7 @@ export const SECCIONES_PRIVACIDAD: Seccion[] = [
     bloques: [
       p(`${R.razonSocial} no vende ni cede los datos personales tratados en Fantasy Beraun Bera.`),
       p(`Acceden a determinados datos, como encargados del tratamiento y con el contrato exigido por el artículo 28 del RGPD, los proveedores necesarios para el alojamiento web, las bases de datos, las copias de seguridad, el correo electrónico y el soporte técnico. Actualmente: ${PROVEEDORES_TECNOLOGICOS} y Google (servicio de correo electrónico Gmail).`),
-      p("Los usuarios que participan en un chat ven los mensajes de ese chat; no se ceden a terceros."),
+      p("Los usuarios que participan en un chat o en un foro ven los mensajes de ese chat o foro; no se ceden a terceros."),
       p("Los datos solo se comunicarán a administraciones públicas, autoridades, jueces o tribunales cuando exista una obligación legal."),
     ],
   },

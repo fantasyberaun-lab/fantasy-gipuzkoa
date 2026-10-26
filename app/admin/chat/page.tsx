@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -10,6 +11,7 @@ import {
   type BloqueoAdmin,
   type DenunciaAdmin,
 } from "@/lib/supabase/chatQueries";
+import { fetchDenunciasForoAdmin, resolverDenunciaForoDB } from "@/lib/supabase/foroQueries";
 
 const INPUT =
   "w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900";
@@ -23,6 +25,13 @@ const DURACIONES = [
 
 type Filtro = "pendientes" | "resueltas";
 
+// Denuncia del chat o de un foro (0112) en la misma lista. En las de foros, "texto" es el
+// mensaje denunciado y "temaId" lleva al tema.
+type DenunciaItem = DenunciaAdmin & { origen: "chat" | "foro"; temaId: number | null; tituloTema: string | null };
+
+// "chat" y "foro" tienen ids independientes: la clave de la lista lleva el origen.
+const clave = (d: DenunciaItem) => `${d.origen}${d.id}`;
+
 function fechaHora(iso: string) {
   return new Date(iso).toLocaleString("es-ES", { dateStyle: "medium", timeStyle: "short" });
 }
@@ -31,21 +40,32 @@ function fechaHora(iso: string) {
 // si se elige duración, banea al autor de ese chat. Rechazarla la archiva.
 export default function AdminChatPage() {
   const supabase = createClient();
-  const [denuncias, setDenuncias] = useState<DenunciaAdmin[]>([]);
+  const [denuncias, setDenuncias] = useState<DenunciaItem[]>([]);
   const [bloqueos, setBloqueos] = useState<BloqueoAdmin[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filtro, setFiltro] = useState<Filtro>("pendientes");
-  const [abierta, setAbierta] = useState<number | null>(null);
+  const [abierta, setAbierta] = useState<string | null>(null);
   const [horas, setHoras] = useState<number>(0);
   const [motivo, setMotivo] = useState("");
   const [trabajando, setTrabajando] = useState<string | null>(null);
 
   async function cargar() {
     setCargando(true);
-    const [d, b] = await Promise.all([fetchDenunciasAdmin(supabase), fetchBloqueosAdmin(supabase)]);
+    const [d, f, b] = await Promise.all([
+      fetchDenunciasAdmin(supabase),
+      fetchDenunciasForoAdmin(supabase),
+      fetchBloqueosAdmin(supabase),
+    ]);
     if (d.ok) {
-      setDenuncias(d.lista);
+      // Si la migración de foros aún no está aplicada, f.ok es false y solo se ven las del chat.
+      const delChat: DenunciaItem[] = d.lista.map((x) => ({ ...x, origen: "chat", temaId: null, tituloTema: null }));
+      const delForo: DenunciaItem[] = f.ok
+        ? f.lista.map((x) => ({ ...x, origen: "foro", temaId: x.temaId, tituloTema: x.tituloTema }))
+        : [];
+      setDenuncias(
+        [...delChat, ...delForo].sort((p, q) => Date.parse(q.creada) - Date.parse(p.creada))
+      );
       setError(null);
     } else setError(d.mensaje);
     if (b.ok) setBloqueos(b.lista);
@@ -57,15 +77,16 @@ export default function AdminChatPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function abrir(d: DenunciaAdmin) {
-    setAbierta(abierta === d.id ? null : d.id);
+  function abrir(d: DenunciaItem) {
+    setAbierta(abierta === clave(d) ? null : clave(d));
     setHoras(0);
     setMotivo("");
   }
 
-  async function resolver(d: DenunciaAdmin, aceptar: boolean) {
-    setTrabajando(`d${d.id}`);
-    const r = await resolverDenunciaChatDB(
+  async function resolver(d: DenunciaItem, aceptar: boolean) {
+    setTrabajando(`d${clave(d)}`);
+    const resolverDB = d.origen === "foro" ? resolverDenunciaForoDB : resolverDenunciaChatDB;
+    const r = await resolverDB(
       supabase,
       d.id,
       aceptar,
@@ -128,10 +149,13 @@ export default function AdminChatPage() {
 
         <ul className="space-y-3">
           {lista.map((d) => (
-            <li key={d.id} className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+            <li key={clave(d)} className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
               <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-500">
                 <span className="font-medium text-neutral-700 dark:text-neutral-300">{d.ligaNombre}</span>
                 <span>{d.ligaPublica ? "pública" : "privada"}</span>
+                <span className="rounded-full bg-neutral-100 px-2 py-0.5 font-semibold dark:bg-neutral-800">
+                  {d.origen === "foro" ? "foro" : "chat"}
+                </span>
                 <span>· {fechaHora(d.creada)}</span>
                 {d.estado !== "pendiente" && (
                   <span
@@ -145,6 +169,14 @@ export default function AdminChatPage() {
                   </span>
                 )}
               </div>
+              {d.origen === "foro" && d.temaId !== null && (
+                <p className="mt-2 text-sm">
+                  <span className="text-neutral-500">Tema:</span>{" "}
+                  <Link href={`/chat/foros/${d.temaId}`} className="font-medium hover:underline">
+                    {d.tituloTema ?? `#${d.temaId}`}
+                  </Link>
+                </p>
+              )}
               <blockquote className="mt-2 whitespace-pre-wrap break-words rounded-lg bg-neutral-50 px-3 py-2 text-sm dark:bg-neutral-900">
                 {d.texto}
               </blockquote>
@@ -172,9 +204,9 @@ export default function AdminChatPage() {
                     onClick={() => abrir(d)}
                     className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium hover:border-accent dark:border-neutral-700"
                   >
-                    {abierta === d.id ? "Cerrar" : "Resolver"}
+                    {abierta === clave(d) ? "Cerrar" : "Resolver"}
                   </button>
-                  {abierta === d.id && (
+                  {abierta === clave(d) && (
                     <div className="mt-3 space-y-3 rounded-lg bg-neutral-50 p-3 dark:bg-neutral-900">
                       <label className="block text-sm">
                         <span className="mb-1 block text-neutral-500">Si la aceptas, banear al autor</span>
@@ -199,7 +231,7 @@ export default function AdminChatPage() {
                       <div className="flex gap-2">
                         <button
                           type="button"
-                          disabled={trabajando === `d${d.id}`}
+                          disabled={trabajando === `d${clave(d)}`}
                           onClick={() => resolver(d, true)}
                           className="rounded-lg bg-accent px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50"
                         >
@@ -207,7 +239,7 @@ export default function AdminChatPage() {
                         </button>
                         <button
                           type="button"
-                          disabled={trabajando === `d${d.id}`}
+                          disabled={trabajando === `d${clave(d)}`}
                           onClick={() => resolver(d, false)}
                           className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium disabled:opacity-50 dark:border-neutral-700"
                         >

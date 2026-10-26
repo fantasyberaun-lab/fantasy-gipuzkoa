@@ -1,6 +1,7 @@
 import { definirTextos } from "../definir";
 import {
   DIAS_CONSERVACION_CHAT as DIAS,
+  DIAS_CONSERVACION_FORO as DIAS_FORO,
   MAX_DENUNCIAS_DIA_CHAT as MAX_DEN,
   RESPONSABLE as R,
 } from "@/lib/legal/config";
@@ -51,7 +52,7 @@ export default definirTextos(
     // textos legales, actualiza el motivo y las novedades.
     gateIntroActualizacion:
       "Hemos actualizado las Condiciones de Uso y la Política de Privacidad. Para seguir usando Fantasy Beraun Bera necesitamos que las aceptes de nuevo.",
-    motivoTitulo: "Hemos implementado un chat",
+    motivoTitulo: "Hemos añadido foros al chat",
     motivoIntro: "Por eso actualizamos las condiciones. Lo esencial:",
     novedades: [
       "Hay un chat de texto para cada liga privada y otro para la liga pública. Solo texto y emojis.",
@@ -59,6 +60,9 @@ export default definirTextos(
       `Los mensajes se borran solos a los ${DIAS} días, y también si eliminas tu cuenta.`,
       "Puedes silenciar el chat público para que nadie pueda mencionarte.",
       `Para evitar abusos, hay un máximo de ${MAX_DEN} denuncias al día por persona.`,
+      `Nuevo: foros dentro del chat, para abrir temas y debatir. Los temas sin actividad se borran a los ${DIAS_FORO} días.`,
+      "Nuevo: reacciones con emoji, encuestas con voto secreto y avisos cuando te mencionan o te responden.",
+      "Puedes editar tus mensajes durante un rato tras enviarlos.",
     ] as string[],
     verCambios: "Puedes leer los textos completos en los enlaces de abajo.",
   },
@@ -118,7 +122,7 @@ export default definirTextos(
 
       gateIntroActualizacion:
         "Erabilera-baldintzak eta Pribatutasun-politika eguneratu ditugu. Fantasy Beraun Bera erabiltzen jarraitzeko, berriro onartu behar dituzu.",
-      motivoTitulo: "Txat bat ezarri dugu",
+      motivoTitulo: "Txatari foroak gehitu dizkiogu",
       motivoIntro: "Horregatik eguneratu ditugu baldintzak. Funtsezkoena:",
       novedades: [
         "Testuzko txat bat dago liga pribatu bakoitzarentzat eta beste bat liga publikoarentzat. Testua eta emojiak soilik.",
@@ -126,6 +130,9 @@ export default definirTextos(
         `Mezuak ${DIAS} egunera ezabatzen dira automatikoki, eta baita zure kontua ezabatzen baduzu ere.`,
         "Liga publikoko txata isilaraz dezakezu, inork ez zaitzan aipa.",
         `Abusuak saihesteko, pertsona bakoitzak gehienez ${MAX_DEN} salaketa egin ditzake egunean.`,
+        `Berria: foroak txataren barruan, gaiak irekitzeko eta eztabaidatzeko. Jarduerarik gabeko gaiak ${DIAS_FORO} egunera ezabatzen dira.`,
+        "Berria: emoji-erreakzioak, boto sekretuko inkestak eta aipatzen edo erantzuten zaituztenean oharrak.",
+        "Zure mezuak editatu ditzakezu bidali eta handik denbora batera.",
       ] as string[],
       verCambios: "Testu osoak beheko esteketan irakur ditzakezu.",
     },
@@ -184,7 +191,7 @@ export default definirTextos(
 
       gateIntroActualizacion:
         "We've updated the Terms of Use and the Privacy Policy. To keep using Fantasy Beraun Bera, please accept them again.",
-      motivoTitulo: "We've added a chat",
+      motivoTitulo: "We've added forums to the chat",
       motivoIntro: "That's why we've updated the terms. The essentials:",
       novedades: [
         "There's a text chat for each private league and another for the public league. Text and emojis only.",
@@ -192,6 +199,9 @@ export default definirTextos(
         `Messages are deleted automatically after ${DIAS} days, and also if you delete your account.`,
         "You can mute the public chat so nobody can mention you.",
         `To prevent abuse, each person can send at most ${MAX_DEN} reports per day.`,
+        `New: forums inside the chat, to open topics and discuss. Topics with no activity are deleted after ${DIAS_FORO} days.`,
+        "New: emoji reactions, secret-ballot polls, and notices when you are mentioned or replied to.",
+        "You can edit your messages for a short time after sending them.",
       ] as string[],
       verCambios: "You can read the full texts using the links below.",
     },

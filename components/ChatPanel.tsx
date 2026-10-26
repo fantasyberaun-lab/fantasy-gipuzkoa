@@ -17,6 +17,7 @@ import { useChat } from "@/components/ChatProvider";
 import { useIdioma } from "@/components/IdiomaProvider";
 import AvatarPerfil from "@/components/AvatarPerfil";
 import InsigniaNivel from "@/components/InsigniaNivel";
+import Reacciones, { BotonReaccion } from "@/components/Reacciones";
 import {
   borrarMensajeChatDB,
   buscarManagersChat,
@@ -34,6 +35,7 @@ import {
   type ManagerMencionable,
   type MensajeChat,
 } from "@/lib/supabase/chatQueries";
+import { fetchReaccionesChat, reaccionarChatDB, type ReaccionesMensaje } from "@/lib/supabase/foroQueries";
 
 // Sondeo (sin Realtime, ver ChatProvider): cada pocos segundos con el chat abierto
 // y la pestaña visible; más despacio si lleva un rato sin novedades.
@@ -44,6 +46,8 @@ const TRAS_INACTIVIDAD_MS = 3 * 60_000;
 // Cada tantas vueltas se vuelve a pedir la última página para que desaparezcan los
 // mensajes que han borrado otros (el sondeo normal solo trae los nuevos).
 const VUELTAS_PARA_RECONCILIAR = 12;
+// Cada tantas vueltas se vuelven a pedir las reacciones de los mensajes en pantalla (0112).
+const VUELTAS_PARA_REACCIONES = 3;
 const PAGINA = 40;
 // Ids de mensajes borrados ya aplicados (0090): cursor por liga.
 type CursorBorrados = { liga: string | null; seq: number | null };
@@ -133,6 +137,10 @@ export default function ChatPanel() {
   const [emojisAbiertos, setEmojisAbiertos] = useState(false);
   const [menu, setMenu] = useState<MenuMensaje | null>(null);
   const [edicion, setEdicion] = useState<Edicion | null>(null);
+  // Reacciones por mensaje (0112). Si la migración aún no está aplicada, el chat sigue
+  // igual y no se enseña el botón de reaccionar.
+  const [reacciones, setReacciones] = useState<Record<number, ReaccionesMensaje>>({});
+  const [reaccionesOk, setReaccionesOk] = useState(false);
 
   // Selector de @
   const [consulta, setConsulta] = useState<{ inicio: number; texto: string } | null>(null);
@@ -148,10 +156,12 @@ export default function ChatPanel() {
   const borradosRef = useRef<CursorBorrados>({ liga: null, seq: null });
   const alturaAntes = useRef<number | null>(null);
   const forzarBajar = useRef(false);
+  const idsRef = useRef<number[]>([]);
 
   ligaRef.current = ligaId;
   const ultimoId = mensajes.length ? mensajes[mensajes.length - 1].id : 0;
   ultimoIdRef.current = ultimoId;
+  idsRef.current = mensajes.map((m) => m.id);
 
   // Mi id, para saber qué mensajes son míos.
   useEffect(() => {
@@ -282,6 +292,43 @@ export default function ChatPanel() {
     });
   }, [supabase]);
 
+  // --- Reacciones --------------------------------------------------------------------------
+  const cargarReacciones = useCallback(async () => {
+    const liga = ligaRef.current;
+    const ids = idsRef.current;
+    if (!liga || ids.length === 0) return;
+    const r = await fetchReaccionesChat(supabase, liga, ids);
+    if (ligaRef.current !== liga) return;
+    if (!r) {
+      setReaccionesOk(false);
+      return;
+    }
+    setReaccionesOk(true);
+    setReacciones(Object.fromEntries(r));
+  }, [supabase]);
+
+  // Al cargar la página y cada vez que llegan o se borran mensajes.
+  useEffect(() => {
+    if (fase !== "ok") return;
+    cargarReacciones();
+  }, [fase, ligaId, mensajes.length, ultimoId, cargarReacciones]);
+
+  async function reaccionar(id: number, emoji: string | null) {
+    const antes = reacciones[id] ?? { conteos: {}, mia: null };
+    const conteos = { ...antes.conteos };
+    if (antes.mia) {
+      conteos[antes.mia] = Math.max((conteos[antes.mia] ?? 1) - 1, 0);
+      if (conteos[antes.mia] === 0) delete conteos[antes.mia];
+    }
+    if (emoji) conteos[emoji] = (conteos[emoji] ?? 0) + 1;
+    setReacciones((prev) => ({ ...prev, [id]: { conteos, mia: emoji } }));
+    const r = await reaccionarChatDB(supabase, id, emoji);
+    if (!r.ok) {
+      setReacciones((prev) => ({ ...prev, [id]: antes }));
+      mostrarAviso(t.foros.errores[r.codigo as keyof typeof t.foros.errores] ?? t.foros.errores.red, true);
+    }
+  }
+
   // --- Sondeo ---------------------------------------------------------------------------
   useEffect(() => {
     if (!ligaId || fase !== "ok") return;
@@ -298,6 +345,7 @@ export default function ChatPanel() {
         vueltas++;
         if (vueltas % VUELTAS_PARA_RECONCILIAR === 0) await reconciliar();
         else await traerNuevos();
+        if (vueltas % VUELTAS_PARA_REACCIONES === 0) await cargarReacciones();
         if (ultimoIdRef.current > antes) ultimaNovedad = Date.now();
       }
       if (cancelado) return;
@@ -318,7 +366,7 @@ export default function ChatPanel() {
       window.clearTimeout(temporizador);
       document.removeEventListener("visibilitychange", alVolver);
     };
-  }, [ligaId, fase, esLigaPublica, traerNuevos, reconciliar]);
+  }, [ligaId, fase, esLigaPublica, traerNuevos, reconciliar, cargarReacciones]);
 
   function alDesplazar() {
     const el = listaRef.current;
@@ -757,6 +805,9 @@ export default function ChatPanel() {
                                 <span className="ml-1.5 select-none text-[10px] opacity-70">· {tc.editado}</span>
                               )}
                             </p>
+                            {reaccionesOk && puedeEscribir && !baneadoHasta && !sinNivel && (
+                              <BotonReaccion mia={reacciones[m.id]?.mia ?? null} onReaccionar={(e) => reaccionar(m.id, e)} />
+                            )}
                             {hayAcciones && (
                               <div className="relative shrink-0" data-menu-mensaje>
                                 <button
@@ -837,6 +888,16 @@ export default function ChatPanel() {
                               </>
                             )}
                           </div>
+                          {edicion?.id !== m.id && (
+                            <Reacciones
+                              sinBoton
+                              className="mt-1"
+                              conteos={reacciones[m.id]?.conteos ?? {}}
+                              mia={reacciones[m.id]?.mia ?? null}
+                              puedeReaccionar={reaccionesOk && puedeEscribir && !baneadoHasta && !sinNivel}
+                              onReaccionar={(e) => reaccionar(m.id, e)}
+                            />
+                          )}
                         </div>
                       </li>
                     </Fragment>

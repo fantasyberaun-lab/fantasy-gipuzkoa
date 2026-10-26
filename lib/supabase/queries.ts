@@ -753,6 +753,14 @@ export async function fetchNotificaciones(
               nombreEquipo: n.datos.nombre_equipo ?? null,
             }
           : null,
+      datosForo:
+        (n.tipo === "foro_mencion" || n.tipo === "foro_respuesta") && n.datos?.tema_id != null
+          ? {
+              temaId: Number(n.datos.tema_id),
+              titulo: String(n.datos.titulo ?? ""),
+              mensajeId: n.datos.mensaje_id != null ? Number(n.datos.mensaje_id) : null,
+            }
+          : null,
     })),
   };
 }

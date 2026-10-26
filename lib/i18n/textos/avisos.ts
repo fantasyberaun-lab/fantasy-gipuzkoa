@@ -30,6 +30,10 @@ export default definirTextos(
       "No hay comunicados por ahora. Aquí aparecerán las novedades y avisos importantes.",
     sinComunicados: "No hay comunicados vigentes.",
     tusIngresos: "Tus ingresos",
+    foros: "Foros",
+    foroMencion: "{actor} te ha mencionado en el tema {titulo}.",
+    foroRespuesta: "{actor} ha respondido en el tema {titulo}.",
+    foroTemaSinDatos: "un tema del foro",
     actividad: "Actividad de la liga",
     sinMovimientos: "Todavía no hay movimientos en tu liga.",
     // Etiquetas de las notificaciones
@@ -48,6 +52,8 @@ export default definirTextos(
       expulsion: "Expulsión",
       nuevo_admin: "Administrador",
       oferta_maquina: "Oferta",
+      foro_mencion: "Mención",
+      foro_respuesta: "Respuesta",
     },
     avisoGenerico: "Novedad en tu liga.",
     // Etiquetas de los comunicados
@@ -113,6 +119,10 @@ export default definirTextos(
         "Oraingoz ez dago komunikaturik. Hemen agertuko dira berritasunak eta abisu garrantzitsuak.",
       sinComunicados: "Ez dago indarrean dagoen komunikaturik.",
       tusIngresos: "Zure diru-sarrerak",
+      foros: "Foroak",
+      foroMencion: "{actor}(e)k aipatu zaitu {titulo} gaian.",
+      foroRespuesta: "{actor}(e)k erantzun du {titulo} gaian.",
+      foroTemaSinDatos: "foroko gai bat",
       actividad: "Ligako jarduera",
       sinMovimientos: "Oraindik ez dago mugimendurik zure ligan.",
       tipos: {
@@ -130,6 +140,8 @@ export default definirTextos(
         expulsion: "Kanporaketa",
         nuevo_admin: "Administratzailea",
         oferta_maquina: "Eskaintza",
+        foro_mencion: "Aipamena",
+        foro_respuesta: "Erantzuna",
       },
       avisoGenerico: "Albistea zure ligan.",
       etiquetas: {
@@ -196,6 +208,10 @@ export default definirTextos(
         "No announcements for now. News and important notices will appear here.",
       sinComunicados: "No active announcements.",
       tusIngresos: "Your earnings",
+      foros: "Forums",
+      foroMencion: "{actor} mentioned you in the topic {titulo}.",
+      foroRespuesta: "{actor} replied in the topic {titulo}.",
+      foroTemaSinDatos: "a forum topic",
       actividad: "League activity",
       sinMovimientos: "No activity in your league yet.",
       tipos: {
@@ -213,6 +229,8 @@ export default definirTextos(
         expulsion: "Expulsion",
         nuevo_admin: "Admin",
         oferta_maquina: "Offer",
+        foro_mencion: "Mention",
+        foro_respuesta: "Reply",
       },
       avisoGenerico: "News in your league.",
       etiquetas: {

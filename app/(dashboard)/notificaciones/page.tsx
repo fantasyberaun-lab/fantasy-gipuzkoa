@@ -56,7 +56,16 @@ const ETIQUETA: Record<Notificacion["tipo"], { clases: string }> = {
   oferta_maquina: {
     clases: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300",
   },
+  // Foros (0112).
+  foro_mencion: {
+    clases: "bg-accent/15 text-accent",
+  },
+  foro_respuesta: {
+    clases: "bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300",
+  },
 };
+
+const TIPOS_FORO: Notificacion["tipo"][] = ["foro_mencion", "foro_respuesta"];
 
 // Una actualización de Elo se mantiene fijada arriba durante este tiempo.
 const DIAS_FIJADA = 7;
@@ -241,6 +250,20 @@ export default function NotificacionesPage() {
       });
     }
 
+    if (n.tipo === "foro_mencion" || n.tipo === "foro_respuesta") {
+      const d = n.datosForo;
+      return rellenar(n.tipo === "foro_mencion" ? a.foroMencion : a.foroRespuesta, {
+        actor: valores.actor,
+        titulo: d ? (
+          <Link href={`/chat/foros/${d.temaId}`} className="font-medium hover:underline">
+            «{d.titulo}»
+          </Link>
+        ) : (
+          <span className="font-medium">{a.foroTemaSinDatos}</span>
+        ),
+      });
+    }
+
     if (n.tipo === "oferta_maquina") {
       // Aviso general de la tanda: el detalle de cada oferta está en la ficha del jugador.
       return a.ofertaMaquina;
@@ -277,6 +300,10 @@ export default function NotificacionesPage() {
     // Tipo desconocido: texto genérico (siempre al final, tras todos los tipos conocidos).
     return a.avisoGenerico;
   };
+
+  // En la liga pública los avisos de foros van aparte de los ingresos.
+  const ordenadasForo = ordenadas.filter((n) => TIPOS_FORO.includes(n.tipo));
+  const ordenadasIngresos = ordenadas.filter((n) => !TIPOS_FORO.includes(n.tipo));
 
   const comunicadosOrdenados = ordenarComunicados(comunicados);
 
@@ -406,12 +433,20 @@ export default function NotificacionesPage() {
           {bloqueComunicados}
         </div>
         {!haySugerenciasNuevas && bloqueSugerencias}
-        {ordenadas.length > 0 && (
+        {ordenadasForo.length > 0 && (
+          <section>
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+              {a.foros}
+            </h3>
+            <ul className="flex flex-col gap-2">{ordenadasForo.map(fila)}</ul>
+          </section>
+        )}
+        {ordenadasIngresos.length > 0 && (
           <section>
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
               {a.tusIngresos}
             </h3>
-            <ul className="flex flex-col gap-2">{ordenadas.map(fila)}</ul>
+            <ul className="flex flex-col gap-2">{ordenadasIngresos.map(fila)}</ul>
           </section>
         )}
       </div>

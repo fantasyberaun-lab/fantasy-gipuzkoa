@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { contarSugerenciasPendientes } from "@/lib/supabase/sugerenciasQueries";
 import { contarDenunciasChatPendientes } from "@/lib/supabase/chatQueries";
+import { contarDenunciasForoPendientes } from "@/lib/supabase/foroQueries";
 
 const TABS = [
   { href: "/admin", label: "Jugadores" },
@@ -28,7 +29,11 @@ export default function AdminNav() {
   useEffect(() => {
     const supabase = createClient();
     contarSugerenciasPendientes(supabase).then(setPendientes);
-    contarDenunciasChatPendientes(supabase).then(setDenuncias);
+    // Chat + foros (0112). Cada recuento devuelve 0 si su función aún no existe.
+    Promise.all([
+      contarDenunciasChatPendientes(supabase),
+      contarDenunciasForoPendientes(supabase),
+    ]).then(([chat, foro]) => setDenuncias(chat + foro));
   }, [pathname]);
 
   return (

@@ -28,6 +28,7 @@ import chat from "./chat";
 import minijuegos from "./minijuegos";
 import adminLiga from "./adminLiga";
 import misiones from "./misiones";
+import foros from "./foros";
 
 // Todas las secciones de textos. Para añadir una: crea textos/<seccion>.ts
 // con definirTextos(...) y regístrala aquí.
@@ -61,6 +62,7 @@ const SECCIONES = {
   minijuegos,
   adminLiga,
   misiones,
+  foros,
 };
 
 type Secciones = typeof SECCIONES;

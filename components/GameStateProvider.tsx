@@ -85,7 +85,7 @@ import type {
 const EQUIPO_VACIO: EquipoManager = { id: "", leagueId: "", nombreEquipo: "", saldo: 0 };
 const LIGA_ACTIVA_KEY = "liga-activa-id";
 // Avisos personales que sí llegan a la liga pública.
-const TIPOS_LIGA_PUBLICA: TipoNotificacion[] = ["pago_jornada"];
+const TIPOS_LIGA_PUBLICA: TipoNotificacion[] = ["pago_jornada", "foro_mencion", "foro_respuesta"];
 // Instante (ms) hasta el que el usuario ha visto los comunicados. Se guarda en
 // el navegador: los comunicados son globales, no de una liga concreta.
 const COMUNICADOS_VISTOS_KEY = "comunicados-vistos-en";

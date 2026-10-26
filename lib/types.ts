@@ -171,7 +171,10 @@ export type TipoNotificacion =
   | "expulsion"
   | "nuevo_admin"
   // Oferta de la máquina por un jugador puesto a la venta (ligas privadas, 0101).
-  | "oferta_maquina";
+  | "oferta_maquina"
+  // Foros (0112): te mencionan o te responden en un tema.
+  | "foro_mencion"
+  | "foro_respuesta";
 
 // Sanción, advertencia o expulsión (0100). "importe" de la notificación son los
 // puntos o millones quitados.
@@ -180,6 +183,13 @@ export interface DatosAdminLiga {
   motivo: string;
   // Solo en una expulsión: el equipo ya no existe.
   nombreEquipo: string | null;
+}
+
+// Tema del foro al que apunta un aviso de mención o respuesta (0112).
+export interface DatosForo {
+  temaId: number;
+  titulo: string;
+  mensajeId: number | null;
 }
 
 // Millones ingresados al cerrar una jornada (0068). "importe" de la
@@ -222,6 +232,8 @@ export interface Notificacion {
   datosPago?: DatosPagoJornada | null;
   // Solo en sancion, advertencia y expulsion.
   datosAdmin?: DatosAdminLiga | null;
+  // Solo en foro_mencion y foro_respuesta.
+  datosForo?: DatosForo | null;
 }
 
 // "privada": liga de amigos (máx. 9, plantilla inicial, mercado por tandas,
