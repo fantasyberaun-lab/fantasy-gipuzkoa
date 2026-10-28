@@ -124,7 +124,14 @@ Vercel → Settings → Environment Variables.
 - `SUPABASE_PROJECT_ID`: para generar tipos
 - `RESEND_API_KEY`, `EMAIL_FROM`: correo (dominio verificado en Resend)
 - `NEXT_PUBLIC_SITE_URL`: URL pública para enlaces en correos
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PUBLIC_KEY`: clave pública Web Push (pública)
+- `VAPID_PRIVATE_KEY`: **secreta**, solo servidor (firma los push)
+- `VAPID_SUBJECT`: `mailto:` del contacto para los push
+- `CRON_SECRET`: **secreto** que protege `/api/push/despachar`
 - GitHub Actions usa los secrets `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`
+
+Genera las claves VAPID con `npx web-push generate-vapid-keys` (la pública va en
+las dos variables públicas; la privada solo en `VAPID_PRIVATE_KEY`).
 
 **Nunca** escribas, muestres ni subas claves reales. Si ves una en un archivo, avísame.
 
@@ -144,6 +151,24 @@ Vercel → Settings → Environment Variables.
 - Hay protección específica de menores (migración 0031) y consentimientos (0045). No muestres datos
   personales a usuarios no registrados ni fuera de la misma liga.
 - Cualquier dato personal nuevo exige revisar la política de privacidad.
+
+## Notificaciones push y crons de engagement (Fase 0)
+
+- Push: tabla `push_suscripciones` (0113). El cliente se suscribe desde ajustes
+  (`components/AvisosPush.tsx`). El envío lo hace `/api/push/despachar` (service
+  role + `web-push`, protegido con `CRON_SECRET`), que lee
+  `notificaciones_push_pendientes()` y marca con `marcar_push_despachada()` (0114).
+- Los avisos push reutilizan la tabla `notificaciones` (0022). Tipos nuevos:
+  `mercado` (0114, movimiento de valor), `resumen` (0115) y `jornada` (0114,
+  lo lanza el admin con `avisar_nueva_jornada(liga)`). El muro de avisos en la
+  web sigue mostrando solo `oferta_recibida/fichaje/clausulazo`.
+- Crons a activar a mano (como el resto; ver más abajo), uno por cada tarea:
+  - Despacho de push: Vercel Cron (GET `/api/push/despachar` con
+    `Authorization: Bearer $CRON_SECRET`) cada 1–5 min, o pg_cron + pg_net
+    (cabecera `x-cron-secret`). Ver cabecera de 0114.
+  - Resúmenes semanales: `select public.generar_resumenes_semanales();` tras
+    cerrar la jornada (p. ej. lunes). Ver cabecera de 0115.
+- Recuperar racha: `recuperar_racha()` (0116), botón en `RachaDiaria`.
 
 ## Cosas que NO hacer
 

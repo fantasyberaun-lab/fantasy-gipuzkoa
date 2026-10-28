@@ -10,6 +10,7 @@ import { redondear2 } from "@/lib/saldo";
 import {
   abrirCofreDB,
   fetchEstadoRacha,
+  recuperarRachaDB,
   registrarInicioSesionDB,
   type EstadoRacha,
   type ResultadoCofre,
@@ -179,6 +180,17 @@ export default function RachaDiaria() {
     return r;
   }
 
+  async function recuperar() {
+    const r = await recuperarRachaDB(supabase);
+    if (r.ok) {
+      setAbierto(false);
+      setAviso(t.engagement.recuperarHecho);
+      await Promise.all([cargar(), recargarSaldo()]);
+    } else {
+      setAviso(r.mensaje || t.engagement.recuperarError);
+    }
+  }
+
   if (cargando || !estado) return null;
 
   const hayCofre = estado.cofresPendientes > 0;
@@ -240,6 +252,21 @@ export default function RachaDiaria() {
             >
               {t.racha.abrirCofre}
             </button>
+          )}
+
+          {estado.recuperable && (
+            <div className="mt-3 border-t border-neutral-200 pt-3 dark:border-neutral-800">
+              <p className="text-xs font-semibold text-negative">{t.engagement.recuperarTitulo}</p>
+              <p className="mt-0.5 text-xs text-neutral-500">
+                {t.engagement.recuperarTexto(estado.rachaPerdida, estado.recuperarCoste)}
+              </p>
+              <button
+                onClick={recuperar}
+                className="mt-2 w-full rounded-full border border-accent px-4 py-2 text-sm font-semibold text-accent transition-colors hover:bg-accent hover:text-white"
+              >
+                {t.engagement.recuperarBoton}
+              </button>
+            </div>
           )}
         </div>
         </>,

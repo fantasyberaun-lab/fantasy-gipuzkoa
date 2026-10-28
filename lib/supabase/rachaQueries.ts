@@ -13,7 +13,15 @@ export interface EstadoRacha {
   diasCofre: number; // cada cuántos días hay cofre (7)
   diasParaCofre: number; // días que faltan para el próximo cofre
   recompensaDiaria: number;
+  recuperable: boolean; // la racha se rompió pero aún se puede recuperar (0116)
+  rachaPerdida: number; // racha que se recuperaría
+  diasPerdidos: number;
+  recuperarCoste: number; // coste total en M
 }
+
+export type ResultadoRecuperar =
+  | { ok: true; racha: number; coste: number; equipos: number }
+  | { ok: false; mensaje: string };
 
 export type ResultadoEntrada =
   | {
@@ -50,6 +58,25 @@ export async function fetchEstadoRacha(supabase: Supabase): Promise<EstadoRacha 
     diasCofre: Number(d.dias_cofre),
     diasParaCofre: Number(d.dias_para_cofre),
     recompensaDiaria: Number(d.recompensa_diaria),
+    recuperable: Boolean(d.recuperable),
+    rachaPerdida: Number(d.racha_perdida ?? 0),
+    diasPerdidos: Number(d.dias_perdidos ?? 0),
+    recuperarCoste: Number(d.recuperar_coste ?? 0),
+  };
+}
+
+// Recupera la racha rota pagando el coste (ver 0116). Idempotente: si la racha
+// sigue viva o ya es tarde, devuelve ok = false con el motivo.
+export async function recuperarRachaDB(supabase: Supabase): Promise<ResultadoRecuperar> {
+  const { data, error } = await supabase.rpc("recuperar_racha");
+  if (error) return { ok: false, mensaje: error.message };
+  const d = data as Record<string, unknown>;
+  if (!d.ok) return { ok: false, mensaje: String(d.mensaje ?? "No se ha podido recuperar la racha.") };
+  return {
+    ok: true,
+    racha: Number(d.racha),
+    coste: Number(d.coste),
+    equipos: Number(d.equipos),
   };
 }
 

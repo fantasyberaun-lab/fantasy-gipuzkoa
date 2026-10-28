@@ -69,7 +69,7 @@ export default function AvisosPush() {
       }
 
       const json = sub.toJSON();
-      const keys = json.keys ?? {};
+      const keys = (json.keys ?? {}) as { p256dh?: string; auth?: string };
       const { error } = await supabase.from("push_suscripciones").upsert(
         {
           user_id: userId,
