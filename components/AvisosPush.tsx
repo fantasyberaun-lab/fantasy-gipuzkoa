@@ -58,7 +58,12 @@ export default function AvisosPush() {
         (await reg.pushManager.getSubscription()) ??
         (await reg.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: base64UrlAUint8Array(VAPID_PUBLICA),
+          // Cast explícito: según la versión exacta de TypeScript que resuelva
+          // el rango "^5.5.3" del proyecto, el genérico por defecto de
+          // Uint8Array cambia (ArrayBufferLike vs ArrayBuffer) y puede no
+          // encajar con el tipo BufferSource que pide esta API del navegador,
+          // aunque en tiempo de ejecución siempre es un ArrayBuffer normal.
+          applicationServerKey: base64UrlAUint8Array(VAPID_PUBLICA) as BufferSource,
         }));
 
       const { data: auth } = await supabase.auth.getUser();
