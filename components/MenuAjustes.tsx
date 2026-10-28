@@ -11,6 +11,7 @@ import SelectorIdioma from "@/components/SelectorIdioma";
 import BuzonSugerencias from "@/components/BuzonSugerencias";
 import Segmentado from "@/components/Segmentado";
 import AjusteSonido from "@/components/AjusteSonido";
+import AvisosPush from "@/components/AvisosPush";
 import { useT } from "@/components/IdiomaProvider";
 import { createClient } from "@/lib/supabase/client";
 import { sonar } from "@/lib/sonido";
@@ -191,6 +192,10 @@ function VistaConfiguracion({
 
       <Apartado titulo={t.ajustes.sonido}>
         <AjusteSonido />
+      </Apartado>
+
+      <Apartado titulo={t.avisosPush.titulo}>
+        <AvisosPush />
       </Apartado>
     </div>
   );

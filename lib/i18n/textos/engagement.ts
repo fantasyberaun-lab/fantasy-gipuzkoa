@@ -1,0 +1,71 @@
+import { definirTextos } from "../definir";
+
+// Textos de las funciones de enganche de la Fase 0: compartir en redes,
+// resumen semanal y recuperar la racha.
+export default definirTextos(
+  {
+    compartir: "Compartir",
+    compartirCopiado: "¡Imagen copiada! Ya puedes pegarla en tu story.",
+    compartirError: "No se ha podido compartir. Inténtalo de nuevo.",
+    compartirPreparando: "Preparando imagen…",
+    resumenTitulo: "Tu semana",
+    resumenSin: "Aún no hay resumen de esta semana. Vuelve cuando se cierre la jornada.",
+    resumenEquipo: "Equipo",
+    resumenLiga: "Liga",
+    resumenPuntos: (n: number) => `${n} ${n === 1 ? "punto" : "puntos"} esta semana`,
+    resumenPosicion: (n: number) => `Vas ${n}.º en tu liga`,
+    resumenSube: (n: number) => `Has subido ${n} ${n === 1 ? "puesto" : "puestos"}`,
+    resumenBaja: (n: number) => `Has bajado ${n} ${n === 1 ? "puesto" : "puestos"}`,
+    resumenIgual: "Mantienes tu puesto",
+    recuperarTitulo: "Se te ha roto la racha",
+    recuperarTexto: (racha: number, coste: number) =>
+      `Recupera tu racha de ${racha} días por ${coste} M.`,
+    recuperarBoton: "Recuperar racha",
+    recuperarHecho: "¡Racha recuperada! No la pierdas hoy.",
+    recuperarError: "No se ha podido recuperar la racha.",
+  },
+  {
+    eu: {
+      compartir: "Partekatu",
+      compartirCopiado: "Irudia kopiatuta! Orain zure storyan itsats dezakezu.",
+      compartirError: "Ezin izan da partekatu. Saiatu berriro.",
+      compartirPreparando: "Irudia prestatzen…",
+      resumenTitulo: "Zure astea",
+      resumenSin: "Oraindik ez dago aste honetako laburpenik. Itzuli jardunaldia ixtean.",
+      resumenEquipo: "Taldea",
+      resumenLiga: "Liga",
+      resumenPuntos: (n: number) => `${n} puntu aste honetan`,
+      resumenPosicion: (n: number) => `${n}. zaude zure ligan`,
+      resumenSube: (n: number) => `${n} postu igo zara`,
+      resumenBaja: (n: number) => `${n} postu jaitsi zara`,
+      resumenIgual: "Postuari eusten diozu",
+      recuperarTitulo: "Zure bolada hautsi da",
+      recuperarTexto: (racha: number, coste: number) =>
+        `Berreskuratu ${racha} eguneko bolada ${coste} M-ren truke.`,
+      recuperarBoton: "Berreskuratu bolada",
+      recuperarHecho: "Bolada berreskuratuta! Ez galdu gaur.",
+      recuperarError: "Ezin izan da bolada berreskuratu.",
+    },
+    en: {
+      compartir: "Share",
+      compartirCopiado: "Image copied! You can paste it into your story.",
+      compartirError: "Couldn't share. Please try again.",
+      compartirPreparando: "Preparing image…",
+      resumenTitulo: "Your week",
+      resumenSin: "No summary for this week yet. Come back once the round closes.",
+      resumenEquipo: "Team",
+      resumenLiga: "League",
+      resumenPuntos: (n: number) => `${n} ${n === 1 ? "point" : "points"} this week`,
+      resumenPosicion: (n: number) => `You're ${n}th in your league`,
+      resumenSube: (n: number) => `You climbed ${n} ${n === 1 ? "place" : "places"}`,
+      resumenBaja: (n: number) => `You dropped ${n} ${n === 1 ? "place" : "places"}`,
+      resumenIgual: "You held your place",
+      recuperarTitulo: "Your streak broke",
+      recuperarTexto: (racha: number, coste: number) =>
+        `Recover your ${racha}-day streak for ${coste} M.`,
+      recuperarBoton: "Recover streak",
+      recuperarHecho: "Streak recovered! Don't lose it today.",
+      recuperarError: "Couldn't recover the streak.",
+    },
+  }
+);
