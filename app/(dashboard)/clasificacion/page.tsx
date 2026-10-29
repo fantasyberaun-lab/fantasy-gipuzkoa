@@ -356,6 +356,12 @@ export default function ClasificacionPage() {
               {t.duelos.abrir}
             </Link>
           )}
+          <Link
+            href="/quiniela"
+            className="ml-3 text-xs font-semibold text-accent underline underline-offset-2"
+          >
+            {t.quiniela.abrir}
+          </Link>
           {soyAdmin && (
             <Link href="/liga/admin" className="ml-3 text-xs font-medium text-accent underline underline-offset-2">
               {t.adminLiga.botonAbrir}
