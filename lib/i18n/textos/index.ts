@@ -35,6 +35,8 @@ import directo from "./directo";
 import duelos from "./duelos";
 import quiniela from "./quiniela";
 import pase from "./pase";
+import invitar from "./invitar";
+import salon from "./salon";
 
 // Todas las secciones de textos. Para añadir una: crea textos/<seccion>.ts
 // con definirTextos(...) y regístrala aquí.
@@ -75,6 +77,8 @@ const SECCIONES = {
   duelos,
   quiniela,
   pase,
+  invitar,
+  salon,
 };
 
 type Secciones = typeof SECCIONES;

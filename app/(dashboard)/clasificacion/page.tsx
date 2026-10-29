@@ -368,6 +368,12 @@ export default function ClasificacionPage() {
           >
             {t.pase.abrir}
           </Link>
+          <Link
+            href="/salon"
+            className="ml-3 text-xs font-semibold text-accent underline underline-offset-2"
+          >
+            {t.salon.abrir}
+          </Link>
           {soyAdmin && (
             <Link href="/liga/admin" className="ml-3 text-xs font-medium text-accent underline underline-offset-2">
               {t.adminLiga.botonAbrir}
