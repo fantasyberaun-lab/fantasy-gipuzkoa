@@ -348,6 +348,14 @@ export default function ClasificacionPage() {
             <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-negative" aria-hidden="true" />
             {t.directo.abrir}
           </Link>
+          {!esLigaPublica && (
+            <Link
+              href="/duelos"
+              className="ml-3 text-xs font-semibold text-accent underline underline-offset-2"
+            >
+              {t.duelos.abrir}
+            </Link>
+          )}
           {soyAdmin && (
             <Link href="/liga/admin" className="ml-3 text-xs font-medium text-accent underline underline-offset-2">
               {t.adminLiga.botonAbrir}

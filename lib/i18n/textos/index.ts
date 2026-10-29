@@ -32,6 +32,7 @@ import foros from "./foros";
 import avisosPush from "./avisosPush";
 import engagement from "./engagement";
 import directo from "./directo";
+import duelos from "./duelos";
 
 // Todas las secciones de textos. Para añadir una: crea textos/<seccion>.ts
 // con definirTextos(...) y regístrala aquí.
@@ -69,6 +70,7 @@ const SECCIONES = {
   avisosPush,
   engagement,
   directo,
+  duelos,
 };
 
 type Secciones = typeof SECCIONES;
