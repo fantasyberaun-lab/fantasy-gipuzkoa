@@ -31,6 +31,7 @@ import misiones from "./misiones";
 import foros from "./foros";
 import avisosPush from "./avisosPush";
 import engagement from "./engagement";
+import directo from "./directo";
 
 // Todas las secciones de textos. Para añadir una: crea textos/<seccion>.ts
 // con definirTextos(...) y regístrala aquí.
@@ -67,6 +68,7 @@ const SECCIONES = {
   foros,
   avisosPush,
   engagement,
+  directo,
 };
 
 type Secciones = typeof SECCIONES;
