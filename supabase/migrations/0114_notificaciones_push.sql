@@ -28,7 +28,16 @@ alter table public.notificaciones
   drop constraint if exists notificaciones_tipo_check;
 alter table public.notificaciones
   add constraint notificaciones_tipo_check
-  check (tipo in ('oferta_recibida', 'fichaje', 'clausulazo', 'mercado', 'resumen', 'jornada'));
+  check (tipo in (
+    -- tipos ya existentes (hasta 0112): hay que conservarlos todos o el check
+    -- rechazaría filas actuales y rompería cerrar_jornada, clausulazos, etc.
+    'oferta_recibida', 'fichaje', 'clausulazo', 'clausula_subida',
+    'oferta_rechazada', 'actualizacion_elo', 'pago_jornada', 'sancion',
+    'advertencia', 'expulsion', 'nuevo_admin', 'oferta_maquina',
+    'foro_mencion', 'foro_respuesta',
+    -- tipos nuevos de la Fase 0 (push)
+    'mercado', 'resumen', 'jornada'
+  ));
 
 -- Umbral (en %) a partir del cual un cambio de valor por resultado avisa al dueño.
 insert into game_config (clave, valor) values ('push_mercado_umbral_pct', '2.5'::jsonb)
@@ -151,8 +160,8 @@ as $$
       n.id as notif_id,
       ft.owner_id as user_id,
       'Nueva jornada' as titulo,
-      'Ya puedes ver los puntos de la jornada.' as cuerpo,
-      '/clasificacion' as url,
+      'Sigue los puntos en directo.' as cuerpo,
+      '/directo' as url,
       'jornada' as tag
     from notificaciones n
     join fantasy_teams ft on ft.league_id = n.league_id
