@@ -258,7 +258,9 @@ export default function RachaDiaria() {
             <div className="mt-3 border-t border-neutral-200 pt-3 dark:border-neutral-800">
               <p className="text-xs font-semibold text-negative">{t.engagement.recuperarTitulo}</p>
               <p className="mt-0.5 text-xs text-neutral-500">
-                {t.engagement.recuperarTexto(estado.rachaPerdida, estado.recuperarCoste)}
+                {estado.protecciones > 0
+                  ? t.engagement.recuperarProtector(estado.protecciones)
+                  : t.engagement.recuperarTexto(estado.rachaPerdida, estado.recuperarCoste)}
               </p>
               <button
                 onClick={recuperar}

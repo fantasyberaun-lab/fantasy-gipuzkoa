@@ -17,6 +17,7 @@ export interface EstadoRacha {
   rachaPerdida: number; // racha que se recuperaría
   diasPerdidos: number;
   recuperarCoste: number; // coste total en M
+  protecciones: number; // protectores de racha (del pase, 0120): recuperar gratis
 }
 
 export type ResultadoRecuperar =
@@ -62,6 +63,7 @@ export async function fetchEstadoRacha(supabase: Supabase): Promise<EstadoRacha 
     rachaPerdida: Number(d.racha_perdida ?? 0),
     diasPerdidos: Number(d.dias_perdidos ?? 0),
     recuperarCoste: Number(d.recuperar_coste ?? 0),
+    protecciones: Number(d.protecciones ?? 0),
   };
 }
 

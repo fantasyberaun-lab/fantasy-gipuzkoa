@@ -23,6 +23,7 @@ export default definirTextos(
     recuperarBoton: "Recuperar racha",
     recuperarHecho: "¡Racha recuperada! No la pierdas hoy.",
     recuperarError: "No se ha podido recuperar la racha.",
+    recuperarProtector: (n: number) => `🛡️ Gratis con protector (tienes ${n})`,
   },
   {
     eu: {
@@ -45,6 +46,7 @@ export default definirTextos(
       recuperarBoton: "Berreskuratu bolada",
       recuperarHecho: "Bolada berreskuratuta! Ez galdu gaur.",
       recuperarError: "Ezin izan da bolada berreskuratu.",
+      recuperarProtector: (n: number) => `🛡️ Doan babeslearekin (${n} dituzu)`,
     },
     en: {
       compartir: "Share",
@@ -66,6 +68,7 @@ export default definirTextos(
       recuperarBoton: "Recover streak",
       recuperarHecho: "Streak recovered! Don't lose it today.",
       recuperarError: "Couldn't recover the streak.",
+      recuperarProtector: (n: number) => `🛡️ Free with a protector (you have ${n})`,
     },
   }
 );
