@@ -68,6 +68,8 @@ const D_GLOBO =
 const D_FLECHA = "M8.25 4.5l7.5 7.5-7.5 7.5";
 const D_REGALO =
   "M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z";
+const D_ALBUM =
+  "M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z";
 
 const FILA =
   "group flex w-full items-center gap-3 rounded-xl border border-neutral-200 bg-white px-3 py-3 text-left transition-colors hover:border-accent hover:bg-brand-50 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-accent dark:hover:bg-neutral-800";
@@ -385,6 +387,13 @@ export default function MenuAjustes() {
                 titulo={t.invitar.abrir}
                 detalle={t.invitar.intro}
                 href="/invitar"
+                onClick={cerrar}
+              />
+              <Fila
+                d={D_ALBUM}
+                titulo={t.album.abrir}
+                detalle={t.album.intro}
+                href="/album"
                 onClick={cerrar}
               />
               <Fila
