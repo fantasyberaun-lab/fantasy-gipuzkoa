@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
 // Etiqueta con el estado de la cláusula de un jugador fichado: blindado
 // (su dueño ha pagado el blindaje), candado (recién fichado) o clausulable.
 // La usan la Plantilla, Jugadores y la plantilla de un rival en Clasificación.
@@ -32,23 +36,46 @@ const estadoEstilo: Record<EstadoClausula, { icono: string; clases: string }> = 
   },
 };
 
-// Icono solo (filas compactas) o icono + texto.
+// Tiempo que queda hasta una fecha: "6d 4h", "5h 12m" o "8m". null si ya ha pasado.
+export function tiempoRestante(hasta: string | null | undefined, ahora: number): string | null {
+  if (!hasta) return null;
+  const minutos = Math.floor((new Date(hasta).getTime() - ahora) / 60000);
+  if (!Number.isFinite(minutos) || minutos <= 0) return null;
+  const dias = Math.floor(minutos / 1440);
+  const horas = Math.floor((minutos % 1440) / 60);
+  if (dias > 0) return `${dias}d ${horas}h`;
+  if (horas > 0) return `${horas}h ${minutos % 60}m`;
+  return `${minutos}m`;
+}
+
+// Icono solo (filas compactas) o icono + texto. Con `hasta` (candado o blindado)
+// añade una cuenta atrás discreta que se actualiza cada minuto.
 export default function InsigniaEstadoClausula({
   estado,
   texto,
   title,
   className = "text-xs",
+  hasta,
 }: {
   estado: EstadoClausula;
   texto?: string;
   title: string;
   className?: string;
+  hasta?: string | null;
 }) {
   const { icono, clases } = estadoEstilo[estado];
+  const [ahora, setAhora] = useState(() => Date.now());
+  useEffect(() => {
+    if (!hasta) return;
+    const id = setInterval(() => setAhora(Date.now()), 60000);
+    return () => clearInterval(id);
+  }, [hasta]);
+  const restante = estado === "clausulable" ? null : tiempoRestante(hasta, ahora);
+  const titulo = restante ? `${title} · ${restante}` : title;
   return (
     <span
-      title={title}
-      aria-label={title}
+      title={titulo}
+      aria-label={titulo}
       className={`inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 font-medium ${clases} ${className}`}
     >
       <svg
@@ -62,6 +89,7 @@ export default function InsigniaEstadoClausula({
         <path strokeLinecap="round" strokeLinejoin="round" d={icono} />
       </svg>
       {texto}
+      {restante && <span className="font-normal opacity-70">{restante}</span>}
     </span>
   );
 }

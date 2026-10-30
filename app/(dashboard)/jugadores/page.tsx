@@ -272,6 +272,7 @@ export default function JugadoresPage() {
                         texto={tj[estado]}
                         title={tj[`${estado}Titulo` as const]}
                         className="text-[10px]"
+                        hasta={estado === "blindado" ? jugador.blindadoHasta : jugador.candadoHasta}
                       />
                     )}
                   </p>

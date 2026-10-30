@@ -443,6 +443,8 @@ export async function fetchMiPlantilla(
         // Valen mientras no pase su fecha (0113); el booleano solo no caduca.
         candado: Boolean(s.candado) && (!s.candado_hasta || new Date(s.candado_hasta) > new Date()),
         blindado: Boolean(s.blindado) && (!s.blindado_hasta || new Date(s.blindado_hasta) > new Date()),
+        candadoHasta: (s.candado_hasta as string | null) ?? null,
+        blindadoHasta: (s.blindado_hasta as string | null) ?? null,
         torneos: ((inscripciones ?? []) as any[])
           .filter((i) => i.player_id === s.players.id && i.tournaments)
           .map((i) => ({ id: i.tournaments.id as string, nombre: i.tournaments.nombre as string })),
@@ -520,6 +522,8 @@ export async function fetchJugadoresLiga(
     clausula: Number(p.clausula),
     candado: Boolean(p.candado),
     blindado: Boolean(p.blindado),
+    candadoHasta: (p.candado_hasta as string | null) ?? null,
+    blindadoHasta: (p.blindado_hasta as string | null) ?? null,
     historialPuntos: (p.historial_puntos ?? []) as PuntosJornada[],
   }));
 }

@@ -668,6 +668,7 @@ export default function ClasificacionPage() {
                             texto={estado === "clausulable" ? undefined : t.jugadores[estado]}
                             title={t.jugadores[`${estado}Titulo` as const]}
                             className="text-[10px]"
+                            hasta={estado === "blindado" ? jugador.blindadoHasta : jugador.candadoHasta}
                           />
                         </p>
                         <p className="text-xs text-neutral-500">

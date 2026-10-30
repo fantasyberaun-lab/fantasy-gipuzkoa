@@ -72,6 +72,8 @@ export default function PlayerCard({
   ligaPublica = false,
   candado,
   blindado,
+  candadoHasta,
+  blindadoHasta,
   proximosRivales: rivalesSinOrdenar,
   torneos,
   onToggleTitular,
@@ -379,7 +381,12 @@ export default function PlayerCard({
                 </span>
               )}
               {!ligaPublica && (
-                <InsigniaEstadoClausula estado={estado} texto={estadoTexto.corto} title={estadoTexto.title} />
+                <InsigniaEstadoClausula
+                  estado={estado}
+                  texto={estadoTexto.corto}
+                  title={estadoTexto.title}
+                  hasta={estado === "blindado" ? blindadoHasta : candadoHasta}
+                />
               )}
             </div>
 

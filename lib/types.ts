@@ -56,9 +56,11 @@ export interface PlantillaSlot {
   // Fichado por clausulazo o mercado en la jornada actual: no se le puede
   // hacer un clausulazo durante una semana (candado_hasta, 0113).
   candado?: boolean;
+  candadoHasta?: string | null;
   // Blindado (pagado por su dueño): no se le puede hacer un clausulazo
-  // hasta que empiece la siguiente jornada.
+  // durante una semana (blindado_hasta, 0113).
   blindado?: boolean;
+  blindadoHasta?: string | null;
   // Torneos en los que está inscrito el jugador (para el límite de titulares
   // por torneo).
   torneos?: { id: string; nombre: string }[];
@@ -108,7 +110,9 @@ export interface JugadorLiga extends Jugador {
   // Fichado por clausulazo o mercado en la jornada actual: no se le puede
   // hacer un clausulazo durante una semana (candado_hasta, 0113).
   candado?: boolean;
+  candadoHasta?: string | null;
   blindado?: boolean;
+  blindadoHasta?: string | null;
   // Inscrito en algún torneo. Solo los inscritos salen en el mercado de la
   // liga pública (false = no se puede fichar; undefined se trata como true).
   inscrito?: boolean;
