@@ -90,15 +90,17 @@ export default function EquipoHeader() {
           </div>
         </div>
 
-        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0 sm:flex-nowrap">
+        <div className="flex w-full flex-wrap items-center gap-1.5 sm:w-auto sm:shrink-0 sm:flex-nowrap sm:gap-2">
           <NivelChip />
           <RachaDiaria />
           <MinijuegosChip />
           <TutorialNiveles />
           <TutorialMisiones />
-          <div className="ml-auto shrink-0 rounded-xl bg-white/10 px-4 py-2 ring-1 ring-white/15 sm:ml-0">
+          {/* En móvil, caja y cifra más compactas: con saldos de 3 cifras (100 M o
+              más) si no, no cabe junto a los chips y salta a otra línea. */}
+          <div className="ml-auto shrink-0 rounded-xl bg-white/10 px-3 py-2 ring-1 ring-white/15 sm:ml-0 sm:px-4">
             <p className="text-xs font-medium text-white/70">{t.ajustes.saldo}</p>
-            <p className="font-display text-2xl font-semibold leading-tight text-gold [&_span]:text-red-300">
+            <p className="font-display text-xl font-semibold leading-tight text-gold sm:text-2xl [&_span]:text-red-300">
               {cargando ? (
                 "…"
               ) : (
