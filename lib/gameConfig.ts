@@ -48,7 +48,7 @@ export const gameConfig = {
   capitan: {
     multiplicador: 2,
   },
-  // Blindaje: el jugador no puede ser clausulado hasta la siguiente jornada.
+  // Blindaje: el jugador no puede ser clausulado durante una semana desde que se blinda (ver 0113).
   // Cuesta este porcentaje del valor de mercado, redondeado al millón superior.
   // Variable blindaje_porcentaje (0096; porcentaje_blindaje() la lee).
   blindaje: {

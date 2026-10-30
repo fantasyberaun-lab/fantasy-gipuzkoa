@@ -104,7 +104,7 @@ export default function EquipoHeader() {
               {cargando ? (
                 "…"
               ) : (
-                <SaldoConPujas saldo={equipo.saldo} comprometido={comprometidoEnPujas} />
+                <SaldoConPujas saldo={equipo.saldo} comprometido={comprometidoEnPujas} debajo />
               )}
             </p>
             {!cargando && equipo.saldo < 0 && (

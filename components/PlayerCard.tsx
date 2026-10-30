@@ -32,7 +32,7 @@ type Props = PlantillaSlot & {
   bloqueadoPorTope?: boolean;
   // Texto que explica por qué no se puede poner de titular (tope de titulares por torneo).
   motivoBloqueo?: string;
-  // Ya has blindado a otro jugador esta jornada (solo se permite uno).
+  // Ya has blindado a otro jugador esta semana (solo se permite uno).
   blindajeAgotado?: boolean;
   // Liga pública: no hay clausulazos, candados ni blindajes, así que se
   // ocultan esas opciones.

@@ -54,7 +54,7 @@ export interface PlantillaSlot {
   esJugadorDeLaJornada?: boolean;
   historialPuntos: PuntosJornada[];
   // Fichado por clausulazo o mercado en la jornada actual: no se le puede
-  // hacer un clausulazo hasta que empiece la siguiente jornada.
+  // hacer un clausulazo durante una semana (candado_hasta, 0113).
   candado?: boolean;
   // Blindado (pagado por su dueño): no se le puede hacer un clausulazo
   // hasta que empiece la siguiente jornada.
@@ -106,7 +106,7 @@ export interface JugadorLiga extends Jugador {
   esMiEquipo?: boolean;
   clausula: number;
   // Fichado por clausulazo o mercado en la jornada actual: no se le puede
-  // hacer un clausulazo hasta que empiece la siguiente jornada.
+  // hacer un clausulazo durante una semana (candado_hasta, 0113).
   candado?: boolean;
   blindado?: boolean;
   // Inscrito en algún torneo. Solo los inscritos salen en el mercado de la

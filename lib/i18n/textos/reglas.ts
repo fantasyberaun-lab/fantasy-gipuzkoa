@@ -57,7 +57,7 @@ export default definirTextos(
     subirClausula: (mult: number) =>
       `**Subir la cláusula.** Puedes pagar una cantidad por uno de tus jugadores para protegerlo: cada M que pagas sube su cláusula ${mult} M. Ese extra se pierde si el jugador sale de tu plantilla.`,
     candado:
-      "**Candado.** Un jugador recién fichado (por puja o por clausulazo) no se puede clausular hasta que empiece la siguiente jornada.",
+      "**Candado.** Un jugador recién fichado (por puja o por clausulazo) no se puede clausular durante una semana desde el fichaje.",
     cierre:
       "**Cierre de clausulazos.** No se pueden hacer desde el viernes a las 16:00 hasta el sábado a las 18:00 (hora de España). Si lo intentas en ese tramo, la app te avisa y no se paga nada.",
     sinClausulazosPublica:
@@ -65,7 +65,7 @@ export default definirTextos(
     // Blindaje
     blindajeTitulo: "Blindaje (ligas privadas)",
     blindaje: (pct: number) =>
-      `Blindar a un jugador impide que le hagan un clausulazo hasta que empiece la siguiente jornada. Cuesta el ${pct} % de su valor de mercado, redondeado al millón superior.`,
+      `Blindar a un jugador impide que le hagan un clausulazo durante una semana. Cuesta el ${pct} % de su valor de mercado, redondeado al millón superior.`,
     blindajeUno: "Solo puedes blindar a un jugador por jornada.",
   },
   {
@@ -112,14 +112,14 @@ export default definirTextos(
       subirClausula: (mult: number) =>
         `**Klausula igo.** Zure jokalarietako batengatik kopuru bat ordain dezakezu hura babesteko: ordaintzen duzun M bakoitzak ${mult} M igotzen du haren klausula. Gehigarri hori galdu egiten da jokalariak zure plantilla uzten badu.`,
       candado:
-        "**Giltzarrapoa.** Fitxatu berri den jokalari bati (poxaz edo klausulazoz) ezin zaio klausulazorik egin hurrengo jardunaldia hasi arte.",
+        "**Giltzarrapoa.** Fitxatu berri den jokalari bati (poxaz edo klausulazoz) ezin zaio klausulazorik egin aste batez.",
       cierre:
         "**Klausulazoen itxiera.** Ezin dira egin ostiraleko 16:00etatik larunbateko 18:00etara (Espainiako ordua). Tarte horretan saiatzen bazara, aplikazioak abisatu egiten dizu eta ez da ezer ordaintzen.",
       sinClausulazosPublica:
         "Liga publikoan ez dago klausulazorik: Merkatuan berehala fitxatzen eta saltzen duzu.",
       blindajeTitulo: "Blindajea (liga pribatuak)",
       blindaje: (pct: number) =>
-        `Jokalari bat blindatuz gero, ezin zaio klausulazorik egin hurrengo jardunaldia hasi arte. Bere merkatu-balioaren % ${pct} balio du, goranzko milioira biribilduta.`,
+        `Jokalari bat blindatuz gero, ezin zaio klausulazorik egin aste batez. Bere merkatu-balioaren % ${pct} balio du, goranzko milioira biribilduta.`,
       blindajeUno: "Jardunaldi bakoitzean jokalari bakarra blinda dezakezu.",
     },
     en: {
@@ -165,14 +165,14 @@ export default definirTextos(
       subirClausula: (mult: number) =>
         `**Raise the clause.** You can pay an amount for one of your players to protect them: each M you pay raises their clause by ${mult} M. That extra is lost if the player leaves your squad.`,
       candado:
-        "**Lock.** A newly signed player (by bid or by clause buyout) can't be bought out until the next matchday starts.",
+        "**Lock.** A newly signed player (by bid or by clause buyout) can't be bought out for one week after signing.",
       cierre:
         "**Clause buyout window closed.** They can't be made from Friday 16:00 until Saturday 18:00 (Spanish time). If you try during that window, the app warns you and nothing is paid.",
       sinClausulazosPublica:
         "There are no clause buyouts in the public league: you sign and sell instantly in the Market.",
       blindajeTitulo: "Shield (private leagues)",
       blindaje: (pct: number) =>
-        `Shielding a player stops anyone from buying out their clause until the next matchday starts. It costs ${pct} % of their market value, rounded up to the next million.`,
+        `Shielding a player stops anyone from buying out their clause for one week. It costs ${pct} % of their market value, rounded up to the next million.`,
       blindajeUno: "You can only shield one player per matchday.",
     },
   }

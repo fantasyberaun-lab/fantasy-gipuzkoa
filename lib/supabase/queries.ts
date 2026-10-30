@@ -333,7 +333,7 @@ export async function fetchMiPlantilla(
   const { data: slots, error } = await supabase
     .from("squad_slots")
     .select(
-      "titular, capitan, clausula_extra, precio_pago, candado, blindado, players (id, nombre, club, categoria, elo, valor_mercado, activo)"
+      "titular, capitan, clausula_extra, precio_pago, candado, candado_hasta, blindado, blindado_hasta, players (id, nombre, club, categoria, elo, valor_mercado, activo)"
     )
     .eq("fantasy_team_id", equipoId)
     .is("fecha_salida", null);
@@ -440,8 +440,9 @@ export async function fetchMiPlantilla(
         historialPuntos,
         titular: Boolean(s.titular),
         capitan: Boolean(s.capitan),
-        candado: Boolean(s.candado),
-        blindado: Boolean(s.blindado),
+        // Valen mientras no pase su fecha (0113); el booleano solo no caduca.
+        candado: Boolean(s.candado) && (!s.candado_hasta || new Date(s.candado_hasta) > new Date()),
+        blindado: Boolean(s.blindado) && (!s.blindado_hasta || new Date(s.blindado_hasta) > new Date()),
         torneos: ((inscripciones ?? []) as any[])
           .filter((i) => i.player_id === s.players.id && i.tournaments)
           .map((i) => ({ id: i.tournaments.id as string, nombre: i.tournaments.nombre as string })),
