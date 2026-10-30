@@ -341,8 +341,41 @@ export default function ClasificacionPage() {
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold">{c.titulo}</h2>
+          <Link
+            href="/directo"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-accent underline underline-offset-2"
+          >
+            <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-negative" aria-hidden="true" />
+            {t.directo.abrir}
+          </Link>
+          {!esLigaPublica && (
+            <Link
+              href="/duelos"
+              className="ml-3 text-xs font-semibold text-accent underline underline-offset-2"
+            >
+              {t.duelos.abrir}
+            </Link>
+          )}
+          <Link
+            href="/quiniela"
+            className="ml-3 text-xs font-semibold text-accent underline underline-offset-2"
+          >
+            {t.quiniela.abrir}
+          </Link>
+          <Link
+            href="/pase"
+            className="ml-3 text-xs font-semibold text-accent underline underline-offset-2"
+          >
+            {t.pase.abrir}
+          </Link>
+          <Link
+            href="/salon"
+            className="ml-3 text-xs font-semibold text-accent underline underline-offset-2"
+          >
+            {t.salon.abrir}
+          </Link>
           {soyAdmin && (
-            <Link href="/liga/admin" className="text-xs font-medium text-accent underline underline-offset-2">
+            <Link href="/liga/admin" className="ml-3 text-xs font-medium text-accent underline underline-offset-2">
               {t.adminLiga.botonAbrir}
             </Link>
           )}

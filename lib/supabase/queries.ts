@@ -696,7 +696,11 @@ export async function fetchNotificaciones(
       "id, tipo, actor_team_id, objetivo_team_id, player_id, importe, datos, created_at, players (nombre), actor:fantasy_teams!actor_team_id (nombre), objetivo:fantasy_teams!objetivo_team_id (nombre)"
     )
     .eq("league_id", leagueId);
-  if (soloTipos) consulta = consulta.in("tipo", soloTipos);
+  // Los tipos nuevos ('mercado', 'resumen', 'jornada') se entregan por push y en
+  // sus propias pantallas, no en el muro de operaciones, así que por defecto el
+  // muro muestra solo los de siempre.
+  const TIPOS_MURO = ["oferta_recibida", "fichaje", "clausulazo"];
+  consulta = consulta.in("tipo", soloTipos ?? TIPOS_MURO);
 
   const [{ data, error }, { data: equipo }] = await Promise.all([
     consulta.order("created_at", { ascending: false }).limit(50),
