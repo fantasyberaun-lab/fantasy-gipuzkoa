@@ -24,6 +24,15 @@ const nextConfig = {
           { key: "Strict-Transport-Security", value: "max-age=63072000" },
         ],
       },
+      // Digital Asset Links (app de Google Play / TWA): Google exige respuesta
+      // 200 directa con JSON, sin redirecciones.
+      {
+        source: "/.well-known/assetlinks.json",
+        headers: [
+          { key: "Content-Type", value: "application/json; charset=utf-8" },
+          { key: "Cache-Control", value: "public, max-age=3600" },
+        ],
+      },
     ];
   },
 };
