@@ -95,3 +95,43 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+
+// --- Notificaciones push (ver 0113/0114 y /api/push/despachar) --------------
+// El servidor manda un JSON { titulo, cuerpo, url, tag }. Se muestra como
+// notificación del sistema; al tocarla se abre (o enfoca) la app en esa ruta.
+self.addEventListener("push", (event) => {
+  let datos = {};
+  try {
+    datos = event.data ? event.data.json() : {};
+  } catch {
+    datos = { cuerpo: event.data ? event.data.text() : "" };
+  }
+
+  const titulo = datos.titulo || "Fantasy Beraun";
+  const opciones = {
+    body: datos.cuerpo || "",
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    tag: datos.tag || undefined,
+    data: { url: datos.url || "/" },
+  };
+
+  event.waitUntil(self.registration.showNotification(titulo, opciones));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const destino = (event.notification.data && event.notification.data.url) || "/";
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientes) => {
+      for (const cliente of clientes) {
+        if ("focus" in cliente) {
+          cliente.navigate(destino).catch(() => {});
+          return cliente.focus();
+        }
+      }
+      return self.clients.openWindow(destino);
+    })
+  );
+});

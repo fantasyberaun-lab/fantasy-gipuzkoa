@@ -7,6 +7,7 @@ import ActividadTracker from "@/components/ActividadTracker";
 import { ChatProvider } from "@/components/ChatProvider";
 import EnlacesLegales from "@/components/legal/EnlacesLegales";
 import BotonMinijuegos from "@/components/BotonMinijuegos";
+import ResumenSemanal from "@/components/ResumenSemanal";
 
 export default function DashboardLayout({
   children,
@@ -30,6 +31,7 @@ export default function DashboardLayout({
 
           <TabNav />
           <BotonMinijuegos />
+          <ResumenSemanal />
 
           <main className="mt-6">{children}</main>
 

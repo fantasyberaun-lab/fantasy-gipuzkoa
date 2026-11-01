@@ -124,7 +124,14 @@ Vercel → Settings → Environment Variables.
 - `SUPABASE_PROJECT_ID`: para generar tipos
 - `RESEND_API_KEY`, `EMAIL_FROM`: correo (dominio verificado en Resend)
 - `NEXT_PUBLIC_SITE_URL`: URL pública para enlaces en correos
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY` / `VAPID_PUBLIC_KEY`: clave pública Web Push (pública)
+- `VAPID_PRIVATE_KEY`: **secreta**, solo servidor (firma los push)
+- `VAPID_SUBJECT`: `mailto:` del contacto para los push
+- `CRON_SECRET`: **secreto** que protege `/api/push/despachar`
 - GitHub Actions usa los secrets `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`
+
+Genera las claves VAPID con `npx web-push generate-vapid-keys` (la pública va en
+las dos variables públicas; la privada solo en `VAPID_PRIVATE_KEY`).
 
 **Nunca** escribas, muestres ni subas claves reales. Si ves una en un archivo, avísame.
 
@@ -144,6 +151,29 @@ Vercel → Settings → Environment Variables.
 - Hay protección específica de menores (migración 0031) y consentimientos (0045). No muestres datos
   personales a usuarios no registrados ni fuera de la misma liga.
 - Cualquier dato personal nuevo exige revisar la política de privacidad.
+
+## Notificaciones push, resumen semanal y pronósticos
+
+- Push: tabla `push_suscripciones` (0115). El cliente se suscribe desde ajustes
+  (`components/AvisosPush.tsx`). El envío lo hace `/api/push/despachar` (service
+  role + `web-push`, protegido con `CRON_SECRET`), que lee
+  `notificaciones_push_pendientes()` y marca lo enviado con `marcar_push_enviados()`
+  (0116). Solo se marca lo que ha salido bien o ha fallado de forma definitiva; lo
+  pasajero se reintenta (registro por aviso y suscripción en `push_envios`).
+- Qué se avisa por push: `oferta_recibida` y `clausulazo` (filas de `notificaciones`),
+  torneo nuevo (trigger en `tournaments`) y cualquier comunicado del admin
+  (trigger en `comunicados`); estos dos van por `push_difusiones`. No se avisa de
+  movimientos de valor, de nueva jornada ni del resumen semanal.
+- Despacho: pg_cron + pg_net cada 2-3 minutos (instrucciones y SQL al final de 0116;
+  hay que activar `pg_net` y guardar el secreto en Vault). Variables en Vercel:
+  `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
+  `VAPID_SUBJECT` y `CRON_SECRET` (el mismo valor que en Vault).
+- Resumen semanal (0117): pantalla "Tu semana" (`components/ResumenSemanal.tsx`) que se
+  ve una vez al entrar tras cerrarse la jornada, con compartir y cerrar. Se calcula
+  la primera vez que alguien entra; no necesita cron.
+- Pronósticos (0118): categoría aparte dentro de Minijuegos, sin premios, por torneo y
+  opcional; cierran el día que empieza la ronda. Los datos son privados y quedan
+  guardados para estadísticas futuras.
 
 ## Cosas que NO hacer
 
