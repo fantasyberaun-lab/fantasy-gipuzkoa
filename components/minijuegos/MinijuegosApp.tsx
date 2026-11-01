@@ -20,17 +20,21 @@ import JuegoParejas from "./JuegoParejas";
 import JuegoPrecio from "./JuegoPrecio";
 import JuegoOrdenElo from "./JuegoOrdenElo";
 import PanelDia from "./PanelDia";
+import PanelPronosticos from "./PanelPronosticos";
 import RankingMinijuegos from "./RankingMinijuegos";
 
 // Contenido de /minijuegos: panel del día y una pestaña por minijuego (cada una
 // con su partida y sus rankings de hoy y general) más la del ranking total.
 export default function MinijuegosApp() {
   const supabase = createClient();
-  const t = useT().minijuegos;
+  const tt = useT();
+  const t = tt.minijuegos;
+  const pr = tt.pronosticos;
   const router = useRouter();
   const params = useSearchParams();
   const pestana = params.get("tab");
-  const activa: JuegoId | "ranking" = pestana === "ranking" ? "ranking" : esJuego(pestana) ? pestana : JUEGOS[0].id;
+  const activa: JuegoId | "ranking" | "pronosticos" =
+    pestana === "ranking" || pestana === "pronosticos" ? pestana : esJuego(pestana) ? pestana : JUEGOS[0].id;
 
   const [estado, setEstado] = useState<EstadoMinijuegos | null>(null);
   const [error, setError] = useState(false);
@@ -133,9 +137,29 @@ export default function MinijuegosApp() {
           <span aria-hidden="true">🏆</span>
           {t.rankingTotalTitulo}
         </button>
+        {/* Categoría aparte: no puntúa para el ranking ni da recompensas (0118). */}
+        <button
+          role="tab"
+          type="button"
+          aria-selected={activa === "pronosticos"}
+          onClick={() => irA("pronosticos")}
+          className={`flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-[15px] font-semibold transition-colors ${
+            activa === "pronosticos"
+              ? "border-accent bg-accent/10 text-accent"
+              : "border-neutral-200 text-neutral-600 hover:border-accent dark:border-neutral-800 dark:text-neutral-300"
+          }`}
+        >
+          <span aria-hidden="true">🔮</span>
+          {pr.pestana}
+        </button>
       </nav>
 
-      {activa === "ranking" ? (
+      {activa === "pronosticos" ? (
+        <>
+          <h2 className="font-display text-2xl font-semibold">{pr.titulo}</h2>
+          <PanelPronosticos />
+        </>
+      ) : activa === "ranking" ? (
         <RankingMinijuegos juego="total" titulo={t.rankingTotalTitulo} ayuda={t.rankingTotalAyuda} />
       ) : (
         <>
