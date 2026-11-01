@@ -280,6 +280,11 @@ export default definirTextos(
         texto: (n: number) =>
           `Saca 800 puntos o más en los 8 minijuegos el mismo día, ${n} ${n === 1 ? "vez" : "veces"}.`,
       },
+      plenopron: {
+        titulo: "Pleno de pronósticos",
+        texto: (n: number) =>
+          `Acierta todos los pronósticos de una ronda de torneo (4 mesas o más), ${n} ${n === 1 ? "vez" : "veces"}.`,
+      },
       alinea120: {
         titulo: "Alineación galáctica",
         texto: (n: number) =>
@@ -585,6 +590,11 @@ export default definirTextos(
           titulo: "Dena egiten du",
           texto: (n: number) =>
             `Lortu 800 puntu edo gehiago 8 minijokoetan egun berean, ${n} aldiz.`,
+        },
+        plenopron: {
+          titulo: "Iragarpen osoa",
+          texto: (n: number) =>
+            `Asmatu txanda baten iragarpen guztiak (4 mahai edo gehiago), ${n} aldiz.`,
         },
         alinea120: {
           titulo: "Aljeazio galaktikoa",
@@ -893,6 +903,11 @@ export default definirTextos(
           titulo: "All-rounder",
           texto: (n: number) =>
             `Score 800 points or more in all 8 minigames on the same day, ${n} ${n === 1 ? "time" : "times"}.`,
+        },
+        plenopron: {
+          titulo: "Perfect forecast",
+          texto: (n: number) =>
+            `Get every forecast right in a tournament round (4 boards or more), ${n} ${n === 1 ? "time" : "times"}.`,
         },
         alinea120: {
           titulo: "Galactic lineup",
