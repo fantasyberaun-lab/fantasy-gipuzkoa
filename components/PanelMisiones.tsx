@@ -31,6 +31,7 @@ const ICONO: Record<string, string> = {
   m900j: "🌟", perfn: "✨", perfleyj: "🏛️", perfleyv: "🏛️", rankmj: "🥇",
   primerodia: "☀️", maraton: "🏃", cofresmj: "📦", m500x8: "⚖️", tt4: "🎪",
   tt8: "🎡", puntosmj: "🎮", alinea120: "🌌", sinelo: "🕵️", sinelov: "🥷",
+  plenopron: "🔮",
 };
 
 // Pestaña "Misiones" de Mi perfil (/misiones redirige allí): pestañas por ámbito (liga pública, ligas privadas, cuenta,
