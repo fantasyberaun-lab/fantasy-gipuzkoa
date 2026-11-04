@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Barlow, Barlow_Condensed } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import PwaProvider from "@/components/PwaProvider";
 import { IdiomaProvider } from "@/components/IdiomaProvider";
 import { getIdioma } from "@/lib/i18n/server";
@@ -99,6 +100,7 @@ export default function RootLayout({
         </IdiomaProvider>
         {/* Visitas, páginas, país y dispositivo (sin cookies). Se ve en Vercel > Analytics. */}
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
