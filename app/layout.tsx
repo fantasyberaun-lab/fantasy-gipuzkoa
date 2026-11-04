@@ -21,10 +21,41 @@ const fontDisplay = Barlow_Condensed({
   display: "swap",
 });
 
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://fantasy.beraunberaxake.com";
+
 export const metadata: Metadata = {
-  title: "Beraun Fantasy",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Beraun Fantasy · Fantasy de ajedrez de los Campeonatos de Gipuzkoa",
+    template: "%s · Beraun Fantasy",
+  },
   description:
-    "Fantasy de ajedrez basado en los Campeonatos de Gipuzkoa",
+    "Beraun Fantasy es el fantasy de ajedrez de los Campeonatos de Gipuzkoa: crea tu plantilla, ficha jugadores en el mercado y compite en ligas con tus amigos.",
+  applicationName: "Beraun Fantasy",
+  keywords: [
+    "Beraun Fantasy",
+    "fantasy de ajedrez",
+    "fantasy ajedrez Gipuzkoa",
+    "Campeonatos de Gipuzkoa de ajedrez",
+    "ajedrez Gipuzkoa",
+  ],
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "Beraun Fantasy",
+    locale: "es_ES",
+    title: "Beraun Fantasy · Fantasy de ajedrez de Gipuzkoa",
+    description:
+      "Crea tu plantilla, ficha ajedrecistas y compite en ligas con tus amigos durante los Campeonatos de Gipuzkoa.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Beraun Fantasy · Fantasy de ajedrez de Gipuzkoa",
+    description:
+      "Crea tu plantilla, ficha ajedrecistas y compite en ligas con tus amigos durante los Campeonatos de Gipuzkoa.",
+  },
   manifest: "/manifest.json",
   icons: {
     icon: [

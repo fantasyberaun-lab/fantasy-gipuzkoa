@@ -16,6 +16,6 @@ export const config = {
      * handler ya refresca la sesión si hace falta, y se llama en cada cambio
      * de pestaña.
      */
-    "/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|offline.html|\\.well-known/|icons/|avatares/|api/actividad|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|offline.html|robots.txt|sitemap.xml|opengraph-image|google[a-z0-9]+\\.html|\\.well-known/|icons/|avatares/|api/actividad|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico)$).*)",
   ],
 };
