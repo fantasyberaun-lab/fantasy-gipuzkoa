@@ -66,6 +66,12 @@ Alias de imports: `@/*` apunta a la raíz del repo.
 - Tailwind con modo oscuro (`dark:`). Mantén la paleta de `tailwind.config.ts`.
 - TypeScript estricto: no uses `any` salvo que sea inevitable y comentado.
 - Textos de la interfaz en español, tono cercano, tuteo.
+- **Idiomas (es/eu/en)**: los textos viven en `lib/i18n/textos/{es,eu,en}/<seccion>.ts`, un directorio por
+  idioma para que el navegador descargue solo el suyo (carga diferida en `components/idioma/`). El
+  castellano (`es/`) define la forma (`export type Seccion`); `eu/` y `en/` hacen `const eu: Seccion = {…}`
+  y TypeScript exige las mismas claves. Una sección nueva = los tres archivos + registrarla en los tres
+  `index.ts`. En componentes cliente: `useT()`; en servidor: `getT()`. No importes `lib/i18n/textos/todos`
+  (solo servidor) ni un idioma concreto desde un componente cliente: arrastraría su peso al layout.
 
 ## Migraciones de base de datos (lo más delicado)
 

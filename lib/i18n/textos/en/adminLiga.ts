@@ -1,0 +1,70 @@
+import type { Seccion } from "../es/adminLiga";
+
+const en: Seccion = {
+  titulo: "Manage league",
+  botonAbrir: "Manage league",
+  botonAbrirDetalle: "Penalties, expulsions and market",
+  etiquetaAdmin: "Admin",
+  etiquetaAdminTitle: "League admin (whoever created it)",
+  volver: "← Back to standings",
+  cargando: "Loading panel…",
+  soloAdmin: "Only the league admin can open this. The admin is whoever created the league.",
+  soloPrivadas: "The public league has no admin.",
+  errorCarga: "The panel couldn't be loaded. Try again in a while.",
+  intro:
+    "You created this league, so you're its admin. Everything you do here shows up in Notifications for the whole league.",
+  mercadoTitulo: "Market",
+  mercadoTexto: "How many times a day is your league's market resolved?",
+  tandas: (n: number) => (n === 1 ? "Once" : n === 2 ? "Twice" : `${n} times`),
+  horasTandas: (n: number) =>
+    n === 1 ? "at 23:00" : n === 2 ? "at 8:00 and 23:00" : "at 8:00, 17:00 and 23:00",
+  mercadoAviso:
+    "The change applies from the next round. Bids already placed are resolved at the next hour of the new schedule. It can't be changed in the 2 hours before a round.",
+  mercadoGuardado: "Market schedule saved.",
+  mercadoBloqueado: (h: number) =>
+    `You can't change it now: there are less than 2 hours until the ${h}:00 round. You can change it from ${h}:00.`,
+  managersTitulo: "Managers",
+  sinManagers: "There are no other managers in your league yet.",
+  pts: (n: number) => `${n} pts`,
+  sancionPts: (n: number) => `−${n} pts penalty`,
+  accion: "Penalise or expel",
+  cerrarAccion: "Close",
+  tipoPuntos: "Deduct points",
+  tipoMillones: "Deduct millions",
+  tipoAdvertencia: "Warning",
+  tipoExpulsar: "Expel",
+  cantidadPuntos: "Points to deduct",
+  cantidadMillones: "Millions to deduct",
+  motivo: "Reason (the whole league will see it)",
+  motivoPlaceholder: "E.g.: insults in the chat",
+  avisoExpulsar: (equipo: string) =>
+    `The team “${equipo}” will be deleted with its squad and points, and they won't be able to rejoin with the code until you readmit them. This can't be undone.`,
+  confirmarSancion: "Apply",
+  confirmarExpulsion: "Expel from league",
+  enviando: "Saving…",
+  hecho: {
+    puntos: (equipo: string, n: number) => `${equipo}: −${n} points.`,
+    millones: (equipo: string, n: number) => `${equipo}: −${n} M.`,
+    advertencia: (equipo: string) => `Warning sent to ${equipo}.`,
+    expulsion: (equipo: string) => `${equipo} has been expelled from the league.`,
+  },
+  historialTitulo: "Penalties and warnings",
+  sinHistorial: "You haven't issued any penalties.",
+  lineaSancion: {
+    puntos: (n: number) => `−${n} points`,
+    millones: (n: number) => `−${n} M`,
+    advertencia: "Warning",
+  },
+  anular: "Cancel",
+  confirmarAnular: "Cancel it? The notice will be removed and, if it was millions, they'll be refunded.",
+  si: "Yes, cancel",
+  no: "No",
+  anulada: "Penalty cancelled.",
+  expulsadosTitulo: "Expelled",
+  sinExpulsados: "You haven't expelled anyone.",
+  expulsadoLinea: (manager: string, equipo: string) => `${manager} (was “${equipo}”)`,
+  readmitir: "Readmit",
+  readmitido: (manager: string) => `${manager} can now rejoin with the code.`,
+};
+
+export default en;

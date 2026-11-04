@@ -1,0 +1,50 @@
+import type { Seccion } from "../es/clasificacion";
+
+const eu: Seccion = {
+  cargando: "Sailkapena kargatzen…",
+  titulo: "Sailkapen nagusia",
+  managersPublica: (n: number) => `${n} manager liga publikoan`,
+  jornadaAria: "Jardunaldia",
+  puntosTotales: "Puntuak guztira",
+  jornadaFecha: (n: number, fecha: string) => `${n}. jardunaldia · ${fecha}`,
+  enJuego: "jokoan",
+  enJornada: (n: number) => `${n}. jardunaldian`,
+  esteAno: "aurten",
+  tuPosicion: "Zure postua:",
+  posicionDe: (pos: number, total: number) => [`${pos}.`, ` / ${total}`] as const,
+  irAMiEquipo: "Joan nire taldera",
+  buscar: "Bilatu taldea edo erabiltzailea…",
+  vacia: "Oraindik ez dago talderik sailkapenean.",
+  sinCoincidencias: (q: string) => `Ez dago «${q}» bilaketarekin bat datorren talderik.`,
+  verPerfil: "Ikusi managerraren profila",
+  verJornadasTitle: "Ikusi jardunaldi bakoitzeko plantilla eta puntuak",
+  jornadas: "Jardunaldiak",
+  pts: (n: number) => `${n} pt.`,
+  plantilla: "Plantilla",
+  mostrarMas: (n: number) => `Erakutsi gehiago (${n} falta dira)`,
+  cerrar: "Itxi",
+  cargandoPlantilla: "Plantilla kargatzen…",
+  errorPlantilla: "Ezin izan da plantilla kargatu.",
+  sinFichajes: "Manager honek ez du oraindik inor fitxatu.",
+  categoriaCorta: (n: number | string) => `${n}. maila`,
+  ocultarPuntos: "Ezkutatu puntuak",
+  verPuntos: "Ikusi puntuak",
+  importeOferta: "Eskaintzaren zenbatekoa (M)",
+  hacerOferta: "Egin eskaintza",
+  pagarClausula: (m: number) => `Ordaindu klausula (${m} M)`,
+  cancelarOferta: (m: number) => `Kendu nire eskaintza (${m} M)`,
+  tuSaldo: (m: number) => `Zure saldoa: ${m} M`,
+  ofertaEnviada: "Eskaintza bidali da.",
+  ofertaCancelada: "Eskaintza bertan behera utzi da. Zure saldoak ez du aldaketarik izan.",
+  clausulaPagada: "Klausula ordainduta — jokalaria zurea da orain.",
+  numJugadores: (n: number) => `${n} jokalari`,
+  clausulaCorta: (m: number) => `Klausula ${m} M`,
+  protegidos: (n: number) =>
+    n === 1
+      ? "Jokalari bat blindatuta edo giltzarrapoarekin dago: ezin zaio orain klausulazorik egin."
+      : `${n} jokalari blindatuta edo giltzarrapoarekin daude: ezin zaie orain klausulazorik egin.`,
+  teFaltan: (m: number) => `${m} M falta zaizkizu klausula ordaintzeko.`,
+  sancion: (n: number) => `−${n} zigorra barne`,
+};
+
+export default eu;

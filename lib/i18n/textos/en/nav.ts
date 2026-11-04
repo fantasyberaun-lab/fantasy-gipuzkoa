@@ -1,0 +1,15 @@
+import type { Seccion } from "../es/nav";
+
+const en: Seccion = {
+  plantilla: "Squad",
+  mercado: "Market",
+  jugadores: "Players",
+  clasificacion: "Standings",
+  torneos: "Tournaments",
+  avisos: "Alerts",
+  chat: "Chat",
+  navegacionPrincipal: "Main navigation",
+  sinLeer: (n: number) => `${n} unread`,
+};
+
+export default en;

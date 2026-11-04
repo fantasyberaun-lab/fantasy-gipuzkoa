@@ -4,7 +4,7 @@ import "./globals.css";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import PwaProvider from "@/components/PwaProvider";
-import { IdiomaProvider } from "@/components/IdiomaProvider";
+import ProveedorIdioma from "@/components/idioma/ProveedorIdioma";
 import { getIdioma } from "@/lib/i18n/server";
 
 const fontSans = Barlow({
@@ -95,9 +95,9 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-screen font-sans antialiased">
-        <IdiomaProvider idiomaInicial={idioma}>
+        <ProveedorIdioma idioma={idioma}>
           <PwaProvider>{children}</PwaProvider>
-        </IdiomaProvider>
+        </ProveedorIdioma>
         {/* Visitas, páginas, país y dispositivo (sin cookies). Se ve en Vercel > Analytics. */}
         <Analytics />
         <SpeedInsights />
