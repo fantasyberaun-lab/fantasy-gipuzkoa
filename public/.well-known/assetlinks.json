@@ -3,9 +3,9 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "REEMPLAZAR_POR_EL_ID_DEL_PAQUETE",
+      "package_name": "com.beraunberaxake.fantasy",
       "sha256_cert_fingerprints": [
-        "REEMPLAZAR_POR_LA_HUELLA_SHA256_DE_LA_CONSOLA_DE_PLAY"
+        "F9:52:73:B2:63:60:56:7B:C1:62:25:F8:8D:85:C9:FB:AC:F3:50:6C:89:1B:13:6E:A3:D0:6F:9F:07:5F:69:C3"
       ]
     }
   }
