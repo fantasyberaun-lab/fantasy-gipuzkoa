@@ -9,6 +9,20 @@
 const nextConfig = {
   reactStrictMode: true,
 
+  // La dirección antigua (vercel.app) redirige al dominio propio. Solo ese
+  // host exacto: las vistas previas de las ramas usan otros hosts y no se
+  // tocan. 308 = permanente y conserva el método y la query.
+  async redirects() {
+    return [
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "fantasy-gipuzkoa.vercel.app" }],
+        destination: "https://fantasy.beraunberaxake.com/:path*",
+        permanent: true,
+      },
+    ];
+  },
+
   // Cabeceras de seguridad básicas (auditoría 17-10-2026). No se pone una CSP
   // estricta: Next.js y Vercel Analytics usan scripts en línea y habría que
   // probarla con cuidado antes de activarla.
