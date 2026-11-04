@@ -37,8 +37,8 @@ import {
   fetchJugadoresLiga,
   fetchMercado,
   fetchMiPlantilla,
-  fetchMiAvatar,
-  fetchMiRol,
+  fetchInscripcionesTodas,
+  fetchMiPerfil,
   fetchMisLigas,
   fetchMisLigasOError,
   fetchMisOfertas,
@@ -348,13 +348,12 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     );
     const comunicadosP = fetchComunicados(supabase).catch(() => [] as Comunicado[]);
 
-    const [rol, avatarGuardado, ligas] = await Promise.all([
-      fetchMiRol(supabase, user.id),
-      fetchMiAvatar(supabase, user.id),
+    const [perfil, ligas] = await Promise.all([
+      fetchMiPerfil(supabase, user.id),
       fetchMisLigasOError(supabase),
     ]);
-    setEsRoot(rol === "root");
-    setAvatar(avatarGuardado);
+    setEsRoot(perfil.rol === "root");
+    setAvatar(perfil.avatar);
     if (ligas === null) {
       // La consulta falló: no es que no estés en ninguna liga. Se avisa para reintentar.
       setErrorCarga(true);
@@ -400,20 +399,22 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
 
     // player_status (lo más pesado) se pide una sola vez para jugadores y mercado.
     const estadosJugadores = pedirEstados(miEquipo.leagueId);
+    // Las inscripciones a torneos se piden una vez y las comparten plantilla, jugadores y mercado.
+    const inscripciones = fetchInscripcionesTodas(supabase);
     const [plantilla, ligaJugadores, misOfertas, ofertasParaMi, jugadoresMercado, pujas, tabla, avisos, listaComunicados] =
       await Promise.all([
-        fetchMiPlantilla(supabase, miEquipo.id),
-        fetchJugadoresLiga(supabase, miEquipo.leagueId, miEquipo.id, estadosJugadores),
+        fetchMiPlantilla(supabase, miEquipo.id, inscripciones),
+        fetchJugadoresLiga(supabase, miEquipo.leagueId, miEquipo.id, estadosJugadores, inscripciones),
         // En la liga pública no hay ofertas, mercado por tandas ni avisos.
         esPublica
           ? Promise.resolve([] as OfertaPendiente[])
           : fetchMisOfertas(supabase, miEquipo.id),
         esPublica
           ? Promise.resolve([] as OfertaRecibida[])
-          : fetchOfertasRecibidas(supabase, miEquipo.id),
+          : fetchOfertasRecibidas(supabase, miEquipo.id, miEquipo.leagueId),
         esPublica
           ? Promise.resolve([] as MercadoDelDia[])
-          : fetchMercado(supabase, miEquipo.leagueId, estadosJugadores),
+          : fetchMercado(supabase, miEquipo.leagueId, estadosJugadores, inscripciones),
         esPublica
           ? Promise.resolve([] as PujaMercado[])
           : fetchPujasMercado(supabase, miEquipo.leagueId),
@@ -456,14 +457,15 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
     if (!id || !leagueId) return;
     const esPublica = esLigaPublica;
     const estados = pedirEstados(leagueId);
+    const inscripciones = fetchInscripcionesTodas(supabase);
     const [plantilla, ligaJugadores, jugadoresMercado, pujas, misOfertas, ofertasParaMi, ligas] =
       await Promise.all([
-        fetchMiPlantilla(supabase, id),
-        fetchJugadoresLiga(supabase, leagueId, id, estados),
-        esPublica ? Promise.resolve(null) : fetchMercado(supabase, leagueId, estados),
+        fetchMiPlantilla(supabase, id, inscripciones),
+        fetchJugadoresLiga(supabase, leagueId, id, estados, inscripciones),
+        esPublica ? Promise.resolve(null) : fetchMercado(supabase, leagueId, estados, inscripciones),
         esPublica ? Promise.resolve(null) : fetchPujasMercado(supabase, leagueId),
         esPublica ? Promise.resolve(null) : fetchMisOfertas(supabase, id),
-        esPublica ? Promise.resolve(null) : fetchOfertasRecibidas(supabase, id),
+        esPublica ? Promise.resolve(null) : fetchOfertasRecibidas(supabase, id, leagueId),
         fetchMisLigas(supabase),
       ]);
     if (ligaCargadaRef.current !== leagueId) return;
@@ -501,7 +503,7 @@ export function GameStateProvider({ children }: { children: ReactNode }) {
   async function recargarOfertasRecibidas() {
     const { id, leagueId } = equipo;
     if (!id) return;
-    const lista = await fetchOfertasRecibidas(supabase, id);
+    const lista = await fetchOfertasRecibidas(supabase, id, leagueId);
     if (ligaCargadaRef.current === leagueId) setOfertasRecibidas(lista);
   }
 

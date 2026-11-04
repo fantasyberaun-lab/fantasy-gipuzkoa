@@ -201,6 +201,9 @@ export function EquipoAcciones() {
   // Misiones listas para reclamar: marca en la tarjeta "Mi perfil".
   const [misionesListas, setMisionesListas] = useState(0);
   useEffect(() => {
+    // Las misiones no son urgentes y la consulta es de las más lentas: se esperan a que
+    // termine la carga principal para no competir con ella por la red.
+    if (cargando) return;
     let vigente = true;
     const supabase = createClient();
     async function cargarListas() {
@@ -213,7 +216,7 @@ export function EquipoAcciones() {
       vigente = false;
       window.removeEventListener(EVENTO_MISIONES, cargarListas);
     };
-  }, [equipo.leagueId]);
+  }, [equipo.leagueId, cargando]);
   // Avatares en prueba: solo root, y solo si ha elegido uno (ver 0077).
   const conAvatar = !cargando && avatar !== null;
   const circulo =
