@@ -1,6 +1,13 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import EnlacesLegales from "@/components/legal/EnlacesLegales";
 import { getT } from "@/lib/i18n/server";
+
+// Login, registro y recuperar no deben competir en Google con la portada.
+export const metadata: Metadata = {
+  robots: { index: false, follow: true },
+  alternates: { canonical: null },
+};
 
 export default function AuthLayout({
   children,

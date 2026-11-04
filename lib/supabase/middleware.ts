@@ -68,7 +68,9 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && esRutaSoloSinSesion) {
+  // La portada pública ("/") es para visitantes y buscadores; quien ya tiene
+  // sesión va directo a su plantilla.
+  if (user && (esRutaSoloSinSesion || pathname === "/")) {
     const url = request.nextUrl.clone();
     url.pathname = "/plantilla";
     return NextResponse.redirect(url);
