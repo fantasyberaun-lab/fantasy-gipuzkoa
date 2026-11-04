@@ -5,7 +5,7 @@
 
 import { gameConfig } from "@/lib/gameConfig";
 import type { PlantillaSlot } from "@/lib/types";
-import { TEXTOS, type Textos } from "@/lib/i18n/textos";
+import type { Textos } from "@/lib/i18n/textos";
 
 // Límites de titulares de una liga. Por defecto los del reglamento; la liga puede
 // tener otros (panel Variables, 0092-0094) y GameStateProvider los trae de la base
@@ -38,12 +38,12 @@ export function titularesPorTorneo(
 
 // Motivo por el que NO se puede poner de titular a este jugador, o null si se
 // puede. Pasar a suplente nunca está bloqueado. `textos` es la sección
-// plantilla del idioma actual (por defecto, castellano).
+// plantilla del idioma actual (t.plantilla).
 export function motivoBloqueoTitular(
   squad: PlantillaSlot[],
   titulares: Record<string, boolean>,
   jugadorId: string,
-  textos: Textos["plantilla"] = TEXTOS.es.plantilla,
+  textos: Textos["plantilla"],
   reglas: ReglasTitulares = REGLAS_TITULARES_POR_DEFECTO
 ): string | null {
   if (titulares[jugadorId]) return null;

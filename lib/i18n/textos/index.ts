@@ -1,91 +1,15 @@
-import type { Idioma } from "../config";
-import comun from "./comun";
-import idioma from "./idioma";
-import ajustes from "./ajustes";
-import cuenta from "./cuenta";
-import auth from "./auth";
-import legal from "./legal";
-import liga from "./liga";
-import pwa from "./pwa";
-import mercado from "./mercado";
-import ficha from "./ficha";
-import saldo from "./saldo";
-import plantilla from "./plantilla";
-import jugadores from "./jugadores";
-import managers from "./managers";
-import graficas from "./graficas";
-import clasificacion from "./clasificacion";
-import torneos from "./torneos";
-import avisos from "./avisos";
-import nav from "./nav";
-import racha from "./racha";
-import reglas from "./reglas";
-import juego from "./juego";
-import sugerencias from "./sugerencias";
-import avatares from "./avatares";
-import niveles from "./niveles";
-import chat from "./chat";
-import minijuegos from "./minijuegos";
-import adminLiga from "./adminLiga";
-import misiones from "./misiones";
-import foros from "./foros";
-import avisosPush from "./avisosPush";
-import engagement from "./engagement";
-import pronosticos from "./pronosticos";
-import invitar from "./invitar";
+// Tipo de todos los textos de la interfaz. Los textos en sí viven en un directorio
+// por idioma (es/, eu/, en/), cada uno con un archivo por sección, para que el
+// navegador descargue SOLO el idioma que usa el jugador:
+//
+//   textos/es/<seccion>.ts   castellano: define la forma de la sección (export type Seccion)
+//   textos/eu/<seccion>.ts   euskera: `const eu: Seccion = {…}` (TypeScript exige las mismas claves)
+//   textos/en/<seccion>.ts   inglés: igual
+//   textos/<idioma>/index.ts reúne las secciones de ese idioma
+//
+// Para añadir una sección: crea los tres archivos y regístrala en los tres index.ts.
+// Este archivo solo exporta el tipo (no arrastra ningún idioma al navegador).
+import type { Ancho } from "../definir";
+import type es from "./es";
 
-// Todas las secciones de textos. Para añadir una: crea textos/<seccion>.ts
-// con definirTextos(...) y regístrala aquí.
-const SECCIONES = {
-  comun,
-  idioma,
-  ajustes,
-  cuenta,
-  auth,
-  legal,
-  liga,
-  pwa,
-  mercado,
-  ficha,
-  saldo,
-  plantilla,
-  jugadores,
-  managers,
-  graficas,
-  clasificacion,
-  torneos,
-  avisos,
-  nav,
-  racha,
-  reglas,
-  juego,
-  sugerencias,
-  avatares,
-  niveles,
-  chat,
-  minijuegos,
-  adminLiga,
-  misiones,
-  foros,
-  avisosPush,
-  engagement,
-  pronosticos,
-  invitar,
-};
-
-type Secciones = typeof SECCIONES;
-export type Textos = { [K in keyof Secciones]: Secciones[K]["es"] };
-
-function textosDe(idioma: Idioma): Textos {
-  const salida = {} as Record<string, unknown>;
-  for (const [nombre, seccion] of Object.entries(SECCIONES)) {
-    salida[nombre] = seccion[idioma];
-  }
-  return salida as Textos;
-}
-
-export const TEXTOS: Record<Idioma, Textos> = {
-  es: textosDe("es"),
-  eu: textosDe("eu"),
-  en: textosDe("en"),
-};
+export type Textos = Ancho<typeof es>;

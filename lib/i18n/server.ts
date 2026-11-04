@@ -1,7 +1,8 @@
 // Solo para servidor: usa next/headers.
 import { cookies } from "next/headers";
 import { COOKIE_IDIOMA, IDIOMA_POR_DEFECTO, LOCALE_INTL, esIdioma, type Idioma } from "./config";
-import { TEXTOS, type Textos } from "./textos";
+import type { Textos } from "./textos";
+import { TEXTOS } from "./textos/todos";
 
 // Idioma de la petición actual (Server Components y route handlers).
 export function getIdioma(): Idioma {
