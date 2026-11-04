@@ -105,6 +105,13 @@ export default function RachaDiaria() {
     if (entrandoRef.current) return;
     entrandoRef.current = true;
     try {
+      // Primero se pregunta (consulta barata): si el servidor ya tiene la entrada de hoy
+      // no hace falta registrarla otra vez. Solo la primera vez de cada día se registra.
+      const actual = await fetchEstadoRacha(supabase);
+      if (actual?.registradaHoy) {
+        setEstado(actual);
+        return;
+      }
       const r = await registrarInicioSesionDB(supabase);
       if (r.ok && r.nuevo) {
         setAviso(t.racha.entradaHoy(redondear2(r.importeDiario), r.xp));
@@ -117,8 +124,17 @@ export default function RachaDiaria() {
     }
   }
 
+  // La primera vez se espera a que termine la carga principal del juego (la racha no es
+  // urgente y compite con ella por la red).
+  const arrancadaRef = useRef(false);
   useEffect(() => {
+    if (cargando || arrancadaRef.current) return;
+    arrancadaRef.current = true;
     entrar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cargando]);
+
+  useEffect(() => {
     const alVolver = () => {
       if (document.visibilityState === "visible") entrar();
     };

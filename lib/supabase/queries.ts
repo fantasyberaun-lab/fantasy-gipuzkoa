@@ -92,9 +92,8 @@ export async function fetchProximosRivales(
       .order("player_id")
       .order("orden")
       .range(desde, desde + TAM - 1);
-    // Si la función aún no existe (migración sin aplicar) o falla, se calcula
-    // como antes, en el navegador.
-    if (error || !data) return calcularProximosRivalesEnNavegador(supabase);
+    // Si la función falla, simplemente no se enseñan rivales (el resto de la app no depende de ellos).
+    if (error || !data) return {};
     filas.push(...(data as any[]));
     if (data.length < TAM) break;
   }
@@ -113,222 +112,28 @@ export async function fetchProximosRivales(
     });
   }
 
-  if (COMPROBAR_RIVALES) compararConCalculoAntiguo(supabase, resultado);
   return resultado;
 }
 
-// Comprobación temporal: en las previews de Vercel (y en local) se calcula
-// también a la antigua y se avisa en la consola del navegador si no coinciden.
-// Se quitará, junto con el cálculo antiguo, cuando se haya visto que coinciden.
-const COMPROBAR_RIVALES =
-  process.env.NEXT_PUBLIC_VERCEL_ENV === "preview" || process.env.NODE_ENV === "development";
-
-function normalizarRivales(mapa: Record<string, ProximoRival[]>) {
-  return JSON.stringify(
-    Object.keys(mapa)
-      .sort()
-      .map((id) => [
-        id,
-        mapa[id]
-          .map((r) => JSON.stringify(r, Object.keys(r).sort()))
-          .sort(),
-      ])
-  );
-}
-
-async function compararConCalculoAntiguo(
-  supabase: Supabase,
-  nuevo: Record<string, ProximoRival[]>
-) {
-  try {
-    const antiguo = await calcularProximosRivalesEnNavegador(supabase);
-    if (normalizarRivales(antiguo) === normalizarRivales(nuevo)) {
-      console.info(
-        `[Próximos rivales] OK: la base de datos y el cálculo antiguo coinciden (${Object.keys(nuevo).length} jugadores).`
-      );
-      return;
-    }
-    const distintos = [...new Set([...Object.keys(antiguo), ...Object.keys(nuevo)])].filter(
-      (id) => normalizarRivales({ x: antiguo[id] ?? [] }) !== normalizarRivales({ x: nuevo[id] ?? [] })
-    );
-    console.warn(
-      `[Próximos rivales] DIFERENCIAS en ${distintos.length} jugadores.`,
-      distintos.map((id) => ({ jugador: id, antiguo: antiguo[id] ?? [], nuevo: nuevo[id] ?? [] }))
-    );
-  } catch {
-    // Es solo una comprobación: si falla no afecta a la app.
-  }
-}
-
-async function calcularProximosRivalesEnNavegador(
-  supabase: Supabase
-): Promise<Record<string, ProximoRival[]>> {
-  const mesas = await leerTodo((d, h) =>
+// Todas las inscripciones jugador-torneo, paginadas (Supabase corta en 1000). La carga del
+// juego la pide UNA vez y se la pasa a fetchJugadoresLiga, fetchMercado y fetchMiPlantilla,
+// que antes la pedían cada una por su cuenta.
+export function fetchInscripcionesTodas(supabase: Supabase): Promise<any[]> {
+  return leerTodo((d, h) =>
     supabase
-      .from("matchday_pairings")
-      .select(
-        "matchday_id, tablero, blanco_player_id, blanco_elo, negro_player_id, negro_elo, descansa, matchdays (id, numero, created_at, tournament_id, tournaments (nombre))"
-      )
-      .order("id")
+      .from("tournament_players")
+      .select("player_id, tournaments (id, nombre)")
+      .order("tournament_id")
+      .order("player_id")
       .range(d, h)
-  );
-  if (mesas.length === 0) return {};
-
-  // Última jornada con emparejamientos de cada torneo.
-  const ultimaPorTorneo = new Map<string, { id: string; creada: string }>();
-  for (const m of mesas) {
-    const j = m.matchdays;
-    if (!j) continue;
-    const clave = j.tournament_id ?? j.id;
-    const actual = ultimaPorTorneo.get(clave);
-    if (!actual || (j.created_at ?? "") > actual.creada) {
-      ultimaPorTorneo.set(clave, { id: j.id, creada: j.created_at ?? "" });
-    }
-  }
-  const jornadasVigentes = new Set([...ultimaPorTorneo.values()].map((u) => u.id));
-  const vigentes = mesas.filter((m) => m.matchdays && jornadasVigentes.has(m.matchday_id));
-  if (vigentes.length === 0) return {};
-
-  const idsJornadas = [...jornadasVigentes];
-  const [resultados, descansos] = await Promise.all([
-    leerTodo((d, h) =>
-      supabase.from("results").select("matchday_id, player_id").in("matchday_id", idsJornadas).range(d, h)
-    ),
-    leerTodo((d, h) =>
-      supabase.from("matchday_byes").select("matchday_id, player_id").in("matchday_id", idsJornadas).range(d, h)
-    ),
-  ]);
-  // Solo los resultados cuentan como "ya jugado"; el descanso se sigue mostrando
-  // como "Sin emparejar".
-  const yaJugado = new Set<string>(
-    resultados.map((r: any) => `${r.matchday_id}:${r.player_id}`)
-  );
-  // Info de cada jornada vigente, para los descansos que no tienen fila en matchday_pairings.
-  const baseJornada = new Map<
-    string,
-    { jornada: number; torneo: string | null; torneoId: string | null }
-  >();
-  const emparejados = new Set<string>(); // `${jornada}:${jugador}` con mesa o descanso publicado
-  for (const m of vigentes) {
-    if (!baseJornada.has(m.matchday_id)) {
-      baseJornada.set(m.matchday_id, {
-        jornada: m.matchdays.numero as number,
-        torneo: (m.matchdays.tournaments?.nombre ?? null) as string | null,
-        torneoId: (m.matchdays.tournament_id ?? null) as string | null,
-      });
-    }
-    if (m.blanco_player_id) emparejados.add(`${m.matchday_id}:${m.blanco_player_id}`);
-    if (m.negro_player_id) emparejados.add(`${m.matchday_id}:${m.negro_player_id}`);
-  }
-  // Inscritos en los torneos con emparejamientos vigentes (para detectar a quien no sale en ellos).
-  const idsTorneos = [
-    ...new Set([...baseJornada.values()].map((b) => b.torneoId).filter((x): x is string => !!x)),
-  ];
-  const inscritos: any[] = idsTorneos.length
-    ? await leerTodo((d, h) =>
-        supabase
-          .from("tournament_players")
-          .select("tournament_id, player_id")
-          .in("tournament_id", idsTorneos)
-          .order("player_id")
-          .range(d, h)
-      ).catch(() => [])
-    : [];
-  const descansoAnadido = new Set<string>();
-
-  const jugadores = await leerTodo((d, h) =>
-    supabase.from("players").select("id, nombre, elo").order("id").range(d, h)
-  );
-  const infoJugador = new Map<string, { nombre: string; elo: number | null }>(
-    jugadores.map((p: any): [string, { nombre: string; elo: number | null }] => [
-      p.id,
-      { nombre: p.nombre, elo: p.elo ?? null },
-    ])
-  );
-
-  const resultado: Record<string, ProximoRival[]> = {};
-  const anadir = (jugadorId: string, rival: ProximoRival) => {
-    (resultado[jugadorId] ??= []).push(rival);
-  };
-
-  for (const m of vigentes) {
-    const base = {
-      jornada: m.matchdays.numero as number,
-      torneo: (m.matchdays.tournaments?.nombre ?? null) as string | null,
-      tablero: (m.tablero ?? null) as number | null,
-    };
-
-    if (m.descansa) {
-      const id = m.blanco_player_id as string | null;
-      if (!id || yaJugado.has(`${m.matchday_id}:${id}`)) continue;
-      descansoAnadido.add(`${m.matchday_id}:${id}`);
-      anadir(id, { ...base, descansa: true, rivalId: null, rivalNombre: "", rivalElo: null, color: null });
-      continue;
-    }
-
-    const lados: { yo: string | null; rival: string | null; rivalElo: number | null; color: "blancas" | "negras" }[] = [
-      { yo: m.blanco_player_id, rival: m.negro_player_id, rivalElo: m.negro_elo, color: "blancas" },
-      { yo: m.negro_player_id, rival: m.blanco_player_id, rivalElo: m.blanco_elo, color: "negras" },
-    ];
-    for (const l of lados) {
-      if (!l.yo || yaJugado.has(`${m.matchday_id}:${l.yo}`)) continue;
-      const info = l.rival ? infoJugador.get(l.rival) : undefined;
-      anadir(l.yo, {
-        ...base,
-        descansa: false,
-        rivalId: l.rival,
-        rivalNombre: l.rival ? (info?.nombre ?? "Rival desconocido") : "Rival externo",
-        rivalElo: l.rival ? (info?.elo ?? null) : (l.rivalElo ?? null),
-        color: l.color,
-      });
-    }
-  }
-
-  // Jugadores marcados sin emparejar que no tienen fila "descansa" en los emparejamientos.
-  for (const d of descansos as any[]) {
-    const clave = `${d.matchday_id}:${d.player_id}`;
-    const jornada = baseJornada.get(d.matchday_id);
-    if (!jornada || descansoAnadido.has(clave) || yaJugado.has(clave)) continue;
-    descansoAnadido.add(clave);
-    anadir(d.player_id, {
-      jornada: jornada.jornada,
-      torneo: jornada.torneo,
-      tablero: null,
-      descansa: true,
-      rivalId: null,
-      rivalNombre: "",
-      rivalElo: null,
-      color: null,
-    });
-  }
-
-  // Inscritos en el torneo que no aparecen en los emparejamientos publicados de su
-  // última jornada (ni con mesa ni con descanso) y sin resultado: sin emparejar.
-  for (const [matchdayId, jornada] of baseJornada) {
-    if (!jornada.torneoId) continue;
-    for (const t of inscritos) {
-      if (t.tournament_id !== jornada.torneoId) continue;
-      const clave = `${matchdayId}:${t.player_id}`;
-      if (emparejados.has(clave) || descansoAnadido.has(clave) || yaJugado.has(clave)) continue;
-      descansoAnadido.add(clave);
-      anadir(t.player_id, {
-        jornada: jornada.jornada,
-        torneo: jornada.torneo,
-        tablero: null,
-        descansa: true,
-        rivalId: null,
-        rivalNombre: "",
-        rivalElo: null,
-        color: null,
-      });
-    }
-  }
-  return resultado;
+  ).catch(() => [] as any[]);
 }
 
 export async function fetchMiPlantilla(
   supabase: Supabase,
-  equipoId: string
+  equipoId: string,
+  // Si ya se han pedido (carga completa), se reutilizan en vez de consultar otra vez.
+  inscripcionesTodas?: Promise<any[]>
 ): Promise<(PlantillaSlot & { titular: boolean; capitan: boolean })[]> {
   const { data: slots, error } = await supabase
     .from("squad_slots")
@@ -357,10 +162,15 @@ export async function fetchMiPlantilla(
       .from("matchday_byes")
       .select("player_id, matchdays (id, numero, created_at, tournaments (nombre))")
       .in("player_id", playerIds),
-    supabase
-      .from("tournament_players")
-      .select("player_id, tournaments (id, nombre)")
-      .in("player_id", playerIds),
+    inscripcionesTodas
+      ? inscripcionesTodas.then((todas) => {
+          const mios = new Set<string>(playerIds);
+          return { data: todas.filter((i: any) => mios.has(i.player_id)) };
+        })
+      : supabase
+          .from("tournament_players")
+          .select("player_id, tournaments (id, nombre)")
+          .in("player_id", playerIds),
     // Jugadores puestos a la venta y oferta de la máquina (ligas privadas, 0101).
     // Sin la migración la tabla no existe: data llega null y no hay ninguno en venta.
     supabase.from("ventas_maquina").select("player_id, oferta").eq("fantasy_team_id", equipoId),
@@ -483,22 +293,13 @@ export async function fetchJugadoresLiga(
   supabase: Supabase,
   leagueId: string,
   miEquipoId: string | null,
-  estados: Promise<any[] | null> = fetchEstadoJugadores(supabase, leagueId)
+  estados: Promise<any[] | null> = fetchEstadoJugadores(supabase, leagueId),
+  inscripcionesTodas: Promise<any[]> = fetchInscripcionesTodas(supabase)
 ): Promise<JugadorLiga[]> {
   // Jugadores inscritos en algún torneo (el mercado solo muestra a estos) y
   // en cuáles (para filtrar el mercado por torneo). Paginado: Supabase corta
   // en 1000 filas y hay más inscripciones que eso a lo largo de la temporada.
-  const [estado, inscripciones] = await Promise.all([
-    estados,
-    leerTodo((d, h) =>
-      supabase
-        .from("tournament_players")
-        .select("player_id, tournaments (id, nombre)")
-        .order("tournament_id")
-        .order("player_id")
-        .range(d, h)
-    ),
-  ]);
+  const [estado, inscripciones] = await Promise.all([estados, inscripcionesTodas]);
 
   if (!estado) return [];
   const torneosPorJugador = agruparTorneosPorJugador(inscripciones);
@@ -531,7 +332,8 @@ export async function fetchJugadoresLiga(
 export async function fetchMercado(
   supabase: Supabase,
   leagueId: string,
-  estados: Promise<any[] | null> = fetchEstadoJugadores(supabase, leagueId)
+  estados: Promise<any[] | null> = fetchEstadoJugadores(supabase, leagueId),
+  inscripcionesTodas?: Promise<any[]>
 ): Promise<MercadoDelDia[]> {
   const { data: listings, error } = await supabase
     .from("market_listings")
@@ -554,10 +356,15 @@ export async function fetchMercado(
       .from("market_bid_counts")
       .select("market_listing_id, numero_pujas")
       .in("market_listing_id", listingIds),
-    supabase
-      .from("tournament_players")
-      .select("player_id, tournaments (id, nombre)")
-      .in("player_id", playerIds),
+    inscripcionesTodas
+      ? inscripcionesTodas.then((todas) => {
+          const enMercado = new Set<string>(playerIds);
+          return { data: todas.filter((i: any) => enMercado.has(i.player_id)) };
+        })
+      : supabase
+          .from("tournament_players")
+          .select("player_id, tournaments (id, nombre)")
+          .in("player_id", playerIds),
   ]);
   const torneosPorJugador = agruparTorneosPorJugador(inscripciones);
 
@@ -642,7 +449,9 @@ export async function fetchMisOfertas(
 // es al revés (lo que tú has ofertado por jugadores ajenos).
 export async function fetchOfertasRecibidas(
   supabase: Supabase,
-  equipoId: string
+  equipoId: string,
+  // La liga del equipo, si ya se conoce: ahorra una consulta.
+  leagueId?: string
 ): Promise<OfertaRecibida[]> {
   const { data: misSlots } = await supabase
     .from("squad_slots")
@@ -655,19 +464,23 @@ export async function fetchOfertasRecibidas(
 
   // Un mismo jugador puede ser de varios managers en ligas distintas: solo cuentan
   // las ofertas de equipos de MI liga.
-  const { data: miEquipo } = await supabase
-    .from("fantasy_teams")
-    .select("league_id")
-    .eq("id", equipoId)
-    .maybeSingle();
-  if (!miEquipo) return [];
+  let ligaId = leagueId ?? null;
+  if (!ligaId) {
+    const { data: miEquipo } = await supabase
+      .from("fantasy_teams")
+      .select("league_id")
+      .eq("id", equipoId)
+      .maybeSingle();
+    if (!miEquipo) return [];
+    ligaId = miEquipo.league_id as string;
+  }
 
   const { data, error } = await supabase
     .from("player_offers")
     .select(
       "id, importe, created_at, player_id, equipo_oferente_id, players (nombre), fantasy_teams!equipo_oferente_id!inner (nombre, league_id)"
     )
-    .eq("fantasy_teams.league_id", miEquipo.league_id)
+    .eq("fantasy_teams.league_id", ligaId)
     .in("player_id", playerIds)
     .eq("estado", "pendiente")
     .order("created_at", { ascending: false });
@@ -782,6 +595,31 @@ export async function fetchMiRol(
 
   if (error || !data) return null;
   return data.rol as "root" | "manager";
+}
+
+// Rol y avatar de una sola vez (una consulta en vez de dos a la misma fila de profiles).
+// Si la columna avatar no existiera (migración 0077 sin aplicar) se vuelve a las consultas de siempre.
+export async function fetchMiPerfil(
+  supabase: Supabase,
+  userId: string
+): Promise<{ rol: "root" | "manager" | null; avatar: string | null }> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("rol, avatar")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (error || !data) {
+    const [rol, avatar] = await Promise.all([
+      fetchMiRol(supabase, userId),
+      fetchMiAvatar(supabase, userId),
+    ]);
+    return { rol, avatar };
+  }
+  return {
+    rol: data.rol as "root" | "manager",
+    avatar: (data.avatar as string | null) ?? null,
+  };
 }
 
 // Avatar de perfil elegido (id de lib/avatares.ts) o null. Ver 0077.
