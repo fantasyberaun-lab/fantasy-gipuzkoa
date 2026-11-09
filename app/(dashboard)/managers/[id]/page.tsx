@@ -69,7 +69,10 @@ function PerfilManagerContenido() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
   const perfil: PerfilManager | null = datos?.[0] ?? null;
-  const evolucion: PuntoValorPlantilla[] = datos?.[1] ?? [];
+  const evolucion = useMemo<PuntoValorPlantilla[]>(
+    () => datos?.[1] ?? [],
+    [datos]
+  );
   // Si se llega desde el botón "Jornadas" de Clasificación (?tab=jornadas).
   const searchParams = useSearchParams();
   const tabInicial = searchParams.get("tab");

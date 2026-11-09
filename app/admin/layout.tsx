@@ -1,6 +1,7 @@
 import Link from "next/link";
 import AdminNav from "@/components/AdminNav";
 import ThemeToggle from "@/components/ThemeToggle";
+import { getT } from "@/lib/i18n/server";
 
 // Nota: este layout NO reutiliza app/(dashboard)/layout.tsx a propósito
 // — el panel de admin es una zona aparte, sin las pestañas de manager ni
@@ -13,21 +14,23 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const t = getT().nav;
+  const comun = getT().comun;
   return (
     <div className="mx-auto max-w-4xl px-4 pb-16 pt-6">
       <header className="mb-4 flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-wide text-neutral-500">
-            Panel de administración
+            {t.administracion}
           </p>
-          <h1 className="text-2xl font-semibold">Administración</h1>
+          <h1 className="text-2xl font-semibold">{t.administracion}</h1>
         </div>
         <div className="flex items-center gap-3">
           <Link
             href="/plantilla"
             className="text-sm text-neutral-500 underline underline-offset-2 hover:text-neutral-800 dark:hover:text-neutral-300"
           >
-            ← Volver a la app
+            ← {comun.volver}
           </Link>
           <ThemeToggle />
         </div>

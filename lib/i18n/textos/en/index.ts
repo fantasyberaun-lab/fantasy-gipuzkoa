@@ -14,6 +14,7 @@ import ficha from "./ficha";
 import foros from "./foros";
 import graficas from "./graficas";
 import idioma from "./idioma";
+import inicio from "./inicio";
 import invitar from "./invitar";
 import juego from "./juego";
 import jugadores from "./jugadores";
@@ -52,6 +53,7 @@ const en: Textos = {
   foros,
   graficas,
   idioma,
+  inicio,
   invitar,
   juego,
   jugadores,

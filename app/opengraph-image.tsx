@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 
+export const runtime = "edge";
 export const alt = "Beraun Fantasy · Fantasy de ajedrez de los Campeonatos de Gipuzkoa";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
@@ -19,7 +20,6 @@ export default function OpengraphImage() {
           color: "white",
         }}
       >
-        <div style={{ fontSize: 40, opacity: 0.7, marginBottom: 16 }}>♞</div>
         <div style={{ fontSize: 96, fontWeight: 700 }}>Beraun Fantasy</div>
         <div style={{ fontSize: 38, opacity: 0.8, marginTop: 16 }}>
           Fantasy de ajedrez · Campeonatos de Gipuzkoa

@@ -7,19 +7,20 @@ import { createClient } from "@/lib/supabase/client";
 import { contarSugerenciasPendientes } from "@/lib/supabase/sugerenciasQueries";
 import { contarDenunciasChatPendientes } from "@/lib/supabase/chatQueries";
 import { contarDenunciasForoPendientes } from "@/lib/supabase/foroQueries";
-
-const TABS = [
-  { href: "/admin", label: "Jugadores" },
-  { href: "/admin/torneos", label: "Torneos" },
-  { href: "/admin/resultados", label: "Resultados" },
-  { href: "/admin/comunicados", label: "Comunicados" },
-  { href: "/admin/actividad", label: "Actividad" },
-  { href: "/admin/sugerencias", label: "Sugerencias" },
-  { href: "/admin/chat", label: "Chat" },
-  { href: "/admin/variables", label: "Variables" },
-];
+import { useT } from "@/components/IdiomaProvider";
 
 export default function AdminNav() {
+  const t = useT().nav;
+  const tabs = [
+    { href: "/admin", label: t.jugadores },
+    { href: "/admin/torneos", label: t.torneos },
+    { href: "/admin/resultados", label: t.resultados },
+    { href: "/admin/comunicados", label: t.comunicados },
+    { href: "/admin/actividad", label: t.actividad },
+    { href: "/admin/sugerencias", label: t.sugerencias },
+    { href: "/admin/chat", label: t.chat },
+    { href: "/admin/variables", label: t.variables },
+  ];
   const pathname = usePathname();
   // Sugerencias sin leer, para el globo de la pestaña. Se recuenta al cambiar
   // de pestaña (p. ej. al volver tras marcar varias como leídas).
@@ -38,7 +39,7 @@ export default function AdminNav() {
 
   return (
     <nav className="flex gap-6 overflow-x-auto border-b border-neutral-200 dark:border-neutral-800">
-      {TABS.map((tab) => {
+      {tabs.map((tab) => {
         const isActive = pathname === tab.href;
         return (
           <Link

@@ -1,35 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import EnlacesLegales from "@/components/legal/EnlacesLegales";
+import { getT } from "@/lib/i18n/server";
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://fantasy.beraunberaxake.com";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://fantasy.beraunberaxake.com";
 
 // Portada pública: es lo que ven los buscadores. Quien ya tiene sesión nunca
 // llega aquí, el middleware lo manda a /plantilla.
-const PASOS = [
-  {
-    titulo: "Monta tu plantilla",
-    texto:
-      "Ficha ajedrecistas de los Campeonatos de Gipuzkoa con tu presupuesto inicial y elige a quién alinear en cada jornada.",
-  },
-  {
-    titulo: "Puja en el mercado",
-    texto:
-      "Haz pujas, paga cláusulas de rescisión y vende para mejorar tu equipo antes de que lo haga tu rival.",
-  },
-  {
-    titulo: "Suma puntos con las partidas reales",
-    texto:
-      "Tus jugadores puntúan según sus resultados y su Elo en cada ronda. Cuanto mejor jueguen, más sube tu equipo.",
-  },
-  {
-    titulo: "Compite en ligas",
-    texto:
-      "Crea una liga privada con tus amigos o juega en la pública, sube de nivel y desbloquea avatares.",
-  },
-];
-
 const jsonLd = {
   "@context": "https://schema.org",
   "@graph": [
@@ -58,16 +35,23 @@ const jsonLd = {
 };
 
 export default function PortadaPage() {
+  const t = getT().inicio;
+  const jsonLdLocal = {
+    ...jsonLd,
+    "@graph": jsonLd["@graph"].map((item, index) =>
+      index === 1 ? { ...item, description: t.lema, inLanguage: "es" } : item
+    ),
+  };
   return (
-    <div lang="es" className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdLocal) }}
       />
       <header className="banner-tablero px-4 pb-14 pt-[calc(env(safe-area-inset-top)+3rem)] text-center text-white">
         <Image
           src="/icons/icon-192.png"
-          alt="Escudo de Beraun Fantasy"
+          alt={t.altEscudo}
           width={96}
           height={96}
           className="mx-auto mb-4 rounded-full"
@@ -75,45 +59,42 @@ export default function PortadaPage() {
         />
         <h1 className="font-display text-4xl font-semibold">Beraun Fantasy</h1>
         <p className="mx-auto mt-2 max-w-md text-base text-white/80">
-          El fantasy de ajedrez de los Campeonatos de Gipuzkoa.
+          {t.lema}
         </p>
         <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <Link
             href="/registro"
             className="rounded-lg bg-accent px-6 py-2.5 text-sm font-medium text-white hover:bg-accent-hover"
           >
-            Crear cuenta gratis
+            {t.crearCuenta}
           </Link>
           <Link
             href="/login"
             className="rounded-lg border border-white/40 px-6 py-2.5 text-sm font-medium text-white hover:bg-white/10"
           >
-            Entrar
+            {t.entrar}
           </Link>
         </div>
       </header>
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-10">
         <h2 className="font-display text-2xl font-semibold">
-          ¿Qué es Beraun Fantasy?
+          {t.queEs}
         </h2>
         <p className="mt-3 text-neutral-600 dark:text-neutral-300">
-          Beraun Fantasy es un juego gratuito de fantasy de ajedrez. Eliges
-          ajedrecistas reales que juegan los Campeonatos de Gipuzkoa, formas tu
-          plantilla y ganas puntos según lo que ocurre en el tablero: resultados,
-          rendimiento y variación de Elo.
+          {t.queEsTexto}
         </p>
 
         <h2 className="mt-10 font-display text-2xl font-semibold">
-          Cómo se juega
+          {t.comoSeJuega}
         </h2>
         <ol className="mt-4 grid gap-4 sm:grid-cols-2">
-          {PASOS.map((p, i) => (
+          {t.pasos.map((p, i) => (
             <li
               key={p.titulo}
               className="rounded-2xl border border-neutral-200 p-5 dark:border-neutral-800"
             >
-              <span className="text-xs font-medium text-accent">Paso {i + 1}</span>
+              <span className="text-xs font-medium text-accent">{t.paso(i + 1)}</span>
               <h3 className="mt-1 font-display text-lg font-semibold">
                 {p.titulo}
               </h3>
@@ -125,26 +106,25 @@ export default function PortadaPage() {
         </ol>
 
         <h2 className="mt-10 font-display text-2xl font-semibold">
-          Preguntas frecuentes
+          {t.preguntas}
         </h2>
         <dl className="mt-4 space-y-4 text-sm">
           <div>
-            <dt className="font-medium">¿Es gratis?</dt>
+            <dt className="font-medium">{t.gratis}</dt>
             <dd className="text-neutral-600 dark:text-neutral-300">
-              Sí. Se juega con dinero ficticio del propio juego.
+              {t.gratisRespuesta}
             </dd>
           </div>
           <div>
-            <dt className="font-medium">¿Qué campeonatos incluye?</dt>
+            <dt className="font-medium">{t.campeonatos}</dt>
             <dd className="text-neutral-600 dark:text-neutral-300">
-              Los Campeonatos de Gipuzkoa de ajedrez, con sus jugadores y rondas
-              reales.
+              {t.campeonatosRespuesta}
             </dd>
           </div>
           <div>
-            <dt className="font-medium">¿Se puede jugar desde el móvil?</dt>
+            <dt className="font-medium">{t.movil}</dt>
             <dd className="text-neutral-600 dark:text-neutral-300">
-              Sí, funciona en el navegador y se puede instalar como app.
+              {t.movilRespuesta}
             </dd>
           </div>
         </dl>

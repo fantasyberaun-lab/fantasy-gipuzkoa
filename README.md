@@ -1,145 +1,177 @@
-# Fantasy Campeonatos de Gipuzkoa
+# Beraun Fantasy
 
-Fantasy de ajedrez basado en los Campeonatos de Gipuzkoa Individual
-(Reglamento V3.1 adjunto en el proyecto original). Cada manager forma
-una plantilla de 6 jugadores, gana puntos según resultados y Elo del
-rival, y gestiona un mercado semanal con fichajes, ofertas y
-clausulazos.
+Fantasy de ajedrez del club Gaztelu Beltza Xake Kluba / Beraun Bera Xake
+Taldea, basado en los Campeonatos de Gipuzkoa Individual. Cada manager forma
+una plantilla de 10 jugadores reales (máximo 6 titulares), puntúa según los
+resultados y el Elo de los rivales y compite en ligas con mercado, pujas,
+ofertas y clausulazos.
 
-## Stack
+La aplicación está en producción con usuarios y datos reales de torneos. La
+interfaz está disponible en castellano, euskera e inglés.
 
-- **Next.js 14** (App Router) + TypeScript + Tailwind CSS
-- **Supabase** (Postgres + Auth + Row Level Security)
-- **Vercel** para el despliegue
-- Pensado como web responsive, instalable como **PWA**
+## Estado actual
 
-## Estructura del proyecto
+### Juego y mercado
 
-```
+- Plantillas de 10 jugadores, titulares por torneo, capitán y blindaje.
+- Puntuación por resultado y diferencia de Elo.
+- Jornadas, emparejamientos, resultados, cierre de jornada y pagos.
+- Clasificación por liga y perfiles de managers.
+- Mercado público de compra y venta instantánea.
+- Mercado privado por tandas con pujas visibles u ocultas.
+- Ofertas directas, clausulazos, subida de cláusula y venta a la máquina.
+- Valores de mercado dinámicos con histórico y variación diaria.
+- Restricciones de saldo, candados, límites de plantilla y titulares.
+
+### Ligas y comunidad
+
+- Ligas públicas, privadas y territoriales.
+- Administración de ligas privadas: tandas, sanciones, expulsiones y
+  readmisiones.
+- Chat, foros, menciones, respuestas, edición, borrado y reacciones.
+- Notificaciones de operaciones, jornadas, comunicados y foros.
+- Misiones, niveles, experiencia, tutoriales y rachas diarias.
+- Minijuegos, ranking de minijuegos y pronósticos.
+- Resumen semanal y buzón de sugerencias.
+
+### Administración y datos
+
+- Panel root para torneos, resultados, comunicados, variables, actividad,
+  sugerencias y moderación del chat.
+- Importador de Info64 y Chess-Results con emparejamiento por FIDE ID y
+  nombre.
+- Actualización mensual del Elo FIDE mediante GitHub Actions y script manual.
+- Lógica crítica en funciones SQL con RLS y RPC de Supabase.
+
+### Cuenta, privacidad y PWA
+
+- Registro, confirmación por correo, login por email o nombre de usuario y
+  recuperación mediante Resend.
+- Cambio de usuario, contraseña y avatar.
+- Eliminación de cuenta, aceptación de textos legales y protección de
+  menores.
+- PWA manual con manifest, service worker, caché de estáticos, pantalla
+  offline e instalación desde navegador.
+- Notificaciones Web Push para ofertas, clausulazos, torneos y comunicados.
+
+## Tecnologías
+
+- Next.js 14 (App Router), React 18 y TypeScript estricto.
+- Tailwind CSS 3.
+- Supabase Postgres, Auth, RLS, funciones SQL y RPC.
+- Vercel Analytics y Speed Insights.
+- Resend para recuperación de cuentas.
+- Web Push sin SDK adicional.
+
+## Estructura
+
+```text
 app/
-  (dashboard)/
-    layout.tsx        # navegación por pestañas + toggle de tema
-    plantilla/         # pestaña "Mi plantilla"
-    mercado/            # pestaña "Mercado"
-    clasificacion/       # pestaña "Clasificación"
-  layout.tsx           # layout raíz (metadata, PWA manifest)
-  page.tsx             # redirige a /plantilla
-
-components/            # componentes de UI (PlayerCard, TabNav, ThemeToggle...)
-
+  (auth)/                 login, registro y recuperación
+  (dashboard)/            plantilla, mercado, ligas, torneos y comunidad
+  (juegos)/               minijuegos y pronósticos
+  (legal)/                condiciones, privacidad y eliminación de cuenta
+  admin/                  panel root
+  api/                    route handlers
+  auth/callback/          retorno de Supabase Auth
+components/               componentes de interfaz y juego
 lib/
-  types.ts             # tipos de dominio (Jugador, PlantillaSlot, ...)
-  gameConfig.ts         # valores por defecto del reglamento (ver más abajo)
-  mockData.ts           # datos de ejemplo para desarrollar sin backend
-  supabase/
-    client.ts            # cliente de Supabase para componentes "use client"
-    server.ts             # cliente de Supabase para Server Components
-
-supabase/
-  migrations/0001_init.sql  # esquema completo de la base de datos
+  i18n/                   textos es/eu/en y carga diferida
+  importador/             Info64, Chess-Results y emparejamiento
+  supabase/               clientes y consultas por área
+  legal/                  responsable y versiones legales
+  gameConfig.ts           valores de respaldo del reglamento
+supabase/migrations/      esquema y lógica de negocio, hasta 0122
+scripts/                  Elo FIDE, actualización manual y pruebas
+public/                   manifest, service worker, iconos y offline
 ```
 
-## Cómo se ha traducido el reglamento a datos
+Las consultas de Supabase viven en `lib/supabase/*Queries.ts`. Los
+componentes cliente usan `lib/supabase/client.ts`; los Server Components y
+route handlers usan `lib/supabase/server.ts`. La service role key solo se usa
+en servidor.
 
-- `players`: jugadores reales de ajedrez (nombre, club, categoría, Elo, valor de mercado).
-- `matchdays`: jornadas del campeonato.
-- `results`: resultado de cada jugador en cada jornada + puntos Fantasy ya calculados.
-- `fantasy_teams` / `squad_slots`: equipos de los managers y su plantilla (con historial de altas/bajas).
-- `matchday_captains`: el "Jugador de la Jornada" elegido por cada equipo.
-- `market_listings` / `bids`: mercado y pujas activas.
-- `clause_releases`: clausulazos ejecutados entre managers.
-- `operations_log`: registro de fichajes/ventas/ofertas/clausulazos, para poder aplicar el límite de operaciones por periodo.
-- `game_config`: aquí es donde vive todo lo que la organización puede querer ajustar sin tocar código (tabla de puntos por diferencia de Elo, presupuesto inicial, límite de operaciones, etc.). De momento en `lib/gameConfig.ts` hay unos valores por defecto en código; el siguiente paso natural es moverlos a esta tabla y construir una pantalla de administración simple para el rol `root`.
+## Desarrollo local
 
-Este esquema es un punto de partida para poder empezar a construir ya;
-seguramente habrá que ajustar cosas (sobre todo las políticas de RLS)
-según vayamos avanzando.
+Requisitos: Node.js 20 o compatible, npm, un proyecto Supabase y la CLI de
+Supabase si se van a aplicar migraciones.
 
-## Valor de mercado dinámico (migración 0041)
+```bash
+npm ci
+copy .env.example .env.local
+npm run dev
+```
 
-El valor de un jugador cambia de dos formas, ambas con histórico en
-`player_value_history` (es lo que pinta la gráfica de la ficha):
+La aplicación se sirve en <http://localhost:3000>.
 
-- **Por partida**: al guardar un resultado, `cambio % = K x (resultado - E)`
-  con `E = 1/(1+10^((Elo rival - Elo jugador)/400))` y K = 4 %. Un Elo de 0 se
-  trata como 1400. Corregir o borrar un resultado deshace su cambio.
-- **Diaria** (`variacion_diaria_valores()`, pg_cron): +-0,1 % a +-1,5 %, con un
-  sesgo hacia el valor de fórmula (`calcular_valor_inicial`) para que no derive.
+Comandos disponibles:
 
-Suelo: `valor_inicial.valor_min` (10 M). Parámetros en `game_config`, clave
-`variacion_valor`. La migración **no** programa el cron: ver el final de
-`0041_variacion_valor_mercado.sql` (conviene lanzarlo unos minutos después de
-`procesar_mercado_diario`).
+```bash
+npm run dev
+npm run build
+npm run lint
+npm run test:importador
+npm run supabase:types
+supabase db push
+```
 
-### Pujas y cambios de valor (migración 0042)
+No se deben guardar secretos en el repositorio. Los valores reales van en
+`.env.local`, Vercel o los secrets de GitHub Actions.
 
-- Una puja **se mantiene aunque el valor del jugador suba** por encima de ella:
-  compite con su importe y se paga lo pujado. El mínimo solo se exige al pujar.
-- En el Mercado se ve **tu puja** y las **pujas del resto de equipos de la liga**
-  (nombre de equipo e importe) por cada jugador de la tanda, vía
-  `pujas_del_mercado(liga)`.
+## Variables de entorno
 
-## Perfil de manager (migración 0043)
+Consulta `.env.example`. Las variables principales son:
 
-- `/managers/[id]` (id = equipo) enseña el nombre de usuario, "manager desde",
-  ligas ganadas y jugadas, puntos, mejor jornada y la evolución del valor de la
-  plantilla. Se abre desde la clasificación (nombre del equipo) y desde "Mi
-  perfil" en la cabecera. Solo entre managers de la misma liga.
-- `profiles.ligas_ganadas` (0 para todos) se sube a mano al terminar una liga:
-  `update profiles set ligas_ganadas = ligas_ganadas + 1 where id = '...';`
-- La clasificación devuelve ahora también `nombre_manager`.
+- `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+- `SUPABASE_SERVICE_ROLE_KEY` y `SUPABASE_PROJECT_ID`.
+- `NEXT_PUBLIC_SITE_URL`.
+- `RESEND_API_KEY` y `EMAIL_FROM`.
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PUBLIC_KEY`,
+  `VAPID_PRIVATE_KEY` y `VAPID_SUBJECT`.
+- `CRON_SECRET`.
 
-## Puesta en marcha
+La URL pública debe ser una URL absoluta válida. Si no se define, la
+aplicación usa `https://fantasy.beraunberaxake.com`.
 
-1. **Instalar dependencias**
+## Base de datos y tareas operativas
 
-   ```bash
-   npm install
-   ```
+Las migraciones están numeradas y no se deben editar después de aplicarlas:
+para cualquier cambio se crea una nueva migración. La versión actual del
+repositorio llega a `0122_clasificacion_solo_tu_liga.sql`.
 
-2. **Crear un proyecto en [supabase.com](https://supabase.com)** y copiar
-   `.env.example` a `.env.local`, rellenando con la URL y la anon key del
-   proyecto (Project Settings → API).
+Algunas tareas se activan desde Supabase y no desde una migración:
 
-3. **Aplicar el esquema de base de datos.** Con la [CLI de
-   Supabase](https://supabase.com/docs/guides/cli) instalada y logueada:
+- Programar la variación diaria de valores.
+- Activar `pg_net` y el cron del despacho de Web Push.
+- Guardar el secreto del cron en Vault.
+- Comprobar las políticas RLS después de aplicar migraciones.
 
-   ```bash
-   supabase link --project-ref TU_PROJECT_REF
-   supabase db push
-   ```
+La actualización de Elo se ejecuta automáticamente mediante
+`.github/workflows/actualizar-elo.yml` y requiere los secrets
+`SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`.
 
-   (Alternativamente, se puede pegar el contenido de
-   `supabase/migrations/0001_init.sql` directamente en el SQL Editor del
-   panel de Supabase.)
+## Verificación
 
-4. **Arrancar en local**
+Antes de subir cambios:
 
-   ```bash
-   npm run dev
-   ```
+```bash
+npm run lint
+npm run build
+npm run test:importador
+```
 
-   Abrir http://localhost:3000 — redirige a `/plantilla`, que de momento
-   muestra datos de ejemplo (`lib/mockData.ts`) hasta que conectemos las
-   páginas a Supabase de verdad.
+Además, se debe revisar el diff y probar manualmente los flujos afectados en
+móvil y escritorio. No hay todavía una suite general end-to-end: las áreas
+más importantes para ampliar la cobertura son mercado, permisos/RLS, cierre
+de jornada, administración de ligas y notificaciones push.
 
-5. **Desplegar en Vercel**: importar el repo de GitHub en
-   [vercel.com/new](https://vercel.com/new) y añadir las mismas variables
-   de entorno de `.env.local` en la configuración del proyecto.
+## Reglas de producto
 
-## Siguientes pasos sugeridos
-
-- [ ] Conectar `plantilla/`, `mercado/` y `clasificacion/` a Supabase (quitar `mockData.ts`).
-- [ ] Autenticación de managers (Supabase Auth) y creación del `fantasy_team` al registrarse.
-- [ ] Mover `gameConfig.ts` a la tabla `game_config` + pantalla de administración para el rol `root`.
-- [ ] Lógica de puntuación (calcular `results.puntos_fantasy` a partir de la diferencia de Elo y el resultado).
-- [ ] Lógica de mercado: fichar, vender, pujar, aceptar ofertas y clausulazos, respetando el límite de operaciones por periodo.
-- [ ] Icono real de la app en `public/icons/` y activar `next-pwa` (o similar) para que sea instalable de verdad.
-- [ ] Revisar en detalle las políticas de RLS de `0001_init.sql` antes de ir a producción.
-
-## Notas de diseño
-
-Modo claro/oscuro ya implementado (`ThemeToggle`, clases `dark:` de
-Tailwind). La paleta de `tailwind.config.ts` es solo un punto de
-partida (verde tablero + neutros) — pendiente de una pasada de diseño
-visual más cuidada cuando toque esa fase.
+- Los textos visibles de la aplicación deben vivir en las tres carpetas de
+  idioma de `lib/i18n/textos/{es,eu,en}`.
+- Una sección nueva de textos se registra en los tres `index.ts`.
+- Las reglas configurables deben mantenerse sincronizadas entre
+  `lib/gameConfig.ts` y las funciones SQL correspondientes.
+- Los datos personales solo se muestran a usuarios registrados y dentro de
+  la liga permitida.
+- No se debe exponer ningún email ni ninguna clave secreta al navegador.
