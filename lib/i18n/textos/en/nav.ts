@@ -8,6 +8,12 @@ const en: Seccion = {
   torneos: "Tournaments",
   avisos: "Alerts",
   chat: "Chat",
+  resultados: "Results",
+  comunicados: "Announcements",
+  actividad: "Activity",
+  sugerencias: "Suggestions",
+  variables: "Variables",
+  administracion: "Administration",
   navegacionPrincipal: "Main navigation",
   sinLeer: (n: number) => `${n} unread`,
 };

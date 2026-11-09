@@ -220,7 +220,7 @@ export interface Ranking {
   participantes: number;
 }
 
-type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+type Json = Record<string, any>;
 
 function final(d: Json | null): FinalPartida | null {
   if (!d) return null;

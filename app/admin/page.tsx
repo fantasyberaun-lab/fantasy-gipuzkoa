@@ -338,7 +338,7 @@ export default function AdminJugadoresPage() {
         <p className="text-xs text-neutral-500">
           El valor inicial se calcula con el Elo y el año de nacimiento. Tras
           cambiar Elos o años, recalcula los valores: todos a la vez (solo
-          antes de que haya resultados) o uno a uno con el botón "Recalcular"
+          antes de que haya resultados) o uno a uno con el botón &quot;Recalcular&quot;
           de cada fila, que no toca a los demás.
         </p>
         <button
@@ -532,7 +532,7 @@ export default function AdminJugadoresPage() {
       {totalConCambios > 0 && (
         <p className="text-xs text-neutral-500">
           {totalConCambios} fila{totalConCambios === 1 ? "" : "s"} con cambios sin
-          guardar (usa el botón "Guardar" de cada fila). El interruptor "Activo"
+          guardar (usa el botón &quot;Guardar&quot; de cada fila). El interruptor &quot;Activo&quot;
           se guarda solo, al instante.
         </p>
       )}

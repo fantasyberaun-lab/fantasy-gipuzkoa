@@ -22,8 +22,17 @@ const fontDisplay = Barlow_Condensed({
   display: "swap",
 });
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://fantasy.beraunberaxake.com";
+const SITE_URL_FALLBACK = "https://fantasy.beraunberaxake.com";
+const SITE_URL = (() => {
+  const candidato = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (!candidato) return SITE_URL_FALLBACK;
+  try {
+    const url = new URL(candidato);
+    return url.origin;
+  } catch {
+    return SITE_URL_FALLBACK;
+  }
+})();
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

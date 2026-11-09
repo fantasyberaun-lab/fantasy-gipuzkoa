@@ -10,6 +10,12 @@ const es = {
   torneos: "Torneos",
   avisos: "Avisos",
   chat: "Chat",
+  resultados: "Resultados",
+  comunicados: "Comunicados",
+  actividad: "Actividad",
+  sugerencias: "Sugerencias",
+  variables: "Variables",
+  administracion: "Administración",
   navegacionPrincipal: "Navegación principal",
   sinLeer: (n: number) => `${n} sin leer`,
 };
