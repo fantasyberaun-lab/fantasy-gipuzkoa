@@ -6,7 +6,8 @@ export const runtime = "edge";
 // La genera next/og en el servidor a partir de los datos en la query, así que no
 // expone nada privado: solo lo que el manager decide compartir.
 //
-// Parámetros: equipo, puntos, posicion, variacion (puestos; + sube, - baja).
+// Parámetros: equipo, liga, puntos, posicion, variacion (puestos; + sube, - baja).
+// Colores del club: morado de fondo y amarillo para los detalles (tailwind.config.ts).
 
 function limpiar(v: string | null, max: number): string {
   return (v ?? "").slice(0, max);
@@ -15,6 +16,7 @@ function limpiar(v: string | null, max: number): string {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const equipo = limpiar(searchParams.get("equipo"), 40) || "Mi equipo";
+  const liga = limpiar(searchParams.get("liga"), 40);
   const puntos = limpiar(searchParams.get("puntos"), 6) || "0";
   const posicion = limpiar(searchParams.get("posicion"), 4);
   const variacion = parseInt(searchParams.get("variacion") ?? "", 10);
@@ -37,13 +39,13 @@ export async function GET(request: Request) {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(160deg, #0b3d2e 0%, #145c43 55%, #0b3d2e 100%)",
+          background: "linear-gradient(160deg, #170634 0%, #431190 55%, #170634 100%)",
           color: "#ffffff",
           fontFamily: "sans-serif",
           padding: "80px",
         }}
       >
-        <div style={{ display: "flex", fontSize: 44, letterSpacing: 4, color: "#e9c46a" }}>
+        <div style={{ display: "flex", fontSize: 44, letterSpacing: 4, color: "#FFD426" }}>
           BERAUN FANTASY
         </div>
 
@@ -59,6 +61,12 @@ export async function GET(request: Request) {
           {equipo}
         </div>
 
+        {liga ? (
+          <div style={{ display: "flex", marginTop: 16, fontSize: 40, color: "#D6BFFF", textAlign: "center" }}>
+            {liga}
+          </div>
+        ) : null}
+
         <div
           style={{
             display: "flex",
@@ -67,7 +75,7 @@ export async function GET(request: Request) {
             marginTop: 120,
           }}
         >
-          <div style={{ display: "flex", fontSize: 320, fontWeight: 800, color: "#e9c46a", lineHeight: 1 }}>
+          <div style={{ display: "flex", fontSize: 320, fontWeight: 800, color: "#FFD426", lineHeight: 1 }}>
             {puntos}
           </div>
           <div style={{ display: "flex", fontSize: 56, marginTop: 10 }}>puntos esta semana</div>
@@ -81,7 +89,7 @@ export async function GET(request: Request) {
           <div style={{ display: "flex", marginTop: 100 }} />
         )}
 
-        <div style={{ display: "flex", marginTop: 30, fontSize: 48, color: "#cfe8dd" }}>
+        <div style={{ display: "flex", marginTop: 30, fontSize: 48, color: "#D6BFFF" }}>
           {subtitulo}
         </div>
       </div>
