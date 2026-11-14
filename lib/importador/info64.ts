@@ -41,8 +41,10 @@ export function slugInfo64(url: URL): string | null {
 
 export function urlInfo64(origen: string, slug: string, ronda?: number): string {
   const ruta = ronda ? `/${slug}/${ronda}` : `/${slug}`;
-  // hl=en fija el idioma: así las cabeceras de las tablas no cambian.
-  return `${origen}${ruta}?hl=en`;
+  // Sin ?hl=: Info64 redirige (301) a la portada cualquier ruta con ese
+  // parámetro, y el lector acababa leyendo las tablas "En juego / Sin comenzar"
+  // de la portada. Los lectores ya admiten cabeceras en es/en/eu.
+  return `${origen}${ruta}`;
 }
 
 const num = (t: string): number | null => {
