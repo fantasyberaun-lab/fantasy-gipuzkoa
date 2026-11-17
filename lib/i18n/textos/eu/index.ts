@@ -22,6 +22,7 @@ import liga from "./liga";
 import managers from "./managers";
 import mercado from "./mercado";
 import minijuegos from "./minijuegos";
+import mundial from "./mundial";
 import misiones from "./misiones";
 import nav from "./nav";
 import niveles from "./niveles";
@@ -60,6 +61,7 @@ const eu: Textos = {
   managers,
   mercado,
   minijuegos,
+  mundial,
   misiones,
   nav,
   niveles,

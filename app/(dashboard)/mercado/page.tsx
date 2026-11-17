@@ -3,6 +3,7 @@
 import Link from "next/link";
 import ProximoRivalLinea from "@/components/ProximoRival";
 import { useEffect, useMemo, useState } from "react";
+import { useRedirigirAMatch } from "@/components/MundialProvider";
 import { useGameState } from "@/components/GameStateProvider";
 import { useT } from "@/components/IdiomaProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
@@ -35,7 +36,7 @@ type MensajePuja = { tipo: "ok" | "error"; texto: string };
 
 // Liga pública: mercado siempre abierto con compra/venta instantánea.
 // Ligas privadas: mercado por tandas con pujas.
-export default function MercadoPage() {
+function MercadoReal() {
   const { esLigaPublica, cargando } = useGameState();
   const t = useT();
 
@@ -438,4 +439,10 @@ function MercadoConPujas() {
       </div>
     </div>
   );
+}
+// Durante el evento del Mundial (modo Match) esta pantalla se oculta y se va a /match.
+// Nada se borra: al apagar el modo vuelve tal cual.
+export default function MercadoPage() {
+  const enMatch = useRedirigirAMatch();
+  return enMatch ? null : <MercadoReal />;
 }

@@ -10,6 +10,7 @@ const es = {
   torneos: "Torneos",
   avisos: "Avisos",
   chat: "Chat",
+  match: "Match",
   navegacionPrincipal: "Navegación principal",
   sinLeer: (n: number) => `${n} sin leer`,
 };

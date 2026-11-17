@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import { useGameState } from "@/components/GameStateProvider";
 import { useT } from "@/components/IdiomaProvider";
 import { useChat } from "@/components/ChatProvider";
+import { useMundial } from "@/components/MundialProvider";
 import { sonar } from "@/lib/sonido";
 
 // Iconos (trazo, 24x24) para la barra inferior del móvil.
@@ -24,9 +25,16 @@ const icon = (d: string) => (
 
 interface Tab {
   href: string;
-  clave: "plantilla" | "mercado" | "jugadores" | "clasificacion" | "torneos" | "chat"; // mismo nombre en escritorio y en la barra inferior del móvil
+  clave: "plantilla" | "match" | "mercado" | "jugadores" | "clasificacion" | "torneos" | "chat"; // mismo nombre en escritorio y en la barra inferior del móvil
   icono: ReactNode;
 }
+
+// Evento del Mundial: sustituye a Plantilla mientras el modo Match está encendido.
+const TAB_MATCH: Tab = {
+  href: "/match",
+  clave: "match",
+  icono: icon("M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"),
+};
 
 const TABS: Tab[] = [
   {
@@ -101,11 +109,16 @@ export default function TabNav() {
   const t = useT();
   const { esLigaPublica } = useGameState();
   const { globo } = useChat();
+  const { modoMatch } = useMundial();
 
   // En la liga pública no hay plantillas ajenas con clausulazos: todo se hace
   // desde el Mercado. Los Avisos viven en la campana de la cabecera; la pestaña de abajo es el Chat.
   const etiqueta = (tab: Tab) => t.nav[tab.clave];
-  const tabs = esLigaPublica ? TABS.filter((tab) => tab.href !== "/jugadores") : TABS;
+  // Durante el evento: Match en lugar de Plantilla y sin Mercado (la plantilla real no se toca).
+  const base = modoMatch
+    ? TABS.filter((tab) => tab.href !== "/mercado").map((tab) => (tab.href === "/plantilla" ? TAB_MATCH : tab))
+    : TABS;
+  const tabs = esLigaPublica ? base.filter((tab) => tab.href !== "/jugadores") : base;
 
   return (
     <>
