@@ -21,7 +21,10 @@ export interface Avatar {
   srcMarco: string;
   srcGrande: string;
   // Nivel a partir del que se desbloquea (su posición en AVATARES, desde 1).
+  // Los iconos especiales (ESPECIALES) no se desbloquean por nivel: nivel 0.
   nivel: number;
+  // Icono de premio (fin de liga, evento...): se consigue, no se desbloquea por nivel.
+  especial?: boolean;
 }
 
 function avatar(id: string, nivel: number, nombre?: string): Avatar {
@@ -67,15 +70,35 @@ const ORDEN: [id: string, nombre?: string][] = [
 
 export const AVATARES: Avatar[] = ORDEN.map(([id, nombre], i) => avatar(id, i + 1, nombre));
 
+// Iconos especiales de premio: se entregan desde la base de datos
+// (entregar_iconos_liga, 0140) y viven en iconos_especiales. Mismas tres
+// imágenes que el resto. Si añades una edición nueva, añádela aquí, en
+// iconos_especiales y en los textos (avatares.especiales).
+export const ESPECIALES: Avatar[] = [
+  "liga1-campeon",
+  "liga1-subcampeon",
+  "liga1-tercero",
+  "liga1-participacion",
+  "sindarov", // evento Mundial 2026 (0141): se concede a quien pronosticó
+].map((id) => ({ ...avatar(id, 0), especial: true }));
+
 export function buscarAvatar(id: string | null | undefined): Avatar | null {
-  return AVATARES.find((a) => a.id === id) ?? null;
+  return AVATARES.find((a) => a.id === id) ?? ESPECIALES.find((a) => a.id === id) ?? null;
+}
+
+type TextoEspecial = { nombre: string; descripcion: string };
+
+function textoEspecial(a: Avatar, t: Textos): TextoEspecial | undefined {
+  return (t.avatares.especiales as Record<string, TextoEspecial>)[a.id];
 }
 
 export function nombreAvatar(a: Avatar, t: Textos): string {
+  if (a.especial) return textoEspecial(a, t)?.nombre ?? a.id;
   return a.nombre ?? t.avatares.piezas[a.id as keyof Textos["avatares"]["piezas"]] ?? a.id;
 }
 
 // Mini descripción que se ve al ampliar el avatar.
 export function descripcionAvatar(a: Avatar, t: Textos): string {
+  if (a.especial) return textoEspecial(a, t)?.descripcion ?? "";
   return t.avatares.descripciones[a.id as keyof Textos["avatares"]["descripciones"]] ?? "";
 }

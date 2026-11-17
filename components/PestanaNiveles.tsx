@@ -9,7 +9,7 @@ import SelectorAvatar from "@/components/SelectorAvatar";
 import { EVENTO_XP } from "@/components/RachaDiaria";
 import { AVATARES, nombreAvatar } from "@/lib/avatares";
 import { XP_COFRE, XP_LOGIN, XP_POR_PUNTO } from "@/lib/niveles";
-import { fetchEstadoNivel, type EstadoNivel } from "@/lib/supabase/nivelesQueries";
+import { fetchEstadoNivel, fetchIconosEspeciales, type EstadoNivel } from "@/lib/supabase/nivelesQueries";
 import Image from "next/image";
 
 // Pestaña "Niveles" del perfil propio: nivel y experiencia, el siguiente icono
@@ -28,8 +28,10 @@ export default function PestanaNiveles({
   const { avatar } = useGameState();
   const [estado, setEstado] = useState<EstadoNivel | null>(null);
   const [error, setError] = useState(false);
+  const [especiales, setEspeciales] = useState<string[]>([]);
 
   async function cargar() {
+    fetchIconosEspeciales(supabase).then(setEspeciales);
     const e = await fetchEstadoNivel(supabase);
     if (e) {
       setEstado(e);
@@ -116,7 +118,7 @@ export default function PestanaNiveles({
         </div>
       </div>
 
-      <SelectorAvatar nivel={nivel} />
+      <SelectorAvatar nivel={nivel} especiales={especiales} />
 
       <div className="rounded-xl border border-neutral-200 p-4 text-sm dark:border-neutral-800">
         <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{tn.comoGanar}</p>
