@@ -14,8 +14,8 @@
 --        desempate_activo  hay desempate: en vez de votar partida se vota al campeón
 --        resultado_final   'gukesh' | 'sindarov' (el campeón), lo pone el admin
 --   2) mundial_partidas: calendario (24 nov - 12 dic 2026): 14 partidas, 4 descansos y el
---      día de desempates. Fecha y hora de inicio editables. Hora por defecto: 15:00 de Bakú
---      (UTC+4) = 12:00 de Madrid en invierno; se guarda como timestamptz (instante exacto).
+--      día de desempates. Fecha y hora de inicio editables. Hora por defecto: 15:00 hora peninsular;
+--      se guarda como timestamptz (instante exacto).
 --   3) mundial_pronosticos / mundial_voto_final: lo que predice cada usuario (privado).
 --      Acierto de partida = 1 punto; acertar el campeón tras un desempate = +1 punto.
 --      Los puntos NO se guardan: se calculan al leer con las funciones de abajo, así que
@@ -82,11 +82,11 @@ create table if not exists public.mundial_partidas (
 create unique index if not exists mundial_partidas_numero_idx
   on public.mundial_partidas (numero) where numero is not null;
 
--- Siembra del calendario (solo si está vacío). 12:00 hora de Madrid = 15:00 de Bakú en invierno.
+-- Siembra del calendario (solo si está vacío). Todas las partidas empiezan a las 15:00 hora peninsular española.
 insert into public.mundial_partidas (tipo, numero, fecha, inicio)
 select v.tipo, v.numero, v.fecha,
        case when v.tipo = 'descanso' then null
-            else (v.fecha::timestamp + time '12:00') at time zone 'Europe/Madrid' end
+            else (v.fecha::timestamp + time '15:00') at time zone 'Europe/Madrid' end
 from (values
   ('partida',   1, date '2026-11-24'), ('partida',   2, date '2026-11-25'),
   ('partida',   3, date '2026-11-26'), ('descanso', null, date '2026-11-27'),
@@ -193,11 +193,11 @@ from anon, authenticated;
 -- 7) Jugadores (PROVISIONALES) -----------------------------------------------------------
 -- Elo y valor orientativos; se editan en Admin > Jugadores. Inactivos hasta encender el evento.
 insert into public.players (nombre, club, categoria, elo, fide_id, anio_nacimiento, edad, sexo, activo)
-select 'Gukesh Dommaraju', 'Mundial 2026 (datos provisionales)', '1'::categoria, 2780, '46616543', 2006, 20, 'M', false
+select 'Gukesh Dommaraju', 'Mundial 2026 (datos provisionales)', '1'::categoria, 2710, '46616543', 2006, 20, 'M', false
 where not exists (select 1 from public.players where nombre = 'Gukesh Dommaraju');
 
 insert into public.players (nombre, club, categoria, elo, fide_id, anio_nacimiento, edad, sexo, activo)
-select 'Javokhir Sindarov', 'Mundial 2026 (datos provisionales)', '1'::categoria, 2745, '14205483', 2005, 21, 'M', false
+select 'Javokhir Sindarov', 'Mundial 2026 (datos provisionales)', '1'::categoria, 2782, '14205483', 2005, 21, 'M', false
 where not exists (select 1 from public.players where nombre = 'Javokhir Sindarov');
 
 update public.players
@@ -682,7 +682,7 @@ grant execute on function public.admin_mundial_resultado_final(text) to authenti
 -- respaldado (solo a equipos nuevos sin respaldo). p_solo_publicas = true limita a las ligas públicas.
 create or replace function public.admin_mundial_activar(
   p_aplicar_saldos boolean default true,
-  p_solo_publicas boolean default false
+  p_solo_publicas boolean default true
 )
 returns jsonb
 language plpgsql
@@ -823,7 +823,7 @@ revoke all on function public.admin_mundial_participantes() from public, anon;
 grant execute on function public.admin_mundial_participantes() to authenticated;
 
 -- Concede el icono de Sindarov a todos los participantes. Idempotente: se puede lanzar
--- varias veces (solo añade a quien aún no lo tenga). Solo con el evento terminado.
+-- varias veces (solo añade a quien aún no lo tenga). Participante = al menos un pronóstico o voto.
 create or replace function public.admin_mundial_conceder_icono()
 returns jsonb
 language plpgsql
@@ -837,10 +837,6 @@ begin
     return jsonb_build_object('ok', false, 'mensaje', 'Solo el administrador.');
   end if;
   select * into v_e from mundial_evento where id = 1;
-  if v_e.resultado_final is null and v_e.cerrado_en is null then
-    return jsonb_build_object('ok', false,
-      'mensaje', 'El evento aún no ha terminado: pon el resultado final o ciérralo antes.');
-  end if;
   insert into iconos_desbloqueados (user_id, icono, origen, edicion)
   select u.user_id, 'sindarov', 'evento', 'mundial-2026'
   from (select user_id from mundial_pronosticos union select user_id from mundial_voto_final) u

@@ -66,7 +66,7 @@ export default function AdminMundialPage() {
 
   // Formularios
   const [aplicarSaldos, setAplicarSaldos] = useState(true);
-  const [soloPublicas, setSoloPublicas] = useState(false);
+  const [soloPublicas, setSoloPublicas] = useState(true);
   const [restaurar, setRestaurar] = useState(true);
   const [conservar, setConservar] = useState(false);
   const [cierre, setCierre] = useState("10");
@@ -116,7 +116,6 @@ export default function AdminMundialPage() {
     );
 
   const e = d.evento;
-  const campeonado = e.resultadoFinal !== null || e.cerradoEn !== null;
 
   return (
     <div className="flex flex-col gap-5">
@@ -166,7 +165,7 @@ export default function AdminMundialPage() {
           <div className="flex flex-col gap-3">
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={aplicarSaldos} onChange={(x) => setAplicarSaldos(x.target.checked)} />
-              Poner {e.saldoEvento} M a todos los equipos (guarda el saldo previo)
+              Poner {e.saldoEvento} M a los equipos (guarda el saldo previo)
             </label>
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={soloPublicas} onChange={(x) => setSoloPublicas(x.target.checked)} disabled={!aplicarSaldos} />
@@ -285,7 +284,7 @@ export default function AdminMundialPage() {
 
       <Seccion
         titulo="Calendario y resultados"
-        nota="La hora se escribe en hora de Madrid. Por defecto 12:00 (= 15:00 de Bakú en invierno). El resultado recalcula los puntos al instante y se puede corregir."
+        nota="La hora se escribe en hora de Madrid. Por defecto 15:00. El resultado recalcula los puntos al instante y se puede corregir."
       >
         <ul className="divide-y divide-neutral-200 dark:divide-neutral-800">
           {d.partidas.map((p) => (
@@ -357,13 +356,13 @@ export default function AdminMundialPage() {
 
       <Seccion
         titulo="Icono de Sindarov"
-        nota="Se concede a todos los participantes (no es automático). Idempotente: repetirlo solo añade a quien aún no lo tenga. Requiere resultado final o evento cerrado."
+        nota="Se concede a todos los participantes (al menos un pronóstico o voto). No es automático. Idempotente: repetirlo solo añade a quien aún no lo tenga."
       >
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <span>Concedidos: {d.iconosConcedidos}</span>
           <button
             className={BOTON}
-            disabled={trabajando || !campeonado}
+            disabled={trabajando}
             onClick={() =>
               ejecutar(
                 () => adminMundialConcederIcono(supabase),
@@ -374,7 +373,6 @@ export default function AdminMundialPage() {
           >
             Conceder icono
           </button>
-          {!campeonado && <span className="text-xs text-neutral-500">Disponible al poner el resultado final o cerrar el evento.</span>}
         </div>
       </Seccion>
 
