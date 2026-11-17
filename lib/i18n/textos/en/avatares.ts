@@ -34,6 +34,13 @@ const en: Seccion = {
     "kasparov": "13th World Champion (1985-2000). He dominated chess for two decades with fierce, dynamic play.",
     "carlsen": "16th World Champion (2013-23). The Norwegian reached the highest rating in history and dominated a decade.",
   },
+  especiales: {
+    "liga1-campeon": { nombre: "Public League Champion", descripcion: "Champion of the first Beraun Fantasy Public League (2026). A place in the history of the game." },
+    "liga1-subcampeon": { nombre: "Public League Runner-up", descripcion: "Runner-up of the first Beraun Fantasy Public League (2026). One step from glory." },
+    "liga1-tercero": { nombre: "Public League Third Place", descripcion: "Third place in the first Beraun Fantasy Public League (2026). Made it onto the podium." },
+    "liga1-participacion": { nombre: "First League Participant", descripcion: "For taking part in the first Beraun Fantasy Public League (2026). Thanks for being part of this from the start." },
+    "sindarov": { nombre: "World Championship 2026: Sindarov", descripcion: "For playing the predictions of the 2026 World Chess Championship, Gukesh vs Sindarov. Portrait of Javokhir Sindarov, the challenger." },
+  },
 };
 
 export default en;

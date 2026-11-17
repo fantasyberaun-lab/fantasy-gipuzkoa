@@ -8,6 +8,7 @@ const en: Seccion = {
   torneos: "Tournaments",
   avisos: "Alerts",
   chat: "Chat",
+  match: "Match",
   navegacionPrincipal: "Main navigation",
   sinLeer: (n: number) => `${n} unread`,
 };

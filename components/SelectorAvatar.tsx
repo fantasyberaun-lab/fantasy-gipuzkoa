@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useGameState } from "@/components/GameStateProvider";
 import { useIdioma, useT } from "@/components/IdiomaProvider";
 import { cambiarAvatarDB } from "@/lib/supabase/queries";
-import { AVATARES, descripcionAvatar, nombreAvatar, type Avatar } from "@/lib/avatares";
+import { AVATARES, ESPECIALES, descripcionAvatar, nombreAvatar, type Avatar } from "@/lib/avatares";
 import { xpParaNivel } from "@/lib/niveles";
 
 type Filtro = "todos" | "mios" | "bloqueados";
@@ -90,9 +90,11 @@ function FichaIcono({
         <div>
           <p className="font-display text-2xl font-semibold leading-tight">{nombre}</p>
           <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-gold">
-            {desbloqueado
-              ? tn.desbloqueadoEnNivel(avatar.nivel)
-              : tn.bloqueadoEnNivel(avatar.nivel, xpParaNivel(avatar.nivel).toLocaleString(locale))}
+            {avatar.especial
+              ? tn.especialEtiqueta
+              : desbloqueado
+                ? tn.desbloqueadoEnNivel(avatar.nivel)
+                : tn.bloqueadoEnNivel(avatar.nivel, xpParaNivel(avatar.nivel).toLocaleString(locale))}
           </p>
         </div>
 
@@ -127,7 +129,14 @@ function Candado({ className = "" }: { className?: string }) {
 // Rejilla de iconos de perfil: los desbloqueados se pueden elegir y los que no
 // salen en gris con el nivel al que se consiguen. Se usa en la pestaña Niveles
 // del perfil. La base de datos (cambiar_avatar, 0086) vuelve a comprobar el nivel.
-export default function SelectorAvatar({ nivel }: { nivel: number }) {
+export default function SelectorAvatar({
+  nivel,
+  especiales = [],
+}: {
+  nivel: number;
+  // Ids de los iconos especiales (premios de liga o evento) que tiene el usuario.
+  especiales?: string[];
+}) {
   const supabase = createClient();
   const t = useT();
   const tn = t.niveles;
@@ -150,6 +159,8 @@ export default function SelectorAvatar({ nivel }: { nivel: number }) {
     setAvatar(id);
   }
 
+  const misEspeciales = ESPECIALES.filter((a) => especiales.includes(a.id));
+
   const lista = AVATARES.filter((a) =>
     filtro === "todos" ? true : filtro === "mios" ? a.nivel <= nivel : a.nivel > nivel
   );
@@ -162,6 +173,42 @@ export default function SelectorAvatar({ nivel }: { nivel: number }) {
 
   return (
     <div data-tutorial="nivel-iconos" className="flex flex-col gap-3">
+      {misEspeciales.length > 0 && (
+        <div className="flex flex-col gap-2 rounded-2xl border border-gold/40 bg-gold/5 p-3">
+          <div>
+            <p className="text-sm font-semibold">{tn.especialesTitulo}</p>
+            <p className="text-xs text-neutral-500">{tn.especialesAyuda}</p>
+          </div>
+          <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4">
+            {misEspeciales.map((a) => {
+              const enUso = avatar === a.id;
+              return (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => {
+                    setError(null);
+                    setAbierto(a);
+                  }}
+                  aria-label={nombreAvatar(a, t)}
+                  className={`relative flex flex-col items-center gap-1 rounded-2xl border-2 p-1.5 text-center text-[11px] font-medium leading-tight transition-colors ${
+                    enUso ? "border-gold bg-gold/10" : "border-transparent hover:border-neutral-300 dark:hover:border-neutral-700"
+                  }`}
+                >
+                  <Image src={a.srcMarco} alt="" width={96} height={96} className="h-auto w-full rounded-xl" />
+                  <span>{nombreAvatar(a, t)}</span>
+                  {enUso && (
+                    <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-gold text-xs font-bold text-neutral-950">
+                      ✓
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-semibold">{t.avatares.titulo}</p>
         <div className="flex gap-1 rounded-full bg-neutral-100 p-1 dark:bg-neutral-900">
@@ -246,7 +293,7 @@ export default function SelectorAvatar({ nivel }: { nivel: number }) {
       {abierto && (
         <FichaIcono
           avatar={abierto}
-          desbloqueado={abierto.nivel <= nivel}
+          desbloqueado={abierto.especial === true || abierto.nivel <= nivel}
           enUso={avatar === abierto.id}
           guardando={guardando}
           error={error}

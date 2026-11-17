@@ -25,6 +25,14 @@ export async function fetchEstadoNivel(supabase: Supabase): Promise<EstadoNivel 
   };
 }
 
+// Ids de los iconos especiales (premios de liga o evento) que tiene el usuario
+// (ver 0140_iconos_fin_de_liga.sql). La política RLS solo deja ver los propios.
+export async function fetchIconosEspeciales(supabase: Supabase): Promise<string[]> {
+  const { data, error } = await supabase.from("iconos_desbloqueados").select("icono");
+  if (error || !data) return [];
+  return (data as { icono: string }[]).map((f) => f.icono);
+}
+
 // Marca la guía de niveles como vista (no se vuelve a enseñar).
 export async function marcarTutorialNivelesDB(supabase: Supabase): Promise<void> {
   await supabase.rpc("marcar_tutorial_niveles");

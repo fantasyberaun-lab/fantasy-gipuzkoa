@@ -181,6 +181,17 @@ las dos variables públicas; la privada solo en `VAPID_PRIVATE_KEY`).
   opcional; cierran el día que empieza la ronda. Los datos son privados y quedan
   guardados para estadísticas futuras.
 
+## Evento del Mundial (Gukesh vs Sindarov, 0141)
+
+Evento temporal, apagado por defecto y reversible. Tablas `mundial_*` (evento, calendario, pronósticos,
+voto final, respaldo de saldos) y `clasificacion_archivos*` (histórico). Todo se escribe por funciones
+`security definer` (`guardar_pronostico_mundial`, `admin_mundial_*`); el cierre de pronósticos lo valida el
+servidor. Los puntos no se guardan: se calculan al leer (`mundial_puntos_usuario`). El interruptor
+`mundial_evento.modo_match` cambia Plantilla por Match y oculta Mercado (`MundialProvider`, `TabNav`,
+`useRedirigirAMatch`). Encender/cerrar (saldo 500 M con respaldo, restauración) y conceder el icono se
+hacen a mano desde Admin > Mundial. Requiere 0140 (iconos especiales). El torneo del Mundial se crea a mano
+(un `insert` en `tournaments` lanza un push a todos). Elo/valor de Gukesh y Sindarov son provisionales.
+
 ## Cosas que NO hacer
 
 - No expongas el email de un usuario al navegador: el login por nombre de usuario se resuelve en

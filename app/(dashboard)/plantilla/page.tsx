@@ -3,6 +3,7 @@
 import { useState } from "react";
 import PlayerCard from "@/components/PlayerCard";
 import { useT } from "@/components/IdiomaProvider";
+import { useRedirigirAMatch } from "@/components/MundialProvider";
 import { useGameState } from "@/components/GameStateProvider";
 import { resumenPlantilla } from "@/lib/plantillaStats";
 import { gameConfig } from "@/lib/gameConfig";
@@ -130,7 +131,7 @@ function ResumenDePlantilla({
   );
 }
 
-export default function PlantillaPage() {
+function PlantillaReal() {
   const {
     squad,
     titulares,
@@ -276,4 +277,11 @@ export default function PlantillaPage() {
       )}
     </div>
   );
+}
+
+// Durante el evento del Mundial (modo Match) esta pantalla se oculta y se va a /match.
+// Nada se borra: al apagar el modo vuelve tal cual.
+export default function PlantillaPage() {
+  const enMatch = useRedirigirAMatch();
+  return enMatch ? null : <PlantillaReal />;
 }

@@ -8,6 +8,8 @@ import { useIdioma } from "@/components/IdiomaProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import ProximoRivalLinea from "@/components/ProximoRival";
 import AvatarPerfil from "@/components/AvatarPerfil";
+import Segmentado from "@/components/Segmentado";
+import ClasificacionHistorico from "@/components/mundial/ClasificacionHistorico";
 import InsigniaNivel from "@/components/InsigniaNivel";
 import InsigniaEstadoClausula, { estadoClausula } from "@/components/InsigniaEstadoClausula";
 import { clausulazosCerrados } from "@/lib/mercadoCountdown";
@@ -55,7 +57,7 @@ function fechaLocal(semana: string): Date {
   return new Date(anio, mes - 1, dia);
 }
 
-export default function ClasificacionPage() {
+function ClasificacionActual() {
   const { t, locale } = useIdioma();
   const c = t.clasificacion;
   const {
@@ -775,6 +777,38 @@ export default function ClasificacionPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+// Selector Actual / Histórico (0141): el histórico guarda las ligas ya jugadas en la liga
+// pública y el Mundial. "Actual" es la clasificación de siempre, sin cambios.
+export default function ClasificacionPage() {
+  const { t } = useIdioma();
+  const h = t.mundial.historico;
+  const [vista, setVista] = useState<"actual" | "historico">("actual");
+  const [inicial, setInicial] = useState<string | null>(null);
+
+  // Enlace directo desde la pestaña Match: /clasificacion?historico=mundial
+  useEffect(() => {
+    const pedido = new URLSearchParams(window.location.search).get("historico");
+    if (pedido) {
+      setInicial(pedido);
+      setVista("historico");
+    }
+  }, []);
+
+  return (
+    <div className="flex flex-col gap-4">
+      <Segmentado
+        etiqueta={h.selectorAria}
+        valor={vista}
+        onCambiar={setVista}
+        opciones={[
+          { valor: "actual", texto: h.actual },
+          { valor: "historico", texto: h.historico },
+        ]}
+      />
+      {vista === "actual" ? <ClasificacionActual /> : <ClasificacionHistorico inicial={inicial} />}
     </div>
   );
 }

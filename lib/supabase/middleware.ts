@@ -6,6 +6,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const RUTAS_PROTEGIDAS = [
   "/plantilla",
   "/mercado",
+  "/match",
   "/jugadores",
   "/clasificacion",
   "/torneos",

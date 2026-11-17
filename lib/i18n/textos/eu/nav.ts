@@ -8,6 +8,7 @@ const eu: Seccion = {
   torneos: "Txapelketak",
   avisos: "Abisuak",
   chat: "Txata",
+  match: "Match",
   navegacionPrincipal: "Nabigazio nagusia",
   sinLeer: (n: number) => `${n} irakurri gabe`,
 };

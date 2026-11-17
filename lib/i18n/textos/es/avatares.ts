@@ -37,6 +37,13 @@ const es = {
     "kasparov": "13º campeón del mundo (1985-2000). Dominó el ajedrez durante dos décadas con un juego dinámico y feroz.",
     "carlsen": "16º campeón del mundo (2013-23). El noruego alcanzó el mayor Elo de la historia y dominó una década.",
   },
+  especiales: {
+    "liga1-campeon": { nombre: "Campeón de la Liga Pública", descripcion: "Campeón de la primera Liga Pública de Beraun Fantasy (2026). Un puesto en la historia del juego." },
+    "liga1-subcampeon": { nombre: "Subcampeón de la Liga Pública", descripcion: "Subcampeón de la primera Liga Pública de Beraun Fantasy (2026). A un paso de la gloria." },
+    "liga1-tercero": { nombre: "Tercero de la Liga Pública", descripcion: "Tercer clasificado de la primera Liga Pública de Beraun Fantasy (2026). Subió al podio." },
+    "liga1-participacion": { nombre: "Participante de la primera liga", descripcion: "Por haber participado en la primera Liga Pública de Beraun Fantasy (2026). Gracias por ser parte de esto desde el principio." },
+    "sindarov": { nombre: "Mundial 2026: Sindarov", descripcion: "Por haber jugado a los pronósticos del Campeonato del Mundo de ajedrez 2026, Gukesh contra Sindarov. Retrato de Javokhir Sindarov, aspirante al título." },
+  },
 };
 
 // Forma de la sección: euskera e inglés tienen que tener exactamente estas claves.

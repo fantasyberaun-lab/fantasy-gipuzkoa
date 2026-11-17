@@ -34,6 +34,13 @@ const eu: Seccion = {
     "kasparov": "13. munduko txapelduna (1985-2000). Bi hamarkadatan xakea menderatu zuen joko dinamiko eta gogorrarekin.",
     "carlsen": "16. munduko txapelduna (2013-23). Norvegiarrak historiako Elorik altuena lortu zuen eta hamarkada bat menderatu zuen.",
   },
+  especiales: {
+    "liga1-campeon": { nombre: "Liga Publikoko txapelduna", descripcion: "Beraun Fantasyren lehen Liga Publikoko txapelduna (2026). Jokoaren historian lekua." },
+    "liga1-subcampeon": { nombre: "Liga Publikoko txapeldunordea", descripcion: "Beraun Fantasyren lehen Liga Publikoko txapeldunordea (2026). Aintzatik hurrean." },
+    "liga1-tercero": { nombre: "Liga Publikoko hirugarrena", descripcion: "Beraun Fantasyren lehen Liga Publikoko hirugarren sailkatua (2026). Podiumera igo zen." },
+    "liga1-participacion": { nombre: "Lehen ligako partaidea", descripcion: "Beraun Fantasyren lehen Liga Publikoan parte hartzeagatik (2026). Eskerrik asko hasieratik hemen egoteagatik." },
+    "sindarov": { nombre: "2026ko Mundiala: Sindarov", descripcion: "2026ko Xake Munduko Txapelketako pronostikoetan jokatzeagatik, Gukesh vs Sindarov. Javokhir Sindarov erronkariaren erretratua." },
+  },
 };
 
 export default eu;

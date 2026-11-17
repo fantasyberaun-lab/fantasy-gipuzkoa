@@ -8,6 +8,7 @@ import { ChatProvider } from "@/components/ChatProvider";
 import EnlacesLegales from "@/components/legal/EnlacesLegales";
 import BotonMinijuegos from "@/components/BotonMinijuegos";
 import ResumenSemanal from "@/components/ResumenSemanal";
+import { MundialProvider } from "@/components/MundialProvider";
 
 export default function DashboardLayout({
   children,
@@ -20,6 +21,7 @@ export default function DashboardLayout({
       <ActividadTracker />
       <LigaGate>
       <ChatProvider>
+      <MundialProvider>
         <header className="banner-tablero">
           <div className="mx-auto max-w-5xl px-4 pb-5 pt-[calc(env(safe-area-inset-top)+1rem)]">
             <EquipoHeader />
@@ -37,6 +39,7 @@ export default function DashboardLayout({
 
           <EnlacesLegales className="mt-10" />
         </div>
+      </MundialProvider>
       </ChatProvider>
       </LigaGate>
     </GameStateProvider>
