@@ -326,28 +326,33 @@ export default function Match() {
       )}
 
       <Tarjeta titulo={m.puntuacionTitulo}>
-        <div className="grid grid-cols-4 gap-2 text-center">
+        <div className="grid grid-cols-2 gap-2 text-center">
           <Cifra etiqueta={m.puntos} valor={String(estado.misPuntos)} />
           <Cifra etiqueta={m.aciertos} valor={m.deResueltas(estado.misAciertos, estado.misResueltas)} />
-          <Cifra etiqueta={m.racha} valor={String(estado.racha)} />
-          <Cifra etiqueta={m.mejorRacha} valor={String(estado.mejorRacha)} />
         </div>
       </Tarjeta>
 
-      <Tarjeta titulo={m.calendarioTitulo}>
-        {estado.calendario.length === 0 ? (
-          <p className="text-sm text-neutral-500">{m.vacio}</p>
-        ) : (
-          <ul className="divide-y divide-neutral-200 dark:divide-neutral-800">
-            {estado.calendario.map((e) => (
-              <FilaCalendario key={e.id} e={e} etiquetasGana={etiquetasGana} etiquetas={etiquetas} />
-            ))}
-          </ul>
-        )}
-      </Tarjeta>
+      {/* Plegable (cerrado por defecto) para que no ocupe media pantalla. */}
+      <details className="group rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+        <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold uppercase tracking-wide text-neutral-500 [&::-webkit-details-marker]:hidden">
+          {m.calendarioTitulo}
+          <span aria-hidden className="transition-transform group-open:rotate-180">▾</span>
+        </summary>
+        <div className="mt-3">
+          {estado.calendario.length === 0 ? (
+            <p className="text-sm text-neutral-500">{m.vacio}</p>
+          ) : (
+            <ul className="divide-y divide-neutral-200 dark:divide-neutral-800">
+              {estado.calendario.map((e) => (
+                <FilaCalendario key={e.id} e={e} etiquetasGana={etiquetasGana} etiquetas={etiquetas} />
+              ))}
+            </ul>
+          )}
+        </div>
+      </details>
 
       <Link
-        href="/clasificacion?historico=mundial"
+        href="/clasificacion"
         className="text-center text-sm font-medium text-accent underline underline-offset-2"
       >
         {m.verClasificacion}

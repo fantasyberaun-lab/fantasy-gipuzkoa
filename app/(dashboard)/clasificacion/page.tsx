@@ -9,6 +9,7 @@ import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import ProximoRivalLinea from "@/components/ProximoRival";
 import AvatarPerfil from "@/components/AvatarPerfil";
 import Segmentado from "@/components/Segmentado";
+import { useMundial } from "@/components/MundialProvider";
 import ClasificacionHistorico from "@/components/mundial/ClasificacionHistorico";
 import InsigniaNivel from "@/components/InsigniaNivel";
 import InsigniaEstadoClausula, { estadoClausula } from "@/components/InsigniaEstadoClausula";
@@ -785,6 +786,7 @@ function ClasificacionActual() {
 export default function ClasificacionPage() {
   const { t } = useIdioma();
   const h = t.mundial.historico;
+  const { modoMatch } = useMundial();
   const [vista, setVista] = useState<"actual" | "historico">("actual");
   const [inicial, setInicial] = useState<string | null>(null);
 
@@ -808,7 +810,12 @@ export default function ClasificacionPage() {
           { valor: "historico", texto: h.historico },
         ]}
       />
-      {vista === "actual" ? <ClasificacionActual /> : <ClasificacionHistorico inicial={inicial} />}
+      {vista === "actual" ? (
+        // Con el evento activo, "Actual" es la clasificación del Mundial; las ligas pasan al Histórico.
+        modoMatch ? <ClasificacionHistorico fijo="mundial" /> : <ClasificacionActual />
+      ) : (
+        <ClasificacionHistorico inicial={inicial} />
+      )}
     </div>
   );
 }
