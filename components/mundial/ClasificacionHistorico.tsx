@@ -14,16 +14,18 @@ const PAGINA = 50;
 
 // Selector "Histórico" de la clasificación: las ligas ya jugadas en la liga pública (archivadas
 // por el administrador, 0141) y el Mundial. Solo lectura; no toca los datos de la liga actual.
-export default function ClasificacionHistorico({ inicial }: { inicial?: string | null }) {
+// `fijo`: id de una clasificación concreta (p. ej. "mundial"); sin selector. Lo usa "Actual" durante el evento.
+export default function ClasificacionHistorico({ inicial, fijo }: { inicial?: string | null; fijo?: string }) {
   const { t, locale } = useIdioma();
   const h = t.mundial.historico;
   const supabase = useMemo(() => createClient(), []);
   const [lista, setLista] = useState<ItemHistorico[] | null>(null);
-  const [elegido, setElegido] = useState<string>("");
+  const [elegido, setElegido] = useState<string>(fijo ?? "");
   const [filas, setFilas] = useState<FilaHistorico[] | null>(null);
   const [visibles, setVisibles] = useState(PAGINA);
 
   useEffect(() => {
+    if (fijo) return;
     let vigente = true;
     fetchHistoricoLista(supabase).then((l) => {
       if (!vigente) return;
@@ -34,7 +36,7 @@ export default function ClasificacionHistorico({ inicial }: { inicial?: string |
     return () => {
       vigente = false;
     };
-  }, [supabase, inicial]);
+  }, [supabase, inicial, fijo]);
 
   useEffect(() => {
     if (!elegido) return;
@@ -49,8 +51,9 @@ export default function ClasificacionHistorico({ inicial }: { inicial?: string |
     };
   }, [supabase, elegido]);
 
-  if (lista === null) return <p className="text-sm text-neutral-500">{h.cargando}</p>;
-  if (lista.length === 0) return <p className="py-6 text-center text-sm text-neutral-500">{h.sin}</p>;
+  if (!fijo && lista === null) return <p className="text-sm text-neutral-500">{h.cargando}</p>;
+  if (!fijo && lista !== null && lista.length === 0)
+    return <p className="py-6 text-center text-sm text-neutral-500">{h.sin}</p>;
 
   const nombreItem = (i: ItemHistorico) => (i.tipo === "mundial" ? h.mundialNombre : i.nombre);
   const fechaItem = (i: ItemHistorico) =>
@@ -58,7 +61,8 @@ export default function ClasificacionHistorico({ inicial }: { inicial?: string |
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-xs text-neutral-500">{h.nota}</p>
+      {!fijo && <p className="text-xs text-neutral-500">{h.nota}</p>}
+      {!fijo && lista && (
       <select
         aria-label={h.elegirAria}
         value={elegido}
@@ -71,6 +75,7 @@ export default function ClasificacionHistorico({ inicial }: { inicial?: string |
           </option>
         ))}
       </select>
+      )}
 
       {filas === null ? (
         <p className="text-sm text-neutral-500">{h.cargando}</p>
