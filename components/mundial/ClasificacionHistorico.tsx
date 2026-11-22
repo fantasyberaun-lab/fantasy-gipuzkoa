@@ -38,18 +38,21 @@ export default function ClasificacionHistorico({ inicial, fijo }: { inicial?: st
     };
   }, [supabase, inicial, fijo]);
 
+  // `fijo` manda siempre sobre lo elegido en el selector.
+  const idActivo = fijo ?? elegido;
+
   useEffect(() => {
-    if (!elegido) return;
+    if (!idActivo) return;
     let vigente = true;
     setFilas(null);
     setVisibles(PAGINA);
-    fetchHistoricoClasificacion(supabase, elegido).then((f) => {
+    fetchHistoricoClasificacion(supabase, idActivo).then((f) => {
       if (vigente) setFilas(f);
     });
     return () => {
       vigente = false;
     };
-  }, [supabase, elegido]);
+  }, [supabase, idActivo]);
 
   if (!fijo && lista === null) return <p className="text-sm text-neutral-500">{h.cargando}</p>;
   if (!fijo && lista !== null && lista.length === 0)
@@ -65,7 +68,7 @@ export default function ClasificacionHistorico({ inicial, fijo }: { inicial?: st
       {!fijo && lista && (
       <select
         aria-label={h.elegirAria}
-        value={elegido}
+        value={idActivo}
         onChange={(e) => setElegido(e.target.value)}
         className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-900"
       >

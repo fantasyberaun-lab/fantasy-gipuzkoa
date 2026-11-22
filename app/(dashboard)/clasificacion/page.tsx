@@ -812,9 +812,9 @@ export default function ClasificacionPage() {
       />
       {vista === "actual" ? (
         // Con el evento activo, "Actual" es la clasificación del Mundial; las ligas pasan al Histórico.
-        modoMatch ? <ClasificacionHistorico fijo="mundial" /> : <ClasificacionActual />
+        modoMatch ? <ClasificacionHistorico key="mundial" fijo="mundial" /> : <ClasificacionActual />
       ) : (
-        <ClasificacionHistorico inicial={inicial} />
+        <ClasificacionHistorico key="historico" inicial={inicial} />
       )}
     </div>
   );
