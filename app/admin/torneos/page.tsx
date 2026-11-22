@@ -6,6 +6,8 @@ import {
   actualizarTorneoDB,
   crearTorneoDB,
   eliminarTorneoDB,
+  borrarTorneoConJornadasDB,
+  fetchResumenBorradoTorneo,
   fetchTodosLosJugadores,
   type JugadorAdmin,
 } from "@/lib/supabase/adminQueries";
@@ -398,11 +400,50 @@ export default function AdminTorneosPage() {
   }
 
   async function borrar(t: Torneo) {
-    if (!confirm(`¿Seguro que quieres borrar "${t.nombre}"? Esto no se puede deshacer.`)) {
+    setMensaje(null);
+
+    // Sin jornadas: borrado simple.
+    if (t.rondasCreadas === 0) {
+      if (!confirm(`¿Seguro que quieres borrar "${t.nombre}"? Esto no se puede deshacer.`)) {
+        return;
+      }
+      const resultado = await eliminarTorneoDB(supabase, t.id);
+      if (!resultado.ok) {
+        setMensaje(resultado.mensaje);
+        return;
+      }
+      setTorneos((prev) => prev.filter((x) => x.id !== t.id));
       return;
     }
-    setMensaje(null);
-    const resultado = await eliminarTorneoDB(supabase, t.id);
+
+    // Con jornadas: se muestra lo que se perdería y se pide escribir el nombre.
+    const info = await fetchResumenBorradoTorneo(supabase, t.id);
+    if (!info.ok) {
+      setMensaje(info.mensaje);
+      return;
+    }
+    const r = info.resumen;
+    const aviso =
+      `Vas a BORRAR el torneo "${t.nombre}" y TODAS sus jornadas.\n\n` +
+      `Se eliminan: ${r.jornadas} jornada(s), ${r.resultados} resultado(s), ${r.alineaciones} alineaciones, ` +
+      `${r.mesas} mesa(s) publicadas y ${r.jugadoresInscritos} jugador(es) inscritos.\n\n` +
+      `Consecuencias en la liga (no se pueden deshacer):\n` +
+      `• Los puntos de este torneo desaparecen de TODAS las clasificaciones y de los puntos de los jugadores.\n` +
+      `• El valor de mercado de los jugadores se revierte: se deshace lo que subió o bajó por estos resultados.\n` +
+      (r.semanasCobradas > 0
+        ? `• Se devuelve el dinero cobrado por ${r.semanasCobradas} semana(s) de estas jornadas (hasta ${r.importeCobradoMax.toLocaleString("es-ES")} M en total): bajará el presupuesto de los equipos y recibirán un aviso.\n`
+        : `• Ninguna semana cobrada se ve afectada (no hay dinero que devolver).\n`) +
+      `• Los iconos de fin de liga ya entregados no se tocan, pero conviene entregarlos ANTES de borrar.\n\n` +
+      `Para confirmar, escribe el nombre exacto del torneo:\n${t.nombre}`;
+
+    const escrito = window.prompt(aviso, "");
+    if (escrito === null) return;
+    if (escrito.trim() !== t.nombre.trim()) {
+      setMensaje("El nombre no coincide: no se ha borrado nada.");
+      return;
+    }
+
+    const resultado = await borrarTorneoConJornadasDB(supabase, t.id);
     if (!resultado.ok) {
       setMensaje(resultado.mensaje);
       return;
