@@ -16,6 +16,7 @@ const eu: Seccion = {
   bloqueadoHasta: (n: number) => `${n}. maila`,
   desbloqueadoEnNivel: (n: number) => `${n}. mailan desblokeatuta`,
   bloqueadoEnNivel: (n: number, xp: string) => `${n}. mailan desblokeatzen da · ${xp} XP`,
+  verIconos: "Ikusi nire ikono guztiak",
   usar: "Erabili ikono hau",
   enUso: "Erabiltzen ari zaren ikonoa",
   especialesTitulo: "Ikono bereziak",
@@ -37,9 +38,9 @@ const eu: Seccion = {
     nivelTitulo: "Zure maila eta XP",
     nivelTexto:
       "XP irabazten duzu egunero sartzean, boladaren kutxa irekitzean eta jardunaldi bakoitzeko puntuekin. XP gehiago, maila handiagoa.",
-    iconosTitulo: "Desblokeatu ikonoak",
+    iconosTitulo: "Zure hurrengo ikonoa",
     iconosTexto: (total: number) =>
-      `${total} ikono daude, piezak eta munduko txapeldunak. Koloretsuak zureak dira jada, eta grisak mailaz igotzean desblokeatzen dira. Sakatu hautatzeko eta haien historia ezagutzeko.`,
+      `Maila bakoitzak ikono bat desblokeatzen du: ${total} daude, piezak eta munduko txapeldunak. Zure ikono guztiak, sariak eta ekitaldietakoak barne, Ikonoak fitxan daude.`,
   },
 };
 

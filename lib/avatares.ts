@@ -25,7 +25,16 @@ export interface Avatar {
   nivel: number;
   // Icono de premio (fin de liga, evento...): se consigue, no se desbloquea por nivel.
   especial?: boolean;
+  // Dónde se aloja en la colección de iconos (pestaña Iconos): por nivel, premio de
+  // liga o evento. Un icono nuevo con otra forma de conseguirse: añade aquí un grupo
+  // nuevo y su texto en avatares.grupos.
+  grupo: GrupoIcono;
 }
+
+export type GrupoIcono = "nivel" | "liga" | "evento";
+
+// Orden de los grupos en la pestaña Iconos.
+export const GRUPOS_ICONOS: GrupoIcono[] = ["nivel", "liga", "evento"];
 
 function avatar(id: string, nivel: number, nombre?: string): Avatar {
   return {
@@ -35,6 +44,7 @@ function avatar(id: string, nivel: number, nombre?: string): Avatar {
     srcMarco: `/avatares/${id}-marco.webp`,
     srcGrande: `/avatares/${id}-grande.webp`,
     nivel,
+    grupo: "nivel",
   };
 }
 
@@ -74,19 +84,25 @@ export const AVATARES: Avatar[] = ORDEN.map(([id, nombre], i) => avatar(id, i + 
 // (entregar_iconos_liga, 0140) y viven en iconos_especiales. Mismas tres
 // imágenes que el resto. Si añades una edición nueva, añádela aquí, en
 // iconos_especiales y en los textos (avatares.especiales).
-export const ESPECIALES: Avatar[] = [
-  "liga1-campeon",
-  "liga1-subcampeon",
-  "liga1-tercero",
-  "liga1-participacion",
-  "sindarov", // evento Mundial 2026 (0141): se concede a quien pronosticó
-].map((id) => ({ ...avatar(id, 0), especial: true }));
+const ORDEN_ESPECIALES: [id: string, grupo: GrupoIcono][] = [
+  ["liga1-campeon", "liga"],
+  ["liga1-subcampeon", "liga"],
+  ["liga1-tercero", "liga"],
+  ["liga1-participacion", "liga"],
+  ["sindarov", "evento"], // evento Mundial 2026 (0141): se concede a quien participó (pronóstico o voto)
+];
+
+export const ESPECIALES: Avatar[] = ORDEN_ESPECIALES.map(([id, grupo]) => ({
+  ...avatar(id, 0),
+  especial: true,
+  grupo,
+}));
 
 export function buscarAvatar(id: string | null | undefined): Avatar | null {
   return AVATARES.find((a) => a.id === id) ?? ESPECIALES.find((a) => a.id === id) ?? null;
 }
 
-type TextoEspecial = { nombre: string; descripcion: string };
+type TextoEspecial = { nombre: string; descripcion: string; como: string };
 
 function textoEspecial(a: Avatar, t: Textos): TextoEspecial | undefined {
   return (t.avatares.especiales as Record<string, TextoEspecial>)[a.id];
@@ -95,6 +111,11 @@ function textoEspecial(a: Avatar, t: Textos): TextoEspecial | undefined {
 export function nombreAvatar(a: Avatar, t: Textos): string {
   if (a.especial) return textoEspecial(a, t)?.nombre ?? a.id;
   return a.nombre ?? t.avatares.piezas[a.id as keyof Textos["avatares"]["piezas"]] ?? a.id;
+}
+
+// Cómo se consigue un icono especial (se enseña en la pestaña Iconos).
+export function comoSeConsigueAvatar(a: Avatar, t: Textos): string {
+  return a.especial ? (textoEspecial(a, t)?.como ?? "") : "";
 }
 
 // Mini descripción que se ve al ampliar el avatar.

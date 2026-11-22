@@ -8,6 +8,15 @@ const es = {
   ayuda: "Toca un icono para elegirlo. Los bloqueados se desbloquean al subir de nivel.",
   sinAvatar: "Sin icono",
   guardado: "Icono actualizado.",
+  pestana: "Iconos",
+  coleccion: (n: number, total: number) => `${n} de ${total} iconos`,
+  comoSeConsigue: "Cómo se consigue",
+  bloqueado: "Bloqueado",
+  grupos: {
+    nivel: { titulo: "Por nivel", ayuda: "Se desbloquean al subir de nivel con XP." },
+    liga: { titulo: "Fin de liga", ayuda: "Premios al terminar una liga: el podio y quienes han participado." },
+    evento: { titulo: "Eventos", ayuda: "Iconos de campeonatos y eventos especiales. Se consiguen participando." },
+  },
   piezas: { peon: "Peón", caballo: "Caballo", alfil: "Alfil", torre: "Torre", dama: "Dama", rey: "Rey" },
   descripciones: {
     "peon": "Todo gran jugador empezó moviendo uno. Es la pieza más humilde y la única que puede transformarse al llegar al final.",
@@ -38,11 +47,11 @@ const es = {
     "carlsen": "16º campeón del mundo (2013-23). El noruego alcanzó el mayor Elo de la historia y dominó una década.",
   },
   especiales: {
-    "liga1-campeon": { nombre: "Campeón de la Liga Pública", descripcion: "Campeón de la primera Liga Pública de Beraun Fantasy (2026). Un puesto en la historia del juego." },
-    "liga1-subcampeon": { nombre: "Subcampeón de la Liga Pública", descripcion: "Subcampeón de la primera Liga Pública de Beraun Fantasy (2026). A un paso de la gloria." },
-    "liga1-tercero": { nombre: "Tercero de la Liga Pública", descripcion: "Tercer clasificado de la primera Liga Pública de Beraun Fantasy (2026). Subió al podio." },
-    "liga1-participacion": { nombre: "Participante de la primera liga", descripcion: "Por haber participado en la primera Liga Pública de Beraun Fantasy (2026). Gracias por ser parte de esto desde el principio." },
-    "sindarov": { nombre: "Mundial 2026: Sindarov", descripcion: "Por haber jugado a los pronósticos del Campeonato del Mundo de ajedrez 2026, Gukesh contra Sindarov. Retrato de Javokhir Sindarov, aspirante al título." },
+    "liga1-campeon": { nombre: "Campeón de la Liga Pública", descripcion: "Campeón de la primera Liga Pública de Beraun Fantasy (2026). Un puesto en la historia del juego.", como: "Termina primero en la clasificación de la primera Liga Pública." },
+    "liga1-subcampeon": { nombre: "Subcampeón de la Liga Pública", descripcion: "Subcampeón de la primera Liga Pública de Beraun Fantasy (2026). A un paso de la gloria.", como: "Termina segundo en la clasificación de la primera Liga Pública." },
+    "liga1-tercero": { nombre: "Tercero de la Liga Pública", descripcion: "Tercer clasificado de la primera Liga Pública de Beraun Fantasy (2026). Subió al podio.", como: "Termina tercero en la clasificación de la primera Liga Pública." },
+    "liga1-participacion": { nombre: "Participante de la primera liga", descripcion: "Por haber participado en la primera Liga Pública de Beraun Fantasy (2026). Gracias por ser parte de esto desde el principio.", como: "Participa en la primera Liga Pública. Se entrega al terminar la liga." },
+    "sindarov": { nombre: "Mundial 2026: Sindarov", descripcion: "Por haber participado en los pronósticos del Campeonato del Mundo de ajedrez 2026, Gukesh contra Sindarov. Retrato de Javokhir Sindarov, aspirante al título.", como: "Participa en los pronósticos del Campeonato del Mundo 2026: haz algún pronóstico o vota al campeón." },
   },
 };
 

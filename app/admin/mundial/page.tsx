@@ -316,7 +316,7 @@ export default function AdminMundialPage() {
         </div>
       </Seccion>
 
-      <Seccion titulo="Participantes" nota="Quien ha hecho al menos un pronóstico o voto. Ellos reciben el icono.">
+      <Seccion titulo="Participantes" nota="Quien ha hecho al menos un pronóstico o voto. Solo reciben el icono quienes han pronosticado en alguna partida (columna Pron.).">
         <div className="flex flex-col gap-3">
           <div>
             <button className={BOTON_SUAVE} onClick={async () => setParticipantes(await fetchAdminParticipantes(supabase))}>
@@ -356,7 +356,7 @@ export default function AdminMundialPage() {
 
       <Seccion
         titulo="Icono de Sindarov"
-        nota="Se concede a todos los participantes (al menos un pronóstico o voto). No es automático. Idempotente: repetirlo solo añade a quien aún no lo tenga."
+        nota="Se concede solo a quien ha hecho al menos un pronóstico en alguna partida (quien solo votó al campeón no lo recibe). No es automático. Idempotente: repetirlo solo añade a quien aún no lo tenga."
       >
         <div className="flex flex-wrap items-center gap-3 text-sm">
           <span>Concedidos: {d.iconosConcedidos}</span>
@@ -367,7 +367,7 @@ export default function AdminMundialPage() {
               ejecutar(
                 () => adminMundialConcederIcono(supabase),
                 (r) => `Icono concedido a ${r.nuevos ?? 0} participantes nuevos (total ${r.total ?? 0}).`,
-                "¿Conceder el icono de Sindarov a todos los participantes?"
+                "¿Conceder el icono de Sindarov a quienes han pronosticado en alguna partida?"
               )
             }
           >

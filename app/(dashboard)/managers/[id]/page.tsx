@@ -10,6 +10,7 @@ import HistorialValorChart from "@/components/HistorialValorChart";
 import AvatarPerfil from "@/components/AvatarPerfil";
 import InsigniaNivel from "@/components/InsigniaNivel";
 import PestanaNiveles from "@/components/PestanaNiveles";
+import PestanaIconos from "@/components/PestanaIconos";
 import PanelMisiones from "@/components/PanelMisiones";
 import { useGameState } from "@/components/GameStateProvider";
 import {
@@ -73,8 +74,11 @@ function PerfilManagerContenido() {
   // Si se llega desde el botón "Jornadas" de Clasificación (?tab=jornadas).
   const searchParams = useSearchParams();
   const tabInicial = searchParams.get("tab");
-  const [pestana, setPestana] = useState<"resumen" | "jornadas" | "niveles" | "misiones">(
-    tabInicial === "jornadas" || tabInicial === "niveles" || tabInicial === "misiones"
+  const [pestana, setPestana] = useState<"resumen" | "jornadas" | "niveles" | "iconos" | "misiones">(
+    tabInicial === "jornadas" ||
+    tabInicial === "niveles" ||
+    tabInicial === "iconos" ||
+    tabInicial === "misiones"
       ? tabInicial
       : "resumen"
   );
@@ -136,9 +140,10 @@ function PerfilManagerContenido() {
     ["resumen", tm.resumen],
     ["jornadas", tm.jornadas],
   ];
-  // Niveles y misiones son solo del propio perfil.
+  // Niveles, iconos y misiones son solo del propio perfil.
   if (perfil.esMio) {
     pestanas.push(["niveles", t.niveles.pestana]);
+    pestanas.push(["iconos", t.avatares.pestana]);
     pestanas.push(["misiones", t.misiones.titulo]);
   }
 
@@ -175,12 +180,12 @@ function PerfilManagerContenido() {
         </div>
       </div>
 
-      <div className="flex gap-1 border-b border-neutral-200 dark:border-neutral-800">
+      <div className="flex gap-0.5 overflow-x-auto border-b border-neutral-200 dark:border-neutral-800 sm:gap-1">
         {pestanas.map(([clave, etiqueta]) => (
           <button
             key={clave}
             onClick={() => setPestana(clave)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${
+            className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium sm:px-4 ${
               pestana === clave
                 ? "border-accent text-accent"
                 : "border-transparent text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-300"
@@ -235,7 +240,12 @@ function PerfilManagerContenido() {
         <PestanaNiveles
           nombreManager={perfil.nombreManager}
           onVerMisiones={() => setPestana("misiones")}
+          onVerIconos={() => setPestana("iconos")}
         />
+      )}
+
+      {pestana === "iconos" && perfil.esMio && (
+        <PestanaIconos onVerNiveles={() => setPestana("niveles")} />
       )}
 
       {pestana === "misiones" && perfil.esMio && (
