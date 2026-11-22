@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useGameState } from "@/components/GameStateProvider";
 import HistorialPuntosChart from "@/components/HistorialPuntosChart";
 import { useT } from "@/components/IdiomaProvider";
+import { useMundial } from "@/components/MundialProvider";
 import InsigniaEstadoClausula, { estadoClausula } from "@/components/InsigniaEstadoClausula";
 
 const TRAMO_LISTA = 50;
@@ -35,6 +36,7 @@ export default function JugadoresPage() {
   } =
     useGameState();
   const tj = useT().jugadores;
+  const { modoMatch } = useMundial();
 
   const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
   const [montoOferta, setMontoOferta] = useState("");
@@ -300,7 +302,7 @@ export default function JugadoresPage() {
                     </p>
                   )}
 
-                  {!jugador.esMiEquipo && jugador.propietario === null && (
+                  {!jugador.esMiEquipo && jugador.propietario === null && !(esLigaPublica && modoMatch) && (
                     <p className="text-sm text-neutral-500">
                       {tj.libreFichalo}
                     </p>

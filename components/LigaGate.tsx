@@ -1,26 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useGameState } from "@/components/GameStateProvider";
 import { createClient } from "@/lib/supabase/client";
 import LigaForm from "@/components/LigaForm";
 import { useT } from "@/components/IdiomaProvider";
 
 export default function LigaGate({ children }: { children: React.ReactNode }) {
-  const { cargando, tieneEquipo, esLigaPublica, errorCarga, recargar } = useGameState();
-  const pathname = usePathname();
-  const router = useRouter();
+  const { cargando, tieneEquipo, errorCarga, recargar } = useGameState();
   const t = useT();
-
-  // En la liga pública no existe la lista de jugadores con clausulazos: si
-  // alguien entra por un enlace antiguo, se le lleva al Mercado. Los Avisos
-  // (/notificaciones) sí existen: allí van los comunicados del administrador.
-  const rutaNoDisponible = esLigaPublica && pathname === "/jugadores";
-
-  useEffect(() => {
-    if (rutaNoDisponible) router.replace("/mercado");
-  }, [rutaNoDisponible, router]);
 
   if (cargando) {
     return (
@@ -48,8 +36,6 @@ export default function LigaGate({ children }: { children: React.ReactNode }) {
   if (!tieneEquipo) {
     return <PantallaLiga />;
   }
-
-  if (rutaNoDisponible) return null;
 
   return <>{children}</>;
 }
