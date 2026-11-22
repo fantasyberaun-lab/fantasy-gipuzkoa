@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { useGameState } from "@/components/GameStateProvider";
 import { useT } from "@/components/IdiomaProvider";
 import { useChat } from "@/components/ChatProvider";
 import { useMundial } from "@/components/MundialProvider";
@@ -107,18 +106,18 @@ function Badge({
 export default function TabNav() {
   const pathname = usePathname();
   const t = useT();
-  const { esLigaPublica } = useGameState();
   const { globo } = useChat();
   const { modoMatch } = useMundial();
 
-  // En la liga pública no hay plantillas ajenas con clausulazos: todo se hace
-  // desde el Mercado. Los Avisos viven en la campana de la cabecera; la pestaña de abajo es el Chat.
+  // Los Avisos viven en la campana de la cabecera; la pestaña de abajo es el Chat.
+  // Jugadores también está en la liga pública (para consultar el valor de mercado);
+  // allí es solo de consulta: sin ofertas ni clausulazos.
   const etiqueta = (tab: Tab) => t.nav[tab.clave];
   // Durante el evento: Match en lugar de Plantilla y sin Mercado (la plantilla real no se toca).
   const base = modoMatch
     ? TABS.filter((tab) => tab.href !== "/mercado").map((tab) => (tab.href === "/plantilla" ? TAB_MATCH : tab))
     : TABS;
-  const tabs = esLigaPublica ? base.filter((tab) => tab.href !== "/jugadores") : base;
+  const tabs = base;
 
   return (
     <>
