@@ -5,6 +5,15 @@ const eu: Seccion = {
   ayuda: "Sakatu ikono bat hautatzeko. Blokeatuak mailaz igotzean desblokeatzen dira.",
   sinAvatar: "Ikonorik gabe",
   guardado: "Ikonoa eguneratuta.",
+  pestana: "Ikonoak",
+  coleccion: (n: number, total: number) => `${n} / ${total} ikono`,
+  comoSeConsigue: "Nola lortzen da",
+  bloqueado: "Blokeatuta",
+  grupos: {
+    nivel: { titulo: "Mailaren arabera", ayuda: "XPrekin mailaz igotzean desblokeatzen dira." },
+    liga: { titulo: "Ligaren amaiera", ayuda: "Liga bat amaitzean ematen diren sariak: podiuma eta parte hartu duten guztiak." },
+    evento: { titulo: "Ekitaldiak", ayuda: "Txapelketetako eta ekitaldi berezietako ikonoak. Parte hartuz lortzen dira." },
+  },
   piezas: { peon: "Peoia", caballo: "Zaldia", alfil: "Alfila", torre: "Dorrea", dama: "Dama", rey: "Erregea" },
   descripciones: {
     "peon": "Jokalari handi orok bat mugituz hasi zen. Pieza xumeena da, eta amaierara iristean eralda daitekeen bakarra.",
@@ -35,11 +44,11 @@ const eu: Seccion = {
     "carlsen": "16. munduko txapelduna (2013-23). Norvegiarrak historiako Elorik altuena lortu zuen eta hamarkada bat menderatu zuen.",
   },
   especiales: {
-    "liga1-campeon": { nombre: "Liga Publikoko txapelduna", descripcion: "Beraun Fantasyren lehen Liga Publikoko txapelduna (2026). Jokoaren historian lekua." },
-    "liga1-subcampeon": { nombre: "Liga Publikoko txapeldunordea", descripcion: "Beraun Fantasyren lehen Liga Publikoko txapeldunordea (2026). Aintzatik hurrean." },
-    "liga1-tercero": { nombre: "Liga Publikoko hirugarrena", descripcion: "Beraun Fantasyren lehen Liga Publikoko hirugarren sailkatua (2026). Podiumera igo zen." },
-    "liga1-participacion": { nombre: "Lehen ligako partaidea", descripcion: "Beraun Fantasyren lehen Liga Publikoan parte hartzeagatik (2026). Eskerrik asko hasieratik hemen egoteagatik." },
-    "sindarov": { nombre: "2026ko Mundiala: Sindarov", descripcion: "2026ko Xake Munduko Txapelketako pronostikoetan jokatzeagatik, Gukesh vs Sindarov. Javokhir Sindarov erronkariaren erretratua." },
+    "liga1-campeon": { nombre: "Liga Publikoko txapelduna", descripcion: "Beraun Fantasyren lehen Liga Publikoko txapelduna (2026). Jokoaren historian lekua.", como: "Amaitu lehen postuan lehen Liga Publikoko sailkapenean." },
+    "liga1-subcampeon": { nombre: "Liga Publikoko txapeldunordea", descripcion: "Beraun Fantasyren lehen Liga Publikoko txapeldunordea (2026). Aintzatik hurrean.", como: "Amaitu bigarren postuan lehen Liga Publikoko sailkapenean." },
+    "liga1-tercero": { nombre: "Liga Publikoko hirugarrena", descripcion: "Beraun Fantasyren lehen Liga Publikoko hirugarren sailkatua (2026). Podiumera igo zen.", como: "Amaitu hirugarren postuan lehen Liga Publikoko sailkapenean." },
+    "liga1-participacion": { nombre: "Lehen ligako partaidea", descripcion: "Beraun Fantasyren lehen Liga Publikoan parte hartzeagatik (2026). Eskerrik asko hasieratik hemen egoteagatik.", como: "Parte hartu lehen Liga Publikoan. Liga amaitzean ematen da." },
+    "sindarov": { nombre: "2026ko Mundiala: Sindarov", descripcion: "2026ko Xake Munduko Txapelketako pronostikoetan parte hartzeagatik, Gukesh vs Sindarov. Javokhir Sindarov erronkariaren erretratua.", como: "Parte hartu 2026ko Munduko Txapelketako pronostikoetan: egin pronostikoren bat edo bozkatu txapeldunari." },
   },
 };
 

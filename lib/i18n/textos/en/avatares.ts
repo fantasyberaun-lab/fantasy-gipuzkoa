@@ -5,6 +5,15 @@ const en: Seccion = {
   ayuda: "Tap an icon to pick it. Locked ones unlock as you level up.",
   sinAvatar: "No icon",
   guardado: "Icon updated.",
+  pestana: "Icons",
+  coleccion: (n: number, total: number) => `${n} of ${total} icons`,
+  comoSeConsigue: "How to get it",
+  bloqueado: "Locked",
+  grupos: {
+    nivel: { titulo: "By level", ayuda: "They unlock as you level up with XP." },
+    liga: { titulo: "End of league", ayuda: "Awards for finishing a league: the podium and everyone who took part." },
+    evento: { titulo: "Events", ayuda: "Icons from championships and special events. You earn them by taking part." },
+  },
   piezas: { peon: "Pawn", caballo: "Knight", alfil: "Bishop", torre: "Rook", dama: "Queen", rey: "King" },
   descripciones: {
     "peon": "Every great player started by moving one. The humblest piece, and the only one that can transform when it reaches the end.",
@@ -35,11 +44,11 @@ const en: Seccion = {
     "carlsen": "16th World Champion (2013-23). The Norwegian reached the highest rating in history and dominated a decade.",
   },
   especiales: {
-    "liga1-campeon": { nombre: "Public League Champion", descripcion: "Champion of the first Beraun Fantasy Public League (2026). A place in the history of the game." },
-    "liga1-subcampeon": { nombre: "Public League Runner-up", descripcion: "Runner-up of the first Beraun Fantasy Public League (2026). One step from glory." },
-    "liga1-tercero": { nombre: "Public League Third Place", descripcion: "Third place in the first Beraun Fantasy Public League (2026). Made it onto the podium." },
-    "liga1-participacion": { nombre: "First League Participant", descripcion: "For taking part in the first Beraun Fantasy Public League (2026). Thanks for being part of this from the start." },
-    "sindarov": { nombre: "World Championship 2026: Sindarov", descripcion: "For playing the predictions of the 2026 World Chess Championship, Gukesh vs Sindarov. Portrait of Javokhir Sindarov, the challenger." },
+    "liga1-campeon": { nombre: "Public League Champion", descripcion: "Champion of the first Beraun Fantasy Public League (2026). A place in the history of the game.", como: "Finish first in the standings of the first Public League." },
+    "liga1-subcampeon": { nombre: "Public League Runner-up", descripcion: "Runner-up of the first Beraun Fantasy Public League (2026). One step from glory.", como: "Finish second in the standings of the first Public League." },
+    "liga1-tercero": { nombre: "Public League Third Place", descripcion: "Third place in the first Beraun Fantasy Public League (2026). Made it onto the podium.", como: "Finish third in the standings of the first Public League." },
+    "liga1-participacion": { nombre: "First League Participant", descripcion: "For taking part in the first Beraun Fantasy Public League (2026). Thanks for being part of this from the start.", como: "Take part in the first Public League. It is awarded when the league ends." },
+    "sindarov": { nombre: "World Championship 2026: Sindarov", descripcion: "For taking part in the predictions of the 2026 World Chess Championship, Gukesh vs Sindarov. Portrait of Javokhir Sindarov, the challenger.", como: "Take part in the 2026 World Championship predictions: make a prediction or vote for the champion." },
   },
 };
 

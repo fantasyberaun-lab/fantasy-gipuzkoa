@@ -5,21 +5,22 @@ import { createClient } from "@/lib/supabase/client";
 import { useGameState } from "@/components/GameStateProvider";
 import { useIdioma, useT } from "@/components/IdiomaProvider";
 import AvatarPerfil from "@/components/AvatarPerfil";
-import SelectorAvatar from "@/components/SelectorAvatar";
 import { EVENTO_XP } from "@/components/RachaDiaria";
 import { AVATARES, nombreAvatar } from "@/lib/avatares";
 import { XP_COFRE, XP_LOGIN, XP_POR_PUNTO } from "@/lib/niveles";
-import { fetchEstadoNivel, fetchIconosEspeciales, type EstadoNivel } from "@/lib/supabase/nivelesQueries";
+import { fetchEstadoNivel, type EstadoNivel } from "@/lib/supabase/nivelesQueries";
 import Image from "next/image";
 
-// Pestaña "Niveles" del perfil propio: nivel y experiencia, el siguiente icono
-// por desbloquear y todos los iconos (elegibles o bloqueados). Ver 0086_niveles.sql.
+// Pestaña "Niveles" del perfil propio: nivel y experiencia y el siguiente icono por
+// desbloquear. Los iconos viven aparte, en la pestaña Iconos (PestanaIconos). Ver 0086_niveles.sql.
 export default function PestanaNiveles({
   nombreManager,
   onVerMisiones,
+  onVerIconos,
 }: {
   nombreManager: string;
   onVerMisiones?: () => void;
+  onVerIconos?: () => void;
 }) {
   const supabase = createClient();
   const t = useT();
@@ -28,10 +29,8 @@ export default function PestanaNiveles({
   const { avatar } = useGameState();
   const [estado, setEstado] = useState<EstadoNivel | null>(null);
   const [error, setError] = useState(false);
-  const [especiales, setEspeciales] = useState<string[]>([]);
 
   async function cargar() {
-    fetchIconosEspeciales(supabase).then(setEspeciales);
     const e = await fetchEstadoNivel(supabase);
     if (e) {
       setEstado(e);
@@ -95,7 +94,7 @@ export default function PestanaNiveles({
           <span>{f(xpNivelSiguiente)}</span>
         </div>
 
-        <div className="mt-3 flex items-center gap-3 rounded-xl bg-white/10 p-2.5 text-sm">
+        <div data-tutorial="nivel-iconos" className="mt-3 flex items-center gap-3 rounded-xl bg-white/10 p-2.5 text-sm">
           {siguiente ? (
             <>
               <Image
@@ -118,7 +117,15 @@ export default function PestanaNiveles({
         </div>
       </div>
 
-      <SelectorAvatar nivel={nivel} especiales={especiales} />
+      {onVerIconos && (
+        <button
+          type="button"
+          onClick={onVerIconos}
+          className="w-fit text-left text-sm font-medium text-accent underline-offset-2 hover:underline"
+        >
+          {tn.verIconos} →
+        </button>
+      )}
 
       <div className="rounded-xl border border-neutral-200 p-4 text-sm dark:border-neutral-800">
         <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{tn.comoGanar}</p>

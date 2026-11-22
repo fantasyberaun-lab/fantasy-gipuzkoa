@@ -16,6 +16,7 @@ const en: Seccion = {
   bloqueadoHasta: (n: number) => `Level ${n}`,
   desbloqueadoEnNivel: (n: number) => `Unlocked at level ${n}`,
   bloqueadoEnNivel: (n: number, xp: string) => `Unlocks at level ${n} · ${xp} XP`,
+  verIconos: "See all my icons",
   usar: "Use this icon",
   enUso: "Icon in use",
   especialesTitulo: "Special icons",
@@ -37,9 +38,9 @@ const en: Seccion = {
     nivelTitulo: "Your level and XP",
     nivelTexto:
       "You earn XP by logging in every day, opening the streak chest and with your points in each matchday. The more XP, the higher your level.",
-    iconosTitulo: "Unlock icons",
+    iconosTitulo: "Your next icon",
     iconosTexto: (total: number) =>
-      `There are ${total} icons, from chess pieces to world champions. The coloured ones are already yours; the grey ones unlock as you level up. Tap them to pick one and learn their story.`,
+      `Every level unlocks an icon: there are ${total}, from chess pieces to world champions. All your icons, including awards and event icons, are in the Icons tab.`,
   },
 };
 

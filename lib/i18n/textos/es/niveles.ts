@@ -18,6 +18,7 @@ const es = {
   bloqueadoHasta: (n: number) => `Nivel ${n}`,
   desbloqueadoEnNivel: (n: number) => `Desbloqueado en el nivel ${n}`,
   bloqueadoEnNivel: (n: number, xp: string) => `Se desbloquea en el nivel ${n} · ${xp} XP`,
+  verIconos: "Ver todos mis iconos",
   usar: "Usar este icono",
   enUso: "Icono en uso",
   especialesTitulo: "Iconos especiales",
@@ -40,9 +41,9 @@ const es = {
     nivelTitulo: "Tu nivel y tu XP",
     nivelTexto:
       "Ganas XP al entrar cada día, al abrir el cofre de la racha y con los puntos de cada jornada. Cuanta más XP, más nivel.",
-    iconosTitulo: "Desbloquea iconos",
+    iconosTitulo: "Tu siguiente icono",
     iconosTexto: (total: number) =>
-      `Hay ${total} iconos, entre piezas y campeones del mundo. Los de color ya son tuyos y los grises se desbloquean al subir de nivel. Tócalos para elegirlos y conocer su historia.`,
+      `Cada nivel desbloquea un icono: hay ${total}, entre piezas y campeones del mundo. Todos tus iconos, también los de premios y eventos, están en la pestaña Iconos.`,
   },
 };
 
