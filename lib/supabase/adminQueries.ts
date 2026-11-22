@@ -554,9 +554,8 @@ export async function actualizarTorneoDB(
   return { ok: true };
 }
 
-// La base de datos no deja borrar un torneo que ya tiene jornadas
-// (on delete restrict en matchdays.tournament_id), para no arrastrar
-// resultados por accidente.
+// Solo para torneos SIN jornadas: la base de datos no deja borrar un torneo que las tiene
+// (on delete restrict en matchdays.tournament_id). Con jornadas se usa borrarTorneoConJornadasDB.
 export async function eliminarTorneoDB(
   supabase: Supabase,
   id: string
@@ -574,6 +573,54 @@ export async function eliminarTorneoDB(
   }
   return { ok: true };
 }
+
+// Lo que se perdería al borrar un torneo con sus jornadas (ver 0145_borrar_torneo_con_jornadas.sql).
+export interface ResumenBorradoTorneo {
+  nombre: string;
+  jornadas: number;
+  resultados: number;
+  alineaciones: number;
+  mesas: number;
+  jugadoresInscritos: number;
+  semanasCobradas: number;
+  importeCobradoMax: number;
+}
+
+// Solo lee: la usa el aviso de confirmación.
+export async function fetchResumenBorradoTorneo(
+  supabase: Supabase,
+  id: string
+): Promise<{ ok: true; resumen: ResumenBorradoTorneo } | { ok: false; mensaje: string }> {
+  const { data, error } = await supabase.rpc("resumen_borrado_torneo", { p_torneo_id: id });
+  if (error || !data) {
+    return { ok: false, mensaje: error?.message ?? "No se pudo calcular qué se borraría." };
+  }
+  const d = data as Record<string, number | string>;
+  return {
+    ok: true,
+    resumen: {
+      nombre: String(d.nombre),
+      jornadas: Number(d.jornadas),
+      resultados: Number(d.resultados),
+      alineaciones: Number(d.alineaciones),
+      mesas: Number(d.mesas),
+      jugadoresInscritos: Number(d.jugadores_inscritos),
+      semanasCobradas: Number(d.semanas_cobradas),
+      importeCobradoMax: Number(d.importe_cobrado_max),
+    },
+  };
+}
+
+// Borra el torneo Y todas sus jornadas en una sola transacción (función SQL de root).
+export async function borrarTorneoConJornadasDB(
+  supabase: Supabase,
+  id: string
+): Promise<ResultadoAccion> {
+  const { error } = await supabase.rpc("borrar_torneo_con_jornadas", { p_torneo_id: id });
+  if (error) return { ok: false, mensaje: error.message };
+  return { ok: true };
+}
+
 // ---------- Emparejamientos publicados (ver 0051_emparejamientos_publicados.sql) ----------
 
 export interface EmparejamientoPublicable {
