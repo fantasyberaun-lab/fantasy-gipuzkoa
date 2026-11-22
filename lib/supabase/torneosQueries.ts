@@ -38,16 +38,22 @@ function filaATorneo(t: any): Torneo {
     emailContacto: t.email_contacto,
     rondasCreadas: t.matchdays?.[0]?.count ?? 0,
     participantes: t.tournament_players?.[0]?.count ?? 0,
+    archivado: t.archivado_en != null,
   };
 }
 
 const COLUMNAS_TORNEO = "*, matchdays (count), tournament_players (count)";
 
-export async function fetchTorneos(supabase: Supabase): Promise<Torneo[]> {
-  const { data, error } = await supabase
-    .from("tournaments")
-    .select(COLUMNAS_TORNEO)
-    .order("created_at", { ascending: false });
+// Por defecto NO devuelve los torneos archivados (borrado lógico, ver 0145_archivar_torneos.sql).
+// Las clasificaciones, el histórico y los puntos no usan esta función: se calculan en SQL con
+// todas las jornadas, estén archivados o no sus torneos.
+export async function fetchTorneos(
+  supabase: Supabase,
+  incluirArchivados = false
+): Promise<Torneo[]> {
+  let consulta = supabase.from("tournaments").select(COLUMNAS_TORNEO);
+  if (!incluirArchivados) consulta = consulta.is("archivado_en", null);
+  const { data, error } = await consulta.order("created_at", { ascending: false });
 
   if (error || !data) return [];
   return data.map(filaATorneo);

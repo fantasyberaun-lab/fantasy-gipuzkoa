@@ -44,6 +44,7 @@ export interface Torneo extends DatosTorneo {
   id: string;
   rondasCreadas: number; // jornadas ya creadas en este torneo
   participantes: number; // jugadores inscritos
+  archivado: boolean; // oculto de las listas (borrado lógico): sus datos e histórico siguen existiendo
 }
 
 export type EstadoTorneo = "En curso" | "Próximo" | "Finalizado";

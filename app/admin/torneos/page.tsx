@@ -5,9 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   actualizarTorneoDB,
   crearTorneoDB,
-  eliminarTorneoDB,
-  borrarTorneoConJornadasDB,
-  fetchResumenBorradoTorneo,
+  archivarTorneoDB,
   fetchTodosLosJugadores,
   type JugadorAdmin,
 } from "@/lib/supabase/adminQueries";
@@ -295,6 +293,7 @@ export default function AdminTorneosPage() {
   const [jugadores, setJugadores] = useState<JugadorAdmin[]>([]);
   const [cargando, setCargando] = useState(true);
   const [mensaje, setMensaje] = useState<string | null>(null);
+  const [mostrarArchivados, setMostrarArchivados] = useState(false);
 
   const [formAbierto, setFormAbierto] = useState(false);
   const [editandoId, setEditandoId] = useState<string | null>(null);
@@ -306,7 +305,7 @@ export default function AdminTorneosPage() {
   async function cargar() {
     setCargando(true);
     const [listaTorneos, listaJugadores] = await Promise.all([
-      fetchTorneos(supabase),
+      fetchTorneos(supabase, true),
       fetchTodosLosJugadores(supabase),
     ]);
     setTorneos(ordenarTorneos(listaTorneos));
@@ -399,57 +398,30 @@ export default function AdminTorneosPage() {
     await cargar();
   }
 
-  async function borrar(t: Torneo) {
+  // "Borrar" = archivar: el torneo deja de verse (aquí y en la sección Torneos), pero no se borra
+  // ninguna jornada, resultado ni punto. Se puede restaurar desde "Mostrar archivados".
+  async function archivar(t: Torneo, ocultar: boolean) {
     setMensaje(null);
-
-    // Sin jornadas: borrado simple.
-    if (t.rondasCreadas === 0) {
-      if (!confirm(`¿Seguro que quieres borrar "${t.nombre}"? Esto no se puede deshacer.`)) {
-        return;
-      }
-      const resultado = await eliminarTorneoDB(supabase, t.id);
-      if (!resultado.ok) {
-        setMensaje(resultado.mensaje);
-        return;
-      }
-      setTorneos((prev) => prev.filter((x) => x.id !== t.id));
+    if (
+      ocultar &&
+      !confirm(
+        `¿Borrar "${t.nombre}" de la lista de torneos?\n\n` +
+          `Solo se oculta: sus jornadas, puntos, valores de mercado, dinero e histórico se mantienen. ` +
+          `Podrás restaurarlo desde "Mostrar archivados".`
+      )
+    ) {
       return;
     }
-
-    // Con jornadas: se muestra lo que se perdería y se pide escribir el nombre.
-    const info = await fetchResumenBorradoTorneo(supabase, t.id);
-    if (!info.ok) {
-      setMensaje(info.mensaje);
-      return;
-    }
-    const r = info.resumen;
-    const aviso =
-      `Vas a BORRAR el torneo "${t.nombre}" y TODAS sus jornadas.\n\n` +
-      `Se eliminan: ${r.jornadas} jornada(s), ${r.resultados} resultado(s), ${r.alineaciones} alineaciones, ` +
-      `${r.mesas} mesa(s) publicadas y ${r.jugadoresInscritos} jugador(es) inscritos.\n\n` +
-      `Consecuencias en la liga (no se pueden deshacer):\n` +
-      `• Los puntos de este torneo desaparecen de TODAS las clasificaciones y de los puntos de los jugadores.\n` +
-      `• El valor de mercado de los jugadores se revierte: se deshace lo que subió o bajó por estos resultados.\n` +
-      (r.semanasCobradas > 0
-        ? `• Se devuelve el dinero cobrado por ${r.semanasCobradas} semana(s) de estas jornadas (hasta ${r.importeCobradoMax.toLocaleString("es-ES")} M en total): bajará el presupuesto de los equipos y recibirán un aviso.\n`
-        : `• Ninguna semana cobrada se ve afectada (no hay dinero que devolver).\n`) +
-      `• Los iconos de fin de liga ya entregados no se tocan, pero conviene entregarlos ANTES de borrar.\n\n` +
-      `Para confirmar, escribe el nombre exacto del torneo:\n${t.nombre}`;
-
-    const escrito = window.prompt(aviso, "");
-    if (escrito === null) return;
-    if (escrito.trim() !== t.nombre.trim()) {
-      setMensaje("El nombre no coincide: no se ha borrado nada.");
-      return;
-    }
-
-    const resultado = await borrarTorneoConJornadasDB(supabase, t.id);
+    const resultado = await archivarTorneoDB(supabase, t.id, ocultar);
     if (!resultado.ok) {
       setMensaje(resultado.mensaje);
       return;
     }
-    setTorneos((prev) => prev.filter((x) => x.id !== t.id));
+    setTorneos((prev) => prev.map((x) => (x.id === t.id ? { ...x, archivado: ocultar } : x)));
   }
+
+  const numArchivados = torneos.filter((t) => t.archivado).length;
+  const torneosVisibles = torneos.filter((t) => mostrarArchivados || !t.archivado);
 
   return (
     <div className="flex flex-col gap-6">
@@ -740,15 +712,26 @@ export default function AdminTorneosPage() {
 
       {mensaje && <p className="text-sm text-negative">{mensaje}</p>}
 
+      {numArchivados > 0 && (
+        <label className="flex items-center gap-2 text-sm text-neutral-500">
+          <input
+            type="checkbox"
+            checked={mostrarArchivados}
+            onChange={(e) => setMostrarArchivados(e.target.checked)}
+          />
+          Mostrar archivados ({numArchivados})
+        </label>
+      )}
+
       {cargando ? (
         <p className="text-sm text-neutral-500">Cargando torneos…</p>
-      ) : torneos.length === 0 ? (
+      ) : torneosVisibles.length === 0 ? (
         <p className="py-6 text-center text-sm text-neutral-500">
           Todavía no hay torneos. Crea el primero para poder añadirle rondas.
         </p>
       ) : (
         <ul className="flex flex-col gap-4">
-          {torneos.map((t) => {
+          {torneosVisibles.map((t) => {
             const estado = estadoTorneo(t);
             return (
               <li
@@ -757,7 +740,14 @@ export default function AdminTorneosPage() {
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex flex-col gap-1">
-                    <h2 className="text-base font-semibold">{t.nombre}</h2>
+                    <h2 className="text-base font-semibold">
+                      {t.nombre}
+                      {t.archivado && (
+                        <span className="ml-2 rounded-full border border-neutral-300 px-2 py-0.5 text-xs font-normal text-neutral-500 dark:border-neutral-700">
+                          archivado
+                        </span>
+                      )}
+                    </h2>
                     <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-500">
                       {t.categoria && <span>{t.categoria}ª categoría</span>}
                       {estado && (
@@ -782,12 +772,21 @@ export default function AdminTorneosPage() {
                     >
                       Editar
                     </button>
-                    <button
-                      onClick={() => borrar(t)}
-                      className="rounded border border-neutral-300 px-2 py-1 text-xs text-negative dark:border-neutral-700"
-                    >
-                      Borrar
-                    </button>
+                    {t.archivado ? (
+                      <button
+                        onClick={() => archivar(t, false)}
+                        className="rounded border border-neutral-300 px-2 py-1 text-xs font-medium dark:border-neutral-700"
+                      >
+                        Restaurar
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => archivar(t, true)}
+                        className="rounded border border-neutral-300 px-2 py-1 text-xs text-negative dark:border-neutral-700"
+                      >
+                        Borrar
+                      </button>
+                    )}
                   </div>
                 </div>
 
